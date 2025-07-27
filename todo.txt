@@ -1,0 +1,153 @@
+# AutoPi Home Assistant Integration - TODO List
+
+## Completed Tasks ✓
+- [x] Basic integration structure following meraki-dashboard-ha best practices
+- [x] Config flow with API key validation and vehicle selection
+- [x] API client with comprehensive error handling and retry logic
+- [x] Data update coordinator with configurable polling interval
+- [x] Vehicle count sensor (diagnostic entity)
+- [x] Individual vehicle sensors with full attribute set
+- [x] Comprehensive logging throughout
+- [x] CLAUDE.md documentation files
+- [x] Localization support (strings.json)
+
+## High Priority Tasks
+
+### Additional API Endpoints
+- [ ] Implement `/telemetry/v2` endpoint for real-time data
+  - Engine status
+  - Speed, RPM, fuel level
+  - Temperature readings
+  - Battery voltage
+- [ ] Implement `/trips/v2` endpoint for trip history
+  - Trip start/end times
+  - Distance traveled
+  - Average speed
+  - Fuel consumption
+- [ ] Implement `/alerts/v2` endpoint for vehicle alerts
+  - Maintenance reminders
+  - Diagnostic trouble codes
+  - Security alerts
+
+### Binary Sensors
+- [ ] Create binary sensor platform
+- [ ] Engine running sensor
+- [ ] Door open/closed sensors
+- [ ] Vehicle connected/disconnected sensor
+- [ ] Movement detection sensor
+- [ ] Ignition status sensor
+
+### Device Tracker
+- [ ] Create device tracker platform
+- [ ] GPS-based location tracking
+- [ ] Geofencing support
+- [ ] Zone enter/exit notifications
+- [ ] Trip tracking with routes
+
+## Medium Priority Tasks
+
+### Additional Sensors
+- [ ] Fuel level sensor
+- [ ] Battery voltage sensor
+- [ ] Engine temperature sensor
+- [ ] Speed sensor
+- [ ] RPM sensor
+- [ ] Odometer sensor
+- [ ] Trip distance sensor
+- [ ] Fuel consumption sensor
+
+### Services
+- [ ] Create services.yaml
+- [ ] Remote lock/unlock service (if supported by API)
+- [ ] Remote start/stop service (if supported by API)
+- [ ] Set geofence service
+- [ ] Clear alerts service
+- [ ] Request vehicle update service
+
+### Diagnostics
+- [ ] Implement diagnostics.py for integration debugging
+- [ ] Include API connection status
+- [ ] Show last successful update time
+- [ ] Display API rate limit information
+- [ ] List configured vehicles and their status
+
+## Low Priority Tasks
+
+### UI Enhancements
+- [ ] Create custom Lovelace cards
+- [ ] Vehicle dashboard card
+- [ ] Trip history card
+- [ ] Maintenance schedule card
+- [ ] Real-time telemetry card
+
+### Advanced Features
+- [ ] Implement caching for static vehicle data
+- [ ] Add support for multiple AutoPi accounts
+- [ ] Create repair flows for common issues
+- [ ] Add webhook support for real-time updates (if API supports)
+- [ ] Implement local push notifications
+
+### Testing
+- [ ] Create comprehensive test suite
+- [ ] Unit tests for API client
+- [ ] Integration tests for config flow
+- [ ] Mock AutoPi API responses
+- [ ] Test error scenarios
+- [ ] Performance testing with multiple vehicles
+
+### Documentation
+- [ ] Create detailed user documentation
+- [ ] Add examples to README
+- [ ] Document all available entities and their attributes
+- [ ] Create troubleshooting guide
+- [ ] Add contribution guidelines
+
+## Future Considerations
+
+### API SDK
+- [ ] Consider creating a separate Python SDK for AutoPi API
+- [ ] Publish to PyPI for broader use
+- [ ] Would simplify integration maintenance
+
+### Multi-Hub Support
+- [ ] Support for AutoPi fleet management
+- [ ] Organizational hierarchy
+- [ ] Role-based access control
+- [ ] Fleet-wide statistics
+
+### Historical Data
+- [ ] Long-term statistics for vehicle data
+- [ ] Integration with Home Assistant's statistics engine
+- [ ] Custom statistics cards
+- [ ] Data export functionality
+
+### Automation Support
+- [ ] Create automation blueprints
+- [ ] Low fuel notifications
+- [ ] Maintenance reminders
+- [ ] Geofence-based automations
+- [ ] Trip logging automations
+
+## Known Issues / Limitations
+- API only provides basic vehicle profile data currently
+- No real-time telemetry implemented yet
+- No support for vehicle controls
+- Limited to polling-based updates (no webhooks)
+
+## Development Notes
+- Follow Home Assistant development best practices
+- Maintain backward compatibility
+- Keep API calls efficient to respect rate limits
+- Ensure all new features have proper error handling
+- Add debug logging for troubleshooting
+- Update CLAUDE.md files when adding new features
+- Test with multiple vehicle types (ICE, EV, Hybrid)
+
+## External Dependencies
+- Consider updating to latest aiohttp when stable
+- Monitor AutoPi API changes and updates
+- Keep Home Assistant compatibility current
+
+## Contact
+- GitHub Issues: https://github.com/rknightion/autopi-ha/issues
+- AutoPi API Docs: https://api.autopi.io/docs

@@ -1,0 +1,60 @@
+{
+  "title": "AutoPi",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure AutoPi",
+        "description": "Enter your AutoPi API key to get started.",
+        "data": {
+          "api_key": "API Key",
+          "base_url": "API Base URL (optional)"
+        },
+        "data_description": {
+          "api_key": "Your AutoPi API key from the AutoPi dashboard",
+          "base_url": "The base URL for the AutoPi API (default: https://api.autopi.io)"
+        }
+      },
+      "select_vehicles": {
+        "title": "Select Vehicles",
+        "description": "Select the vehicles you want to monitor.",
+        "data": {
+          "selected_vehicles": "Vehicles"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to AutoPi API",
+      "invalid_auth": "Invalid API key",
+      "unknown": "Unexpected error",
+      "no_vehicles": "No vehicles found in your AutoPi account"
+    },
+    "abort": {
+      "already_configured": "AutoPi is already configured",
+      "no_vehicles": "No vehicles found in your AutoPi account"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AutoPi Options",
+        "description": "Configure AutoPi integration options.",
+        "data": {
+          "scan_interval": "Update interval (minutes)"
+        },
+        "data_description": {
+          "scan_interval": "How often to fetch data from AutoPi (minimum: 1 minute)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "vehicle_count": {
+        "name": "Vehicle Count"
+      },
+      "vehicle": {
+        "name": "{vehicle_name}"
+      }
+    }
+  }
+}

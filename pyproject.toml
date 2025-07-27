@@ -17,21 +17,17 @@ classifiers = [
     "Topic :: Home Automation",
 ]
 dependencies = [
-    "aiohttp>=3.8.0",
-    "async-timeout>=4.0.0",
+    "aiohttp==3.12.14",
 ]
 
 [dependency-groups]
 dev = [
     "homeassistant-stubs==2025.7.3",
-    "ruff<1.0.0,>=0.12.5",
-    "mypy",
-    "bandit",
-    "types-requests",
-    "types-PyYAML",
+    "ruff==0.12.5",
+    "mypy==1.17.0",
+    "bandit==1.8.6",
     "safety",
-    "marshmallow<5.0.0",
-    "pytest-homeassistant-custom-component>=0.13.263",
+    "pytest-homeassistant-custom-component==0.13.263",
 ]
 
 
