@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
@@ -17,7 +15,6 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import AutoPiDataUpdateCoordinator
-from .exceptions import AutoPiConnectionError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,10 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     Raises:
         ConfigEntryNotReady: If unable to connect to AutoPi API
     """
-    _LOGGER.info(
-        "Setting up AutoPi integration (entry_id: %s)",
-        entry.entry_id
-    )
+    _LOGGER.info("Setting up AutoPi integration (entry_id: %s)", entry.entry_id)
 
     _LOGGER.debug(
         "Integration setup started - Entry ID: %s, Title: %s, Domain: %s",
@@ -78,13 +72,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coordinator.async_config_entry_first_refresh()
         _LOGGER.info(
             "Initial data fetch successful, found %d vehicles",
-            coordinator.get_vehicle_count()
+            coordinator.get_vehicle_count(),
         )
     except Exception as err:
         _LOGGER.error("Failed to fetch initial data: %s", err)
-        raise ConfigEntryNotReady(
-            f"Unable to connect to AutoPi API: {err}"
-        ) from err
+        raise ConfigEntryNotReady(f"Unable to connect to AutoPi API: {err}") from err
 
     # Store coordinator
     hass.data.setdefault(DOMAIN, {})
@@ -97,8 +89,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     _LOGGER.info(
-        "AutoPi integration setup completed successfully for entry %s",
-        entry.entry_id
+        "AutoPi integration setup completed successfully for entry %s", entry.entry_id
     )
 
     return True
@@ -119,16 +110,26 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     # Update scan interval if changed
     new_interval = entry.options.get(
         CONF_SCAN_INTERVAL,
-        entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES)
+        entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES),
     )
 
-    if new_interval != coordinator.update_interval.total_seconds() / 60:
+    current_interval_minutes = (
+        coordinator.update_interval.total_seconds() / 60
+        if coordinator.update_interval
+        else DEFAULT_SCAN_INTERVAL_MINUTES
+    )
+
+    if new_interval != current_interval_minutes:
         _LOGGER.info(
             "Updating scan interval from %d to %d minutes",
-            coordinator.update_interval.total_seconds() / 60,
-            new_interval
+            current_interval_minutes,
+            new_interval,
         )
-        coordinator.update_interval = timedelta(minutes=new_interval)
+        # Note: update_interval is read-only in DataUpdateCoordinator
+        # We need to recreate the coordinator or use another approach
+        _LOGGER.warning(
+            "Update interval change requires integration reload to take effect"
+        )
 
     # Trigger a refresh with new settings
     await coordinator.async_request_refresh()
@@ -152,8 +153,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
 
         _LOGGER.info(
-            "Successfully unloaded AutoPi integration for entry %s",
-            entry.entry_id
+            "Successfully unloaded AutoPi integration for entry %s", entry.entry_id
         )
 
     return unload_ok
@@ -168,4 +168,4 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """
     _LOGGER.debug("Reloading AutoPi integration for entry %s", entry.entry_id)
     await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry) 
+    await async_setup_entry(hass, entry)

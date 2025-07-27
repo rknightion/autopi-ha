@@ -24,4 +24,4 @@ async def async_setup_entry(
     # - Engine running status
     # - Door open/closed status
     # - Vehicle connected/disconnected status
-    # - etc. 
+    # - etc.

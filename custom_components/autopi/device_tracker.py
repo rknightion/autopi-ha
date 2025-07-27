@@ -24,4 +24,4 @@ async def async_setup_entry(
     # - Vehicle GPS location tracking
     # - Geofencing support
     # - Trip tracking
-    # - etc. 
+    # - etc.

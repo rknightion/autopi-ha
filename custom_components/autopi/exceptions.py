@@ -5,22 +5,27 @@ from __future__ import annotations
 from typing import Any
 
 
-class AutoPiException(Exception):
+class AutoPiError(Exception):
     """Base exception for all AutoPi integration errors."""
 
 
-class AutoPiAuthenticationError(AutoPiException):
+class AutoPiAuthenticationError(AutoPiError):
     """Exception raised when authentication fails."""
 
 
-class AutoPiConnectionError(AutoPiException):
+class AutoPiConnectionError(AutoPiError):
     """Exception raised when connection to AutoPi API fails."""
 
 
-class AutoPiAPIError(AutoPiException):
+class AutoPiAPIError(AutoPiError):
     """Exception raised when API returns an error."""
 
-    def __init__(self, message: str, status_code: int | None = None, data: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> None:
         """Initialize API error.
 
         Args:
@@ -41,9 +46,9 @@ class AutoPiTimeoutError(AutoPiConnectionError):
     """Exception raised when request times out."""
 
 
-class AutoPiInvalidConfigError(AutoPiException):
+class AutoPiInvalidConfigError(AutoPiError):
     """Exception raised when configuration is invalid."""
 
 
-class AutoPiNoDataError(AutoPiException):
+class AutoPiNoDataError(AutoPiError):
     """Exception raised when no data is available."""

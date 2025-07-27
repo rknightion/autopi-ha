@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -47,9 +46,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         """
         self.config_entry = config_entry
         self._client: AutoPiClient | None = None
-        self._selected_vehicles = set(
-            config_entry.data.get(CONF_SELECTED_VEHICLES, [])
-        )
+        self._selected_vehicles = set(config_entry.data.get(CONF_SELECTED_VEHICLES, []))
 
         # Get scan interval from config or options
         scan_interval_minutes = (
@@ -67,7 +64,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
         _LOGGER.debug(
             "AutoPi coordinator initialized with %d minute update interval",
-            scan_interval_minutes
+            scan_interval_minutes,
         )
 
     async def _async_update_data(self) -> CoordinatorData:
@@ -86,7 +83,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 self._client = AutoPiClient(
                     session=session,
                     api_key=self.config_entry.data[CONF_API_KEY],
-                    base_url=self.config_entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
+                    base_url=self.config_entry.data.get(
+                        CONF_BASE_URL, DEFAULT_BASE_URL
+                    ),
                 )
 
             _LOGGER.debug("Fetching vehicle data from AutoPi API")
@@ -94,32 +93,17 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             # Get all vehicles
             vehicles = await self._client.get_vehicles()
 
-            _LOGGER.info(
-                "Received %d vehicles from AutoPi API",
-                len(vehicles)
-            )
+            _LOGGER.info("Received %d vehicles from AutoPi API", len(vehicles))
 
             # Filter to selected vehicles if specified
             if self._selected_vehicles:
-                vehicles = [
-                    v for v in vehicles
-                    if str(v.id) in self._selected_vehicles
-                ]
-                _LOGGER.debug(
-                    "Filtered to %d selected vehicles",
-                    len(vehicles)
-                )
+                vehicles = [v for v in vehicles if str(v.id) in self._selected_vehicles]
+                _LOGGER.debug("Filtered to %d selected vehicles", len(vehicles))
 
             # Convert to coordinator data format
-            data: CoordinatorData = {
-                str(vehicle.id): vehicle
-                for vehicle in vehicles
-            }
+            data: CoordinatorData = {str(vehicle.id): vehicle for vehicle in vehicles}
 
-            _LOGGER.debug(
-                "Successfully updated data for %d vehicles",
-                len(data)
-            )
+            _LOGGER.debug("Successfully updated data for %d vehicles", len(data))
 
             return data
 
@@ -152,7 +136,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         _LOGGER.debug(
             "Updating selected vehicles from %s to %s",
             self._selected_vehicles,
-            selected_vehicles
+            selected_vehicles,
         )
 
         self._selected_vehicles = set(selected_vehicles)

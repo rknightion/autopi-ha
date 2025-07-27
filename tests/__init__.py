@@ -1,1 +1,1 @@
-"""Tests for the AutoPi integration.""" 
+"""Tests for the AutoPi integration."""

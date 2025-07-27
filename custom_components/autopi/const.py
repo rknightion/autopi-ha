@@ -47,4 +47,4 @@ VEHICLE_PROFILE_ENDPOINT: Final = "/vehicle/v2/profile"
 
 MANUFACTURER: Final = "AutoPi"
 
-UPDATE_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL) 
+UPDATE_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL)

@@ -6,7 +6,6 @@ import asyncio
 import logging
 from typing import Any, Final
 
-import aiohttp
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from .const import (
@@ -21,7 +20,7 @@ from .exceptions import (
     AutoPiRateLimitError,
     AutoPiTimeoutError,
 )
-from .types import VehicleProfileResponse, AutoPiVehicle
+from .types import AutoPiVehicle
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,17 +76,18 @@ class AutoPiClient:
                 VEHICLE_PROFILE_ENDPOINT,
             )
 
-            response = VehicleProfileResponse(**data)
-            
+            # Type-safe access to response data
+            vehicle_count = data.get("count", 0)
+            results = data.get("results", [])
+
             _LOGGER.info(
                 "Successfully fetched %d vehicles from AutoPi API",
-                response.get("count", 0)
+                vehicle_count,
             )
 
             # Convert API data to AutoPiVehicle objects
             vehicles = [
-                AutoPiVehicle.from_api_data(vehicle_data)
-                for vehicle_data in response.get("results", [])
+                AutoPiVehicle.from_api_data(vehicle_data) for vehicle_data in results
             ]
 
             return vehicles
@@ -122,13 +122,13 @@ class AutoPiClient:
             AutoPiAPIError: If API returns an error
         """
         url = f"{self._base_url}{endpoint}"
-        
+
         _LOGGER.debug(
             "Making %s request to %s (retry %d/%d)",
             method,
             url,
             retry_count,
-            MAX_RETRIES
+            MAX_RETRIES,
         )
 
         try:
@@ -141,12 +141,12 @@ class AutoPiClient:
                 timeout=ClientTimeout(total=DEFAULT_TIMEOUT),
             ) as response:
                 response_text = await response.text()
-                
+
                 _LOGGER.debug(
                     "Received response with status %d for %s %s",
                     response.status,
                     method,
-                    url
+                    url,
                 )
 
                 if response.status == 401:
@@ -156,49 +156,36 @@ class AutoPiClient:
                 if response.status == 429:
                     _LOGGER.warning("Rate limit exceeded")
                     raise AutoPiRateLimitError(
-                        "Rate limit exceeded",
-                        status_code=response.status
+                        "Rate limit exceeded", status_code=response.status
                     )
 
                 if response.status >= 500:
-                    _LOGGER.error(
-                        "Server error %d: %s",
-                        response.status,
-                        response_text
-                    )
-                    
+                    _LOGGER.error("Server error %d: %s", response.status, response_text)
+
                     # Retry on server errors
                     if retry_count < MAX_RETRIES:
                         _LOGGER.info(
                             "Retrying request after server error (attempt %d/%d)",
                             retry_count + 1,
-                            MAX_RETRIES
+                            MAX_RETRIES,
                         )
                         await asyncio.sleep(RETRY_DELAY * (retry_count + 1))
                         return await self._request(
-                            method,
-                            endpoint,
-                            data,
-                            params,
-                            retry_count + 1
+                            method, endpoint, data, params, retry_count + 1
                         )
-                    
+
                     raise AutoPiAPIError(
                         f"Server error: {response.status}",
                         status_code=response.status,
-                        data={"response": response_text}
+                        data={"response": response_text},
                     )
 
                 if response.status >= 400:
-                    _LOGGER.error(
-                        "Client error %d: %s",
-                        response.status,
-                        response_text
-                    )
+                    _LOGGER.error("Client error %d: %s", response.status, response_text)
                     raise AutoPiAPIError(
                         f"Client error: {response.status}",
                         status_code=response.status,
-                        data={"response": response_text}
+                        data={"response": response_text},
                     )
 
                 if response.status == 204:
@@ -208,51 +195,35 @@ class AutoPiClient:
                 try:
                     return await response.json()
                 except Exception as err:
-                    _LOGGER.error(
-                        "Failed to parse JSON response: %s",
-                        response_text
-                    )
+                    _LOGGER.error("Failed to parse JSON response: %s", response_text)
                     raise AutoPiAPIError(
                         "Invalid JSON response from API",
-                        data={"response": response_text}
+                        data={"response": response_text},
                     ) from err
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             _LOGGER.error("Request timeout for %s %s", method, url)
-            raise AutoPiTimeoutError(
-                f"Request timeout for {method} {url}"
-            ) from err
-            
+            raise AutoPiTimeoutError(f"Request timeout for {method} {url}") from err
+
         except ClientError as err:
             _LOGGER.error("Connection error for %s %s: %s", method, url, err)
-            
+
             # Retry on connection errors
             if retry_count < MAX_RETRIES:
                 _LOGGER.info(
                     "Retrying request after connection error (attempt %d/%d)",
                     retry_count + 1,
-                    MAX_RETRIES
+                    MAX_RETRIES,
                 )
                 await asyncio.sleep(RETRY_DELAY * (retry_count + 1))
                 return await self._request(
-                    method,
-                    endpoint,
-                    data,
-                    params,
-                    retry_count + 1
+                    method, endpoint, data, params, retry_count + 1
                 )
-            
+
             raise AutoPiConnectionError(
                 f"Failed to connect to AutoPi API: {err}"
             ) from err
-            
+
         except Exception as err:
-            _LOGGER.error(
-                "Unexpected error during %s %s: %s",
-                method,
-                url,
-                err
-            )
-            raise AutoPiAPIError(
-                f"Unexpected error: {err}"
-            ) from err
+            _LOGGER.error("Unexpected error during %s %s: %s", method, url, err)
+            raise AutoPiAPIError(f"Unexpected error: {err}") from err

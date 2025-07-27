@@ -42,8 +42,7 @@ class AutoPiEntity(CoordinatorEntity[AutoPiDataUpdateCoordinator], Entity):
             self._attr_unique_id = entry_id
 
         _LOGGER.debug(
-            "Initialized AutoPi entity with unique_id: %s",
-            self._attr_unique_id
+            "Initialized AutoPi entity with unique_id: %s", self._attr_unique_id
         )
 
 
@@ -64,15 +63,14 @@ class AutoPiVehicleEntity(AutoPiEntity):
             entity_suffix: Suffix for the entity unique ID
         """
         super().__init__(
-            coordinator,
-            unique_id_suffix=f"vehicle_{vehicle_id}_{entity_suffix}"
+            coordinator, unique_id_suffix=f"vehicle_{vehicle_id}_{entity_suffix}"
         )
         self._vehicle_id = vehicle_id
 
         _LOGGER.debug(
             "Initialized AutoPi vehicle entity for vehicle %s with suffix %s",
             vehicle_id,
-            entity_suffix
+            entity_suffix,
         )
 
     @property

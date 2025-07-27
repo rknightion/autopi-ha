@@ -9,8 +9,7 @@ import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult, OptionsFlow
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -23,17 +22,17 @@ from .const import (
     DEFAULT_NAME,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DOMAIN,
-    MIN_SCAN_INTERVAL_MINUTES,
     MAX_SCAN_INTERVAL_MINUTES,
+    MIN_SCAN_INTERVAL_MINUTES,
     USER_AGENT,
     VEHICLE_PROFILE_ENDPOINT,
 )
 from .exceptions import (
+    AutoPiAPIError,
     AutoPiAuthenticationError,
     AutoPiConnectionError,
-    AutoPiAPIError,
 )
-from .types import VehicleProfileResponse, AutoPiVehicle
+from .types import AutoPiVehicle
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,13 +81,13 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 # Test the API connection and get vehicles
                 vehicles = await self._test_api_connection()
-                
+
                 if not vehicles:
                     _LOGGER.warning("No vehicles found in AutoPi account")
                     return self.async_abort(reason="no_vehicles")
 
                 self._vehicles = vehicles
-                
+
                 # If we have vehicles, proceed to vehicle selection
                 return await self.async_step_select_vehicles()
 
@@ -121,10 +120,10 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             # Create the config entry
             selected_vehicles = user_input.get(CONF_SELECTED_VEHICLES, [])
-            
+
             _LOGGER.info(
                 "Creating AutoPi config entry with %d selected vehicles",
-                len(selected_vehicles)
+                len(selected_vehicles),
             )
 
             return self.async_create_entry(
@@ -155,7 +154,10 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=list(vehicle_options.keys()),
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=list(vehicle_options.items()),
+                            options=[
+                                selector.SelectOptionDict(value=k, label=v)
+                                for k, v in vehicle_options.items()
+                            ],
                             multiple=True,
                             mode=selector.SelectSelectorMode.LIST,
                         )
@@ -176,7 +178,7 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             AutoPiAPIError: If API returns an error
         """
         session = async_get_clientsession(self.hass)
-        
+
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "User-Agent": USER_AGENT,
@@ -184,7 +186,7 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
         url = f"{self._base_url}{VEHICLE_PROFILE_ENDPOINT}"
-        
+
         _LOGGER.debug("Testing API connection to %s", url)
 
         try:
@@ -195,24 +197,20 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ) as response:
                 if response.status == 401:
                     raise AutoPiAuthenticationError("Invalid API key")
-                
+
                 if response.status != 200:
                     text = await response.text()
-                    _LOGGER.error(
-                        "API returned status %d: %s",
-                        response.status,
-                        text
-                    )
+                    _LOGGER.error("API returned status %d: %s", response.status, text)
                     raise AutoPiAPIError(
                         f"API returned status {response.status}",
-                        status_code=response.status
+                        status_code=response.status,
                     )
 
-                data: VehicleProfileResponse = await response.json()
-                
+                data = await response.json()
+
                 _LOGGER.debug(
                     "Successfully connected to API, found %d vehicles",
-                    data.get("count", 0)
+                    data.get("count", 0),
                 )
 
                 # Convert API data to AutoPiVehicle objects
@@ -225,7 +223,9 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         except aiohttp.ClientError as err:
             _LOGGER.error("Connection error: %s", err)
-            raise AutoPiConnectionError(f"Failed to connect to AutoPi API: {err}") from err
+            raise AutoPiConnectionError(
+                f"Failed to connect to AutoPi API: {err}"
+            ) from err
         except Exception as err:
             _LOGGER.error("Unexpected error during API test: %s", err)
             raise
@@ -247,8 +247,7 @@ class AutoPiOptionsFlow(OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         current_interval = self.config_entry.data.get(
-            CONF_SCAN_INTERVAL,
-            DEFAULT_SCAN_INTERVAL_MINUTES
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES
         )
 
         return self.async_show_form(
@@ -268,4 +267,4 @@ class AutoPiOptionsFlow(OptionsFlow):
                     ),
                 }
             ),
-        ) 
+        )
