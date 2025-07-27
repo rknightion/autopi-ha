@@ -1,7 +1,7 @@
 # AutoPi Home Assistant Integration - TODO List
 
 ## Completed Tasks ✓
-- [x] Basic integration structure following meraki-dashboard-ha best practices
+- [x] Basic integration structure following autopi-ha best practices
 - [x] Config flow with API key validation and vehicle selection
 - [x] API client with comprehensive error handling and retry logic
 - [x] Data update coordinator with configurable polling interval

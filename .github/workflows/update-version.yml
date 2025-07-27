@@ -96,7 +96,7 @@ jobs:
           else
             echo "---" >> /tmp/new_changelog.md
             echo "" >> /tmp/new_changelog.md
-            echo "For releases prior to v$VERSION, see the [GitHub Releases page](https://github.com/rknightion/meraki-dashboard-ha/releases)." >> /tmp/new_changelog.md
+            echo "For releases prior to v$VERSION, see the [GitHub Releases page](https://github.com/rknightion/autopi-ha/releases)." >> /tmp/new_changelog.md
           fi
 
           mv /tmp/new_changelog.md CHANGELOG.md
