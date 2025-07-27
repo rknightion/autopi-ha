@@ -1,0 +1,266 @@
+name: Generate Release Notes from Git History
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      since_tag:
+        description: 'Generate notes since this tag (e.g., v0.24.4)'
+        required: false
+        type: string
+      target_version:
+        description: 'Target version for the release (e.g., 0.24.10)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Clean up old draft releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Cleaning up old draft releases..."
+          
+          # Get all draft releases using JSON output for reliable parsing
+          DRAFT_RELEASES=$(gh api repos/${{ github.repository }}/releases --paginate | \
+            jq -r '.[] | select(.draft == true) | .tag_name' || true)
+          
+          if [ -n "$DRAFT_RELEASES" ]; then
+            DRAFT_COUNT=$(echo "$DRAFT_RELEASES" | wc -l | tr -d ' ')
+            echo "Found $DRAFT_COUNT draft releases to clean up"
+            
+            # Delete each draft release
+            while IFS= read -r tag; do
+              if [ -n "$tag" ]; then
+                echo "Deleting draft release: $tag"
+                if gh release delete "$tag" --yes --cleanup-tag 2>/dev/null; then
+                  echo "  ✅ Successfully deleted $tag"
+                else
+                  echo "  ⚠️  Failed to delete $tag (may already be deleted)"
+                fi
+              fi
+            done <<< "$DRAFT_RELEASES"
+            
+            echo "✅ Cleaned up all old draft releases"
+          else
+            echo "No draft releases to clean up"
+          fi
+
+      - name: Generate release notes from git history
+        id: generate_notes
+        run: |
+          # Handle both manual and automatic triggers
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET_VERSION="${{ github.event.inputs.target_version }}"
+            SINCE_TAG="${{ github.event.inputs.since_tag }}"
+          else
+            # Auto-triggered by push - use semantic versioning
+            # Get the latest version tag (matching v*.*.* pattern)
+            LATEST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1 || echo "v0.1.0")
+            echo "Latest version tag: $LATEST_TAG"
+
+            # Extract version
+            LATEST_VERSION=${LATEST_TAG#v}
+            IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+            
+            # Get all commits since the last tag to determine version bump
+            if [ -n "$LATEST_TAG" ]; then
+              COMMITS=$(git log --oneline "$LATEST_TAG..HEAD")
+            else
+              COMMITS=$(git log --oneline HEAD~20..HEAD)
+            fi
+            
+            # Determine version bump based on conventional commits
+            MAJOR_BUMP=false
+            MINOR_BUMP=false
+            PATCH_BUMP=false
+            
+            # Check for breaking changes (major bump)
+            if echo "$COMMITS" | grep -qE "BREAKING CHANGE:|^[a-f0-9]+ [a-z]+(\(.*\))?!:"; then
+              echo "Found breaking changes - major version bump"
+              MAJOR_BUMP=true
+            fi
+            
+            # Check for features (minor bump)
+            if echo "$COMMITS" | grep -qE "^[a-f0-9]+ feat(\(|:)"; then
+              echo "Found new features - minor version bump"
+              MINOR_BUMP=true
+            fi
+            
+            # Check for fixes and other changes (patch bump)
+            if echo "$COMMITS" | grep -qE "^[a-f0-9]+ (fix|chore|docs|style|refactor|perf|test|build|ci)(\(|:)"; then
+              echo "Found fixes/maintenance - patch version bump"
+              PATCH_BUMP=true
+            fi
+            
+            # Apply version bump
+            if [ "$MAJOR_BUMP" = true ]; then
+              major=$((major + 1))
+              minor=0
+              patch=0
+              echo "Bumping major version: $LATEST_VERSION -> $major.$minor.$patch"
+            elif [ "$MINOR_BUMP" = true ]; then
+              minor=$((minor + 1))
+              patch=0
+              echo "Bumping minor version: $LATEST_VERSION -> $major.$minor.$patch"
+            elif [ "$PATCH_BUMP" = true ]; then
+              patch=$((patch + 1))
+              echo "Bumping patch version: $LATEST_VERSION -> $major.$minor.$patch"
+            else
+              # Default to patch bump if no conventional commits found
+              patch=$((patch + 1))
+              echo "No conventional commits found, default patch bump: $LATEST_VERSION -> $major.$minor.$patch"
+            fi
+            
+            TARGET_VERSION="$major.$minor.$patch"
+            SINCE_TAG="$LATEST_TAG"
+          fi
+
+          # If no since_tag provided in manual mode, get the latest version tag
+          if [ -z "$SINCE_TAG" ]; then
+            SINCE_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1 || echo "")
+          fi
+
+          # If no target_version provided in manual mode, auto-generate
+          if [ -z "$TARGET_VERSION" ]; then
+            LATEST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1 || echo "v0.1.0")
+            LATEST_VERSION=${LATEST_TAG#v}
+            IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+            NEW_PATCH=$((patch + 1))
+            TARGET_VERSION="$major.$minor.$NEW_PATCH"
+          fi
+
+          # Validate version format
+          if ! [[ "$TARGET_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid version format: $TARGET_VERSION"
+            exit 1
+          fi
+
+          echo "Generating release notes for v$TARGET_VERSION"
+          echo "Since tag: $SINCE_TAG"
+
+          # Create release notes header
+          cat > /tmp/release_notes.md << 'EOF'
+          ## What's Changed
+
+          EOF
+
+          # Get all commits since the last tag
+          if [ -n "$SINCE_TAG" ]; then
+            ALL_COMMITS=$(git log --oneline "$SINCE_TAG..HEAD")
+          else
+            ALL_COMMITS=$(git log --oneline HEAD~20..HEAD)
+          fi
+
+          # Helper function to add section if commits exist
+          add_section() {
+            local title="$1"
+            local pattern="$2"
+            local prefix="$3"
+            
+            # Extract commits matching pattern
+            local commits=$(echo "$ALL_COMMITS" | grep -E "^[a-f0-9]+ $pattern" | sed "s/^[a-f0-9]* $prefix[^:]*: /- /" | sed 's/@.*//' || true)
+            
+            # Only add section if there are commits
+            if [ -n "$commits" ]; then
+              echo "### $title" >> /tmp/release_notes.md
+              echo "$commits" >> /tmp/release_notes.md
+              echo "" >> /tmp/release_notes.md
+            fi
+          }
+
+          # Add sections only if they have content
+          add_section "🚗 Vehicle Features" "feat(\(|:)" "feat"
+          add_section "🐛 Bug Fixes" "fix(\(|:)" "fix"
+          add_section "🧰 Maintenance" "(chore|ci|build|refactor)(\(|:)" "(chore|ci|build|refactor)"
+          add_section "📚 Documentation" "docs(\(|:)" "docs"
+          add_section "🔐 Security" "security(\(|:)" "security"
+          add_section "⚡ Performance" "perf(\(|:)" "perf"
+          add_section "✅ Tests" "test(\(|:)" "test"
+
+          # Add other commits section if there are any non-conventional commits
+          OTHER_COMMITS=$(echo "$ALL_COMMITS" | grep -v -E "^[a-f0-9]+ (feat|fix|docs|refactor|perf|test|build|ci|style|chore|security)(\(|:)" || true)
+          if [ -n "$OTHER_COMMITS" ]; then
+            echo "### 📋 Other Changes" >> /tmp/release_notes.md
+            echo "$OTHER_COMMITS" | sed 's/^[a-f0-9]* /- /' >> /tmp/release_notes.md
+            echo "" >> /tmp/release_notes.md
+          fi
+
+          # If no changes at all, add a message
+          if [ $(grep -c "^### " /tmp/release_notes.md || true) -eq 0 ]; then
+            echo "No significant changes in this release." >> /tmp/release_notes.md
+            echo "" >> /tmp/release_notes.md
+          fi
+
+          # Add installation instructions
+          cat >> /tmp/release_notes.md << 'EOF'
+          ## Installation
+
+          ### HACS (Recommended)
+          1. Add this repository as a custom repository in HACS
+          2. Install "AutoPi" integration
+          3. Restart Home Assistant
+
+          ### Manual Installation
+          1. Download the `autopi.zip` file from the Assets section below
+          2. Extract to `custom_components/autopi/` in your Home Assistant config directory
+          3. Restart Home Assistant
+
+          ## Contributors
+
+          Thanks to all contributors who made this release possible! 🎉
+          EOF
+
+          echo "Generated release notes:"
+          cat /tmp/release_notes.md
+
+          # Save version and notes for next step
+          echo "TARGET_VERSION=$TARGET_VERSION" >> $GITHUB_OUTPUT
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/release_notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the target version from the previous step output
+          TARGET_VERSION="${{ steps.generate_notes.outputs.TARGET_VERSION }}"
+          TAG_NAME="v$TARGET_VERSION"
+
+          # Validate tag format before proceeding
+          if ! [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid tag format: $TAG_NAME"
+            exit 1
+          fi
+
+          # Check if a published release already exists with this tag
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists. Skipping creation."
+            echo "⚠️ Skipped creating release $TAG_NAME (already exists)"
+          else
+            echo "Creating new draft release: $TAG_NAME"
+            gh release create "$TAG_NAME" --draft --title "Release $TAG_NAME" --notes-file /tmp/release_notes.md
+            echo "✅ Created new draft release $TAG_NAME"
+          fi
+
+          # Output the final tag name
+          echo "Release tag: $TAG_NAME"

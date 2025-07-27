@@ -1,0 +1,94 @@
+bug:
+  - '*bug*'
+  - '*error*'
+  - '*fail*'
+  - '*crash*'
+  - '*broken*'
+  - '*not work*'
+  - '*doesn''t work*'
+  - '*traceback*'
+  - '*exception*'
+
+enhancement:
+  - '*feature*'
+  - '*enhance*'
+  - '*improve*'
+  - '*add*'
+  - '*support*'
+  - '*request*'
+  - '*would like*'
+  - '*could*'
+  - '*should*'
+
+documentation:
+  - '*doc*'
+  - '*readme*'
+  - '*guide*'
+  - '*tutorial*'
+  - '*example*'
+  - '*help*'
+  - '*clarif*'
+
+question:
+  - '*question*'
+  - '*how*'
+  - '*why*'
+  - '*what*'
+  - '*where*'
+  - '*when*'
+  - '?*'
+
+configuration:
+  - '*config*'
+  - '*setup*'
+  - '*install*'
+  - '*yaml*'
+  - '*option*'
+  - '*setting*'
+
+integration:
+  - '*sensor*'
+  - '*binary_sensor*'
+  - '*device*'
+  - '*entity*'
+  - '*platform*'
+  - '*coordinator*'
+
+api:
+  - '*api*'
+  - '*autopi*'
+  - '*vehicle*'
+  - '*obd*'
+  - '*gps*'
+  - '*rate limit*'
+  - '*authentication*'
+  - '*token*'
+
+vehicle:
+  - '*vehicle*'
+  - '*car*'
+  - '*truck*'
+  - '*auto*'
+  - '*diagnostic*'
+  - '*obd*'
+  - '*engine*'
+  - '*fuel*'
+  - '*speed*'
+  - '*rpm*'
+
+tracking:
+  - '*tracking*'
+  - '*location*'
+  - '*gps*'
+  - '*position*'
+  - '*trip*'
+  - '*route*'
+  - '*geofence*'
+
+performance:
+  - '*slow*'
+  - '*timeout*'
+  - '*performance*'
+  - '*optimization*'
+  - '*memory*'
+  - '*cpu*' 

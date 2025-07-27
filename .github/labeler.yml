@@ -1,0 +1,105 @@
+# Configuration for the PR labeler
+# https://github.com/actions/labeler
+
+# Core integration files
+integration:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'custom_components/autopi/**'
+      - '!custom_components/autopi/README.md'
+
+# Sensor platform
+sensor:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'custom_components/autopi/sensor.py'
+      - 'custom_components/autopi/binary_sensor.py'
+
+# Configuration flow
+config-flow:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'custom_components/autopi/config_flow.py'
+      - 'custom_components/autopi/strings.json'
+
+# Core coordinator and hub
+coordinator:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'custom_components/autopi/coordinator.py'
+      - 'custom_components/autopi/__init__.py'
+
+# Events and buttons
+events:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'custom_components/autopi/events.py'
+      - 'custom_components/autopi/button.py'
+
+# Constants and utilities
+constants:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'custom_components/autopi/const.py'
+      - 'custom_components/autopi/utils.py'
+
+# Manifest and metadata
+manifest:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'custom_components/autopi/manifest.json'
+      - 'custom_components/autopi/icons.json'
+
+# Documentation
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docs/**'
+      - '**/*.md'
+      - 'README.md'
+      - 'CHANGELOG.md'
+
+# Tests
+test:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'tests/**'
+      - 'conftest.py'
+
+# CI/CD
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
+      - 'Makefile'
+      - '.pre-commit-config.yaml'
+
+# Dependencies
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'requirements*.txt'
+
+# HACS
+hacs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'hacs.json'
+
+# Configuration files
+config:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.editorconfig'
+      - '.gitignore'
+      - 'pyproject.toml'
+
+# Build and development
+build:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Makefile'
+      - '.pre-commit-config.yaml'
+      - 'pyproject.toml'

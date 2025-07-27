@@ -1,0 +1,242 @@
+name: Update Version and Changelog on Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  id-token: write
+
+# Prevent concurrent deployments to Pages
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  update-changelog-and-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Use a personal access token or the default token
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Ensure we're on the main branch, not detached HEAD
+          ref: main
+          fetch-depth: 0
+
+      - name: Update CHANGELOG.md first
+        run: |
+          TAG_NAME="${{ github.event.release.tag_name }}"
+          RELEASE_DATE=$(date -u +"%Y-%m-%d")
+          VERSION=${TAG_NAME#v}
+
+          echo "Updating CHANGELOG.md for version $VERSION"
+
+          # Save release body to a file safely
+          cat > /tmp/release_body.md << 'RELEASE_BODY_EOF'
+          ${{ github.event.release.body }}
+          RELEASE_BODY_EOF
+
+          # Create new changelog with header
+          cat > /tmp/new_changelog.md << 'EOF'
+          # Changelog
+
+          All notable changes to this project will be documented in this file.
+
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+          ## [Unreleased]
+
+          EOF
+
+          # Add new release section
+          echo "" >> /tmp/new_changelog.md
+          echo "## [$VERSION] - $RELEASE_DATE" >> /tmp/new_changelog.md
+          echo "" >> /tmp/new_changelog.md
+
+          # Extract changes from release body
+          # Look for "What's Changed" or "Changes" section and extract until Installation
+          if grep -q "## What's Changed" /tmp/release_body.md; then
+            sed -n '/## What.s Changed/,/## Installation/p' /tmp/release_body.md | \
+              sed '/## Installation/d' | \
+              sed '/## What.s Changed/d' | \
+              sed '/^[[:space:]]*$/N;/^\n$/d' >> /tmp/new_changelog.md
+          elif grep -q "## Changes" /tmp/release_body.md; then
+            sed -n '/## Changes/,/## Installation/p' /tmp/release_body.md | \
+              sed '/## Installation/d' | \
+              sed '/## Changes/d' | \
+              sed '/^[[:space:]]*$/N;/^\n$/d' >> /tmp/new_changelog.md
+          else
+            # Fallback: extract everything before Installation section
+            sed -n '1,/## Installation/p' /tmp/release_body.md | \
+              sed '/## Installation/d' | \
+              sed '/^[[:space:]]*$/N;/^\n$/d' >> /tmp/new_changelog.md || \
+              echo "- Release $VERSION" >> /tmp/new_changelog.md
+          fi
+
+          # Ensure there's a blank line after content
+          echo "" >> /tmp/new_changelog.md
+
+          # Add existing releases
+          if [ -f CHANGELOG.md ]; then
+            RELEASES_START=$(grep -n "^## \[.*\] - " CHANGELOG.md | head -1 | cut -d: -f1)
+            if [ -n "$RELEASES_START" ]; then
+              tail -n +$RELEASES_START CHANGELOG.md >> /tmp/new_changelog.md
+            else
+              echo "---" >> /tmp/new_changelog.md
+              echo "" >> /tmp/new_changelog.md
+              echo "For releases prior to v$VERSION, see the [GitHub Releases page](https://github.com/rknightion/autopi-ha/releases)." >> /tmp/new_changelog.md
+            fi
+          else
+            echo "---" >> /tmp/new_changelog.md
+            echo "" >> /tmp/new_changelog.md
+            echo "For releases prior to v$VERSION, see the [GitHub Releases page](https://github.com/rknightion/autopi-ha/releases)." >> /tmp/new_changelog.md
+          fi
+
+          mv /tmp/new_changelog.md CHANGELOG.md
+          echo "✅ Updated CHANGELOG.md with release $VERSION"
+
+      - name: Extract version from release tag
+        id: version
+        run: |
+          # Get the tag name from the release event
+          TAG_NAME="${{ github.event.release.tag_name }}"
+          echo "Release tag: $TAG_NAME"
+
+          # Remove 'v' prefix if present
+          VERSION=${TAG_NAME#v}
+          echo "Extracted version: $VERSION"
+
+          # Validate version format (basic semver check)
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid version format: $VERSION"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update manifest.json version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Updating manifest.json to version: $VERSION"
+
+          # Update the version in manifest.json using jq with compact output to match prettier formatting
+          jq --compact-output --arg version "$VERSION" '.version = $version' custom_components/autopi/manifest.json > temp.json
+          mv temp.json custom_components/autopi/manifest.json
+
+          echo "✅ Updated manifest.json version to $VERSION"
+
+      - name: Update docs changelog
+        run: |
+          echo "Updating docs/changelog.md with content from CHANGELOG.md"
+
+          # Create the Jekyll front matter and header for docs changelog
+          {
+            echo "---"
+            echo "layout: default"
+            echo "title: Changelog"
+            echo "description: Release history and changelog for the AutoPi Home Assistant Integration"
+            echo "---"
+            echo ""
+            echo "# Changelog"
+            echo ""
+            echo "All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+            echo ""
+            echo '<div class="alert alert-info" role="alert">'
+            echo '  <i class="bi bi-info-circle me-2"></i>'
+            echo '  <strong>Note:</strong> This changelog is automatically updated from our <a href="{{ site.repository }}/blob/main/CHANGELOG.md">main CHANGELOG.md</a> when releases are published.'
+            echo '</div>'
+            echo ""
+          } > docs/changelog.md
+
+          # Extract the changelog content from CHANGELOG.md (skip the header)
+          if [ -f CHANGELOG.md ]; then
+            # Skip the first 6 lines (header) and add the rest
+            tail -n +7 CHANGELOG.md >> docs/changelog.md
+          fi
+
+          # Add footer
+          {
+            echo ""
+            echo "## Support"
+            echo ""
+            echo "- **Questions**: Check our [FAQ](faq) or see the troubleshooting section on the [main page](/)"
+            echo "- **Issues**: Report bugs on [GitHub Issues]({{ site.repository }}/issues)"
+            echo "- **Discussions**: Join the conversation on [GitHub Discussions]({{ site.repository }}/discussions)"
+            echo ""
+            echo "## Links"
+            echo ""
+            echo "- **[Full Changelog]({{ site.repository }}/blob/main/CHANGELOG.md)** - Complete technical changelog"
+            echo "- **[Releases]({{ site.repository }}/releases)** - Download specific versions"
+            echo "- **[Release Notes]({{ site.repository }}/releases)** - Detailed release information"
+          } >> docs/changelog.md
+
+          echo "✅ Updated docs/changelog.md"
+
+      - name: Commit version and changelog updates
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG_NAME="${{ github.event.release.tag_name }}"
+
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # Ensure we're on main branch (should already be due to checkout, but double-check)
+          echo "Current branch: $(git branch --show-current)"
+          echo "Current HEAD: $(git rev-parse HEAD)"
+
+                    # Check if there are changes to commit
+          if git diff --quiet CHANGELOG.md custom_components/autopi/manifest.json docs/changelog.md; then
+            echo "No changes to commit - files already up to date"
+            sleep 10s
+          else
+            echo "Changes detected, committing..."
+
+            # Add and commit the changes
+            git add CHANGELOG.md custom_components/autopi/manifest.json docs/changelog.md
+            git commit -m "chore: update version to $VERSION and sync changelog" \
+                       -m "🤖 Automatically updated CHANGELOG.md, manifest.json, and docs/changelog.md for release $TAG_NAME" \
+                       -m "Co-Authored-By: GitHub Action <action@github.com>"
+
+            # Push the changes to main
+            git push origin main
+            echo "✅ Committed and pushed version update and changelog sync for $VERSION"
+
+            # Move the tag to point to the new commit with updated files
+            echo "Moving tag $TAG_NAME to new commit with updated files..."
+            git tag -f "$TAG_NAME"
+            git push origin "$TAG_NAME" --force
+            echo "✅ Updated tag $TAG_NAME to point to commit with version updates"
+            sleep 10s
+          fi
+
+      - name: Create and upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG_NAME="${{ github.event.release.tag_name }}"
+
+          echo "Creating integration zip for release $TAG_NAME"
+          sleep 10s
+
+          # Create integration zip from the updated code
+          cd custom_components/autopi
+          zip -r ../../autopi.zip . -x "*.pyc" "*/__pycache__/*" "*.git*" "*.DS_Store"
+          cd ../..
+
+          # Upload the zip to the release
+          gh release upload "$TAG_NAME" autopi.zip --clobber
+          sleep 10s
+
+          echo "✅ Created and uploaded autopi.zip to release $TAG_NAME"
+
