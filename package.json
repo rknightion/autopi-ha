@@ -1,0 +1,28 @@
+{
+  "name": "autopi-ha-docs",
+  "version": "1.0.0",
+  "description": "Documentation for AutoPi Home Assistant Integration",
+  "scripts": {
+    "build": "pip install -r requirements-docs.txt && mkdocs build",
+    "serve": "mkdocs serve",
+    "deploy": "wrangler pages deploy site"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rknightion/autopi-ha.git"
+  },
+  "keywords": [
+    "home-assistant",
+    "autopi",
+    "vehicle",
+    "obd",
+    "gps",
+    "tracking",
+    "documentation"
+  ],
+  "author": "Rob Knighton",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

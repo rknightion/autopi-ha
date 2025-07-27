@@ -1,0 +1,154 @@
+[project]
+name = "autopi-ha"
+version = "0.1.0"
+description = "AutoPi integration for Home Assistant"
+authors = [
+    {name = "Rob Knight", email = "rob@example.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = "<3.14,>=3.13.2"
+keywords = ["homeassistant", "autopi", "vehicle", "obd", "gps", "tracking"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Home Automation",
+]
+dependencies = [
+    "aiohttp>=3.8.0",
+    "async-timeout>=4.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "homeassistant-stubs==2025.7.3",
+    "ruff<1.0.0,>=0.12.5",
+    "mypy",
+    "bandit",
+    "types-requests",
+    "types-PyYAML",
+    "safety",
+    "marshmallow<5.0.0",
+    "pytest-homeassistant-custom-component>=0.13.263",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/rknightion/autopi-ha"
+Documentation = "https://rknightion.github.io/autopi-ha"
+Repository = "https://github.com/rknightion/autopi-ha"
+"Bug Tracker" = "https://github.com/rknightion/autopi-ha/issues"
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+strict_optional = true
+show_error_codes = true
+
+# Home Assistant specific configurations
+[[tool.mypy.overrides]]
+module = "homeassistant.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "autopi.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "custom_components.autopi.*"
+warn_return_any = false
+warn_unreachable = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = [".git", ".tox", "dist", "build", "*.egg", "venv"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=custom_components.autopi",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=10",
+    "-vv",
+    "-s",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests",
+]
+
+[tool.coverage.run]
+source = ["custom_components.autopi"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.bandit]
+targets = ["custom_components"]
+exclude_dirs = ["tests", "scripts"]
+skips = ["B101", "B601"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "C",   # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "D",   # pydocstyle
+    "N",  # pep8-naming
+    "Q",  # flake8-quotes
+]
+ignore = [
+    "E501",  # line too long
+    "D202",  # no blank lines after function docstring
+    "D203",  # one blank line before class
+    "D213",  # multi-line docstring summary should start at the second line
+    "C901",  # too complex (we'll allow some complexity for now)
+]
+
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D100", "D101", "D102", "D103", "D104"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+# Use double quotes for strings.
+quote-style = "double"
+# Like Black, indent with spaces.
+indent-style = "space"
+

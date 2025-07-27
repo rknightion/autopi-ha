@@ -1,0 +1,12 @@
+name = "autopi-ha-docs"
+compatibility_date = "2024-01-15"
+
+[env.production]
+name = "autopi-ha-docs"
+
+[[pages_builds]]
+# Directory containing the static site files
+directory = "site"
+
+# Build configuration
+[build]

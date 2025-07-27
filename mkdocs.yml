@@ -1,0 +1,245 @@
+site_name: AutoPi Home Assistant Integration
+site_description: A comprehensive Home Assistant custom integration for monitoring AutoPi vehicle tracking devices with real-time OBD-II diagnostics and GPS data
+site_url: https://autopi.ha-components.m7kni.com
+repo_name: rknightion/autopi-ha
+repo_url: https://github.com/rknightion/autopi-ha
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/link
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to system preference
+  features:
+    # Navigation
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - navigation.path
+    # Search
+    - search.suggest
+    - search.highlight
+    - search.share
+    # Table of contents
+    - toc.follow
+    - toc.integrate
+    # Content
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - content.footnote.tooltips
+    - content.action.edit
+    - content.action.view
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+    logo: material/home-assistant
+  favicon: assets/favicon.png
+
+plugins:
+  - privacy
+  - social
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+      lang: en
+  - meta:
+      meta_file: '**/.meta.yml'
+  - tags
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+      custom_format: "%d. %B %Y"
+      timezone: UTC
+      locale: en
+      fallback_to_build_date: true
+      exclude:
+        - index.md
+  - git-committers:
+      repository: rknightion/autopi-ha
+      branch: main
+  - git-authors
+  - glightbox:
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      slide_effect: slide
+      width: 100%
+      height: auto
+      zoomable: true
+      draggable: true
+      auto_caption: false
+      caption_position: bottom
+  - include-markdown
+
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      title: On this page
+      permalink_title: Anchor link to this section for reference
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.critic
+  - pymdownx.blocks.admonition:
+      types:
+      - new
+      - settings
+      - note
+      - abstract
+      - info
+      - tip
+      - success
+      - question
+      - warning
+      - failure
+      - danger
+      - bug
+      - example
+      - quote
+
+nav:
+  - Home:
+    - index.md
+    - Tags: tags.md
+  - Getting Started:
+    - getting-started.md
+    - Installation: installation.md
+    - Configuration: configuration.md
+  - Features:
+    - Vehicle Data: vehicle-data.md
+    - Entity Naming: naming-conventions.md
+    - API Optimization: api-optimization.md
+  - Development:
+    - development.md
+    - Architecture: architecture.md
+    - Contributing: contributing.md
+  - Reference:
+    - Changelog: changelog.md
+    - FAQ: faq.md
+
+extra:
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/rknightion/autopi-ha
+      name: GitHub Repository
+    - icon: material/home-assistant
+      link: https://www.home-assistant.io
+      name: Home Assistant
+    - icon: fontawesome/solid/paper-plane
+      link: mailto:rob@example.com
+      name: Send a message
+  version:
+    provider: mike
+    default: stable
+  status:
+    new: Recently added
+    deprecated: Deprecated
+  tags:
+    HomeAssistant: home-assistant
+    AutoPi: autopi
+    Integration: integration
+    Configuration: config
+    Monitoring: monitoring
+    API: api
+    Troubleshooting: troubleshooting
+    Vehicle: vehicle
+    OBD: obd
+    GPS: gps
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+  - javascripts/extra.js
+  - javascripts/seo.js
+
+copyright: |
+  &copy; 2024 <a href="https://github.com/rknightion"  target="_blank" rel="noopener">Rob Knighton</a> &nbsp;
+  <a href="#__consent">Change cookie settings</a>
+
+watch:
+  - docs/includes/
+
+not_in_nav: |
+  /includes/
