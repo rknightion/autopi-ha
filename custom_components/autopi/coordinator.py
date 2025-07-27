@@ -48,6 +48,12 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._client: AutoPiClient | None = None
         self._selected_vehicles = set(config_entry.data.get(CONF_SELECTED_VEHICLES, []))
 
+        # Performance tracking
+        self._total_api_calls = 0
+        self._failed_api_calls = 0
+        self._last_update_duration: float | None = None
+        self._last_api_call_time: float | None = None
+
         # Get scan interval from config or options
         scan_interval_minutes = (
             config_entry.options.get(CONF_SCAN_INTERVAL)
@@ -60,6 +66,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             _LOGGER,
             name=f"{DOMAIN}_{config_entry.entry_id}",
             update_interval=timedelta(minutes=scan_interval_minutes),
+            config_entry=config_entry,
         )
 
         _LOGGER.debug(
@@ -76,6 +83,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         Raises:
             UpdateFailed: If data fetching fails
         """
+        start_time = self.hass.loop.time()
+        self._total_api_calls += 1
+
         try:
             # Create client if not exists
             if self._client is None:
@@ -105,23 +115,35 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
             _LOGGER.debug("Successfully updated data for %d vehicles", len(data))
 
+            # Track successful update
+            self._last_update_duration = self.hass.loop.time() - start_time
+            self._last_api_call_time = self.hass.loop.time()
+
             return data
 
         except AutoPiAuthenticationError as err:
+            self._failed_api_calls += 1
+            self._last_update_duration = self.hass.loop.time() - start_time
             _LOGGER.error("Authentication error: %s", err)
             # Mark config entry for reauth
             self.config_entry.async_start_reauth(self.hass)
             raise UpdateFailed(f"Authentication failed: {err}") from err
 
         except AutoPiConnectionError as err:
+            self._failed_api_calls += 1
+            self._last_update_duration = self.hass.loop.time() - start_time
             _LOGGER.error("Connection error: %s", err)
             raise UpdateFailed(f"Failed to connect to AutoPi API: {err}") from err
 
         except AutoPiAPIError as err:
+            self._failed_api_calls += 1
+            self._last_update_duration = self.hass.loop.time() - start_time
             _LOGGER.error("API error: %s", err)
             raise UpdateFailed(f"AutoPi API error: {err}") from err
 
         except Exception as err:
+            self._failed_api_calls += 1
+            self._last_update_duration = self.hass.loop.time() - start_time
             _LOGGER.exception("Unexpected error fetching AutoPi data")
             raise UpdateFailed(f"Unexpected error: {err}") from err
 
@@ -160,3 +182,25 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             AutoPiVehicle object or None if not found
         """
         return self.data.get(vehicle_id) if self.data else None
+
+    @property
+    def api_call_count(self) -> int:
+        """Get the total number of API calls made."""
+        return self._total_api_calls
+
+    @property
+    def failed_api_call_count(self) -> int:
+        """Get the number of failed API calls."""
+        return self._failed_api_calls
+
+    @property
+    def success_rate(self) -> float:
+        """Get the API call success rate as a percentage."""
+        if self._total_api_calls == 0:
+            return 100.0
+        return ((self._total_api_calls - self._failed_api_calls) / self._total_api_calls) * 100
+
+    @property
+    def last_update_duration(self) -> float | None:
+        """Get the duration of the last update in seconds."""
+        return self._last_update_duration

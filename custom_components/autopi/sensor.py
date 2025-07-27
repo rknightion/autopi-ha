@@ -39,6 +39,12 @@ async def async_setup_entry(
     # Add vehicle count sensor
     entities.append(AutoPiVehicleCountSensor(coordinator))
 
+    # Add diagnostic sensors
+    entities.append(AutoPiAPICallsSensor(coordinator))
+    entities.append(AutoPiFailedAPICallsSensor(coordinator))
+    entities.append(AutoPiSuccessRateSensor(coordinator))
+    entities.append(AutoPiUpdateDurationSensor(coordinator))
+
     # Add individual vehicle sensors
     if coordinator.data:
         for vehicle_id, vehicle in coordinator.data.items():
@@ -119,9 +125,9 @@ class AutoPiVehicleSensor(AutoPiVehicleEntity, SensorEntity):
     @property
     def name(self) -> str | None:
         """Return the name of the sensor."""
-        if vehicle := self.vehicle:
-            return vehicle.name
-        return None
+        # Since we're using has_entity_name, just return a simple name
+        # The device name will be prepended automatically
+        return "Status"
 
     @property
     def native_value(self) -> str | None:
@@ -144,3 +150,119 @@ class AutoPiVehicleSensor(AutoPiVehicleEntity, SensorEntity):
             )
 
         return attrs
+
+
+class AutoPiAPICallsSensor(AutoPiEntity, SensorEntity):
+    """Sensor showing the total number of API calls."""
+
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:api"
+
+    def __init__(self, coordinator: AutoPiDataUpdateCoordinator) -> None:
+        """Initialize the API calls sensor."""
+        super().__init__(coordinator, "api_calls")
+        self._attr_name = "API Calls"
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of API calls."""
+        return self.coordinator.api_call_count
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.config_entry.entry_id)},
+            name="AutoPi Integration",
+            manufacturer=MANUFACTURER,
+            configuration_url="https://app.autopi.io",
+        )
+
+
+class AutoPiFailedAPICallsSensor(AutoPiEntity, SensorEntity):
+    """Sensor showing the number of failed API calls."""
+
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:alert-circle"
+
+    def __init__(self, coordinator: AutoPiDataUpdateCoordinator) -> None:
+        """Initialize the failed API calls sensor."""
+        super().__init__(coordinator, "failed_api_calls")
+        self._attr_name = "Failed API Calls"
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of failed API calls."""
+        return self.coordinator.failed_api_call_count
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.config_entry.entry_id)},
+            name="AutoPi Integration",
+            manufacturer=MANUFACTURER,
+            configuration_url="https://app.autopi.io",
+        )
+
+
+class AutoPiSuccessRateSensor(AutoPiEntity, SensorEntity):
+    """Sensor showing the API success rate."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "%"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:percent"
+
+    def __init__(self, coordinator: AutoPiDataUpdateCoordinator) -> None:
+        """Initialize the success rate sensor."""
+        super().__init__(coordinator, "api_success_rate")
+        self._attr_name = "API Success Rate"
+
+    @property
+    def native_value(self) -> float:
+        """Return the success rate."""
+        return round(self.coordinator.success_rate, 1)
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.config_entry.entry_id)},
+            name="AutoPi Integration",
+            manufacturer=MANUFACTURER,
+            configuration_url="https://app.autopi.io",
+        )
+
+
+class AutoPiUpdateDurationSensor(AutoPiEntity, SensorEntity):
+    """Sensor showing the duration of the last update."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "s"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:timer"
+
+    def __init__(self, coordinator: AutoPiDataUpdateCoordinator) -> None:
+        """Initialize the update duration sensor."""
+        super().__init__(coordinator, "update_duration")
+        self._attr_name = "Update Duration"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the update duration."""
+        if self.coordinator.last_update_duration is not None:
+            return round(self.coordinator.last_update_duration, 3)
+        return None
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.config_entry.entry_id)},
+            name="AutoPi Integration",
+            manufacturer=MANUFACTURER,
+            configuration_url="https://app.autopi.io",
+        )

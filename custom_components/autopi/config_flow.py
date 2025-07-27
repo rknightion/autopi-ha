@@ -180,7 +180,7 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         session = async_get_clientsession(self.hass)
 
         headers = {
-            "Authorization": f"Bearer {self._api_key}",
+            "Authorization": f"APIToken {self._api_key}",
             "User-Agent": USER_AGENT,
             "Accept": "application/json",
         }
@@ -229,6 +229,65 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except Exception as err:
             _LOGGER.error("Unexpected error during API test: %s", err)
             raise
+
+    async def async_step_reauth(self, user_input=None):
+        """Handle reauthentication flow."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reauthentication confirmation step."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            # Update the API key
+            self._api_key = user_input[CONF_API_KEY]
+
+            # Get the existing config entry
+            existing_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+            if existing_entry:
+                self._base_url = existing_entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
+
+                try:
+                    # Test the new API key
+                    vehicles = await self._test_api_connection()
+
+                    if vehicles:
+                        # Update the config entry with the new API key
+                        self.hass.config_entries.async_update_entry(
+                            existing_entry,
+                            data={
+                                **existing_entry.data,
+                                CONF_API_KEY: self._api_key,
+                            },
+                        )
+
+                        await self.hass.config_entries.async_reload(existing_entry.entry_id)
+
+                        return self.async_abort(reason="reauth_successful")
+                    else:
+                        errors["base"] = "no_vehicles"
+
+                except AutoPiAuthenticationError:
+                    _LOGGER.warning("Reauthentication failed with provided API key")
+                    errors["base"] = "invalid_auth"
+                except AutoPiConnectionError:
+                    _LOGGER.warning("Failed to connect to AutoPi API during reauth")
+                    errors["base"] = "cannot_connect"
+                except Exception:  # pylint: disable=broad-except
+                    _LOGGER.exception("Unexpected error during reauthentication")
+                    errors["base"] = "unknown"
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_API_KEY): str,
+                }
+            ),
+            errors=errors,
+        )
 
 
 class AutoPiOptionsFlow(OptionsFlow):

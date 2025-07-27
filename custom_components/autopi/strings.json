@@ -18,7 +18,7 @@
         "title": "Select Vehicles",
         "description": "Select the vehicles you want to monitor.",
         "data": {
-          "selected_vehicles": "Vehicles"
+          "selected_vehicles": "Vehicles to Monitor"
         }
       }
     },
@@ -30,7 +30,8 @@
     },
     "abort": {
       "already_configured": "AutoPi is already configured",
-      "no_vehicles": "No vehicles found in your AutoPi account"
+      "no_vehicles": "No vehicles found in your AutoPi account",
+      "reauth_successful": "API key updated successfully"
     }
   },
   "options": {
@@ -39,10 +40,24 @@
         "title": "AutoPi Options",
         "description": "Configure AutoPi integration options.",
         "data": {
-          "scan_interval": "Update interval (minutes)"
+          "scan_interval": "Polling Frequency"
         },
         "data_description": {
-          "scan_interval": "How often to fetch data from AutoPi (minimum: 1 minute)"
+          "scan_interval": "How often to fetch data from AutoPi in minutes (1-60)"
+        }
+      }
+    }
+  },
+  "reauth": {
+    "step": {
+      "reauth_confirm": {
+        "title": "Reauthenticate AutoPi",
+        "description": "Your AutoPi API key is no longer valid. Please enter a new API key.",
+        "data": {
+          "api_key": "API Key"
+        },
+        "data_description": {
+          "api_key": "Your new AutoPi API key from the AutoPi dashboard"
         }
       }
     }

@@ -3,6 +3,17 @@
 ## Overview
 This is a custom Home Assistant integration for the AutoPi cloud platform. It allows users to monitor their vehicles equipped with AutoPi devices through Home Assistant.
 
+## Development Environment
+
+This project uses `uv` for Python dependency management. Always use `uv` to run Python commands:
+- `uv run ruff check .` - Run linting
+- `uv run ruff check . --fix` - Run linting with auto-fix
+- `uv run mypy .` - Run type checking
+- `uv run pytest` - Run tests
+- `uv run python <script>` - Run any Python script
+- `uv sync` - Sync dependencies
+- `uv pip list` - List installed packages
+
 ## Architecture
 
 ### Key Components
@@ -22,7 +33,7 @@ This is a custom Home Assistant integration for the AutoPi cloud platform. It al
 ## API Integration
 
 ### Authentication
-- Uses Bearer token authentication with the AutoPi API key
+- Uses APIToken authentication with the AutoPi API key (format: `APIToken <token>`)
 - API key is stored securely in the Home Assistant config entry
 
 ### Endpoints Used
@@ -36,7 +47,11 @@ This is a custom Home Assistant integration for the AutoPi cloud platform. It al
 
 ### Sensors
 1. **Vehicle Count Sensor**: Shows total number of monitored vehicles
-2. **Vehicle Sensor**: Individual sensor per vehicle showing license plate/name
+2. **Vehicle Sensor**: Individual sensor per vehicle showing license plate/name (displayed as "Status")
+3. **API Calls Sensor**: Tracks total number of API calls made
+4. **Failed API Calls Sensor**: Tracks number of failed API calls
+5. **API Success Rate Sensor**: Shows percentage of successful API calls
+6. **Update Duration Sensor**: Shows duration of last API update in seconds
 
 ### Attributes
 Each vehicle entity includes:
@@ -62,7 +77,7 @@ Each vehicle entity includes:
 ## Error Handling
 
 ### Exception Hierarchy
-- `AutoPiException`: Base exception
+- `AutoPiError`: Base exception (follows PEP-8 naming convention)
   - `AutoPiAuthenticationError`: Invalid API key
   - `AutoPiConnectionError`: Network/connection issues
   - `AutoPiAPIError`: API returned error response
@@ -73,6 +88,7 @@ Each vehicle entity includes:
 - Authentication errors trigger reauth flow
 - Connection errors are logged and retried
 - Coordinator handles update failures gracefully
+- Users can update their API key through the reauth flow without reconfiguring
 
 ## Logging
 

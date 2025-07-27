@@ -49,7 +49,7 @@ class AutoPiClient:
         self._api_key = api_key
         self._base_url = base_url.rstrip("/")
         self._headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"APIToken {api_key}",
             "User-Agent": USER_AGENT,
             "Accept": "application/json",
             "Content-Type": "application/json",
