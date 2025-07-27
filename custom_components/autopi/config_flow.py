@@ -64,7 +64,7 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> OptionsFlow:
         """Get the options flow for this handler."""
-        return AutoPiOptionsFlow(config_entry)
+        return AutoPiOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -293,20 +293,24 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class AutoPiOptionsFlow(OptionsFlow):
     """Handle options flow for AutoPi."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
-
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
         if user_input is not None:
-            _LOGGER.debug("Updating options with: %s", user_input)
-            return self.async_create_entry(title="", data=user_input)
+            # Check if user wants to update API key
+            if user_input.get("update_api_key"):
+                return await self.async_step_api_key()
 
-        current_interval = self.config_entry.data.get(
-            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES
+            # Otherwise save the scan interval
+            _LOGGER.debug("Updating options with: %s", user_input)
+            return self.async_create_entry(title="", data={
+                CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL]
+            })
+
+        current_interval = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL,
+            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES)
         )
 
         return self.async_show_form(
@@ -324,6 +328,68 @@ class AutoPiOptionsFlow(OptionsFlow):
                             mode=selector.NumberSelectorMode.BOX,
                         )
                     ),
+                    vol.Optional("update_api_key", default=False): bool,
                 }
             ),
+        )
+
+    async def async_step_api_key(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle API key update step."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            # Test the new API key
+            api_key = user_input[CONF_API_KEY]
+            base_url = self.config_entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
+
+            session = async_get_clientsession(self.hass)
+            headers = {
+                "Authorization": f"APIToken {api_key}",
+                "User-Agent": USER_AGENT,
+                "Accept": "application/json",
+            }
+
+            url = f"{base_url}{VEHICLE_PROFILE_ENDPOINT}"
+
+            try:
+                async with session.get(
+                    url,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=30),
+                ) as response:
+                    if response.status == 401:
+                        errors["base"] = "invalid_auth"
+                    elif response.status == 200:
+                        # Valid API key - update the config entry
+                        self.hass.config_entries.async_update_entry(
+                            self.config_entry,
+                            data={
+                                **self.config_entry.data,
+                                CONF_API_KEY: api_key,
+                            },
+                        )
+
+                        # Reload the integration
+                        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+                        return self.async_abort(reason="api_key_updated")
+                    else:
+                        errors["base"] = "cannot_connect"
+
+            except aiohttp.ClientError:
+                errors["base"] = "cannot_connect"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected error during API key validation")
+                errors["base"] = "unknown"
+
+        return self.async_show_form(
+            step_id="api_key",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_API_KEY): str,
+                }
+            ),
+            errors=errors,
         )

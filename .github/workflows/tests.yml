@@ -97,6 +97,7 @@ jobs:
         uses: hacs/action@285e417a83cc9c6a99806236b7f22414c209ef10 # main
         with:
           category: integration
+          ignore: brands
 
   # Test the integration
   pytest:

@@ -20,6 +20,16 @@
         "data": {
           "selected_vehicles": "Vehicles to Monitor"
         }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate AutoPi",
+        "description": "Your AutoPi API key is no longer valid. Please enter a new API key.",
+        "data": {
+          "api_key": "API Key"
+        },
+        "data_description": {
+          "api_key": "Your new AutoPi API key from the AutoPi dashboard"
+        }
       }
     },
     "error": {
@@ -31,7 +41,8 @@
     "abort": {
       "already_configured": "AutoPi is already configured",
       "no_vehicles": "No vehicles found in your AutoPi account",
-      "reauth_successful": "API key updated successfully"
+      "reauth_successful": "API key updated successfully",
+      "api_key_updated": "API key updated successfully"
     }
   },
   "options": {
@@ -40,19 +51,17 @@
         "title": "AutoPi Options",
         "description": "Configure AutoPi integration options.",
         "data": {
-          "scan_interval": "Polling Frequency"
+          "scan_interval": "Polling Frequency",
+          "update_api_key": "Update API Key"
         },
         "data_description": {
-          "scan_interval": "How often to fetch data from AutoPi in minutes (1-60)"
+          "scan_interval": "How often to fetch data from AutoPi in minutes (1-60)",
+          "update_api_key": "Check this box to update your AutoPi API key"
         }
-      }
-    }
-  },
-  "reauth": {
-    "step": {
-      "reauth_confirm": {
-        "title": "Reauthenticate AutoPi",
-        "description": "Your AutoPi API key is no longer valid. Please enter a new API key.",
+      },
+      "api_key": {
+        "title": "Update API Key",
+        "description": "Enter your new AutoPi API key.",
         "data": {
           "api_key": "API Key"
         },
