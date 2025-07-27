@@ -20,10 +20,11 @@ repos:
         args: [--fix]
     -   id: ruff-format
 
--   repo: https://github.com/woodruffw/zizmor-pre-commit
+-   repo: https://github.com/zizmorcore/zizmor-pre-commit
     rev: v1.11.0
     hooks:
     -   id: zizmor
+        args: [--fix=all]
 
 -   repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
@@ -38,13 +39,6 @@ repos:
     -   id: bandit
         args: ["-c", "pyproject.toml"]
         additional_dependencies: ["bandit[toml]"]
-
--   repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.4.2
-    hooks:
-    -   id: python-safety-dependencies-check
-        files: pyproject.toml
-        args: ["--groups=dev"]
 
   # Home Assistant manifest validation
 -   repo: local

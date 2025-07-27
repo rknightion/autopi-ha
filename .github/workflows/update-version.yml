@@ -25,15 +25,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          # Use a personal access token or the default token
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Ensure we're on the main branch, not detached HEAD
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Update CHANGELOG.md first
         run: |
-          TAG_NAME="${{ github.event.release.tag_name }}"
+          TAG_NAME="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           RELEASE_DATE=$(date -u +"%Y-%m-%d")
           VERSION=${TAG_NAME#v}
 
@@ -41,7 +40,7 @@ jobs:
 
           # Save release body to a file safely
           cat > /tmp/release_body.md << 'RELEASE_BODY_EOF'
-          ${{ github.event.release.body }}
+          ${GITHUB_EVENT_RELEASE_BODY}
           RELEASE_BODY_EOF
 
           # Create new changelog with header
@@ -102,13 +101,15 @@ jobs:
           fi
 
           mv /tmp/new_changelog.md CHANGELOG.md
-          echo "✅ Updated CHANGELOG.md with release $VERSION"
+          echo "✅ Updated CHANGELOG.md with release $VERSION"        env:
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}        env:
+          GITHUB_EVENT_RELEASE_BODY: ${{ github.event.release.body }}
 
       - name: Extract version from release tag
         id: version
         run: |
           # Get the tag name from the release event
-          TAG_NAME="${{ github.event.release.tag_name }}"
+          TAG_NAME="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           echo "Release tag: $TAG_NAME"
 
           # Remove 'v' prefix if present
@@ -121,11 +122,12 @@ jobs:
             exit 1
           fi
 
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT        env:
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
 
       - name: Update manifest.json version
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${STEPS_VERSION_OUTPUTS_VERSION}"
           echo "Updating manifest.json to version: $VERSION"
 
           # Update the version in manifest.json using jq with compact output to match prettier formatting
@@ -133,6 +135,8 @@ jobs:
           mv temp.json custom_components/autopi/manifest.json
 
           echo "✅ Updated manifest.json version to $VERSION"
+        env:
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Update docs changelog
         run: |
@@ -183,8 +187,8 @@ jobs:
 
       - name: Commit version and changelog updates
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          TAG_NAME="${{ github.event.release.tag_name }}"
+          VERSION="${STEPS_VERSION_OUTPUTS_VERSION}"
+          TAG_NAME="${GITHUB_EVENT_RELEASE_TAG_NAME}"
 
           # Configure git
           git config --local user.email "action@github.com"
@@ -218,13 +222,18 @@ jobs:
             echo "✅ Updated tag $TAG_NAME to point to commit with version updates"
             sleep 10s
           fi
+        env:
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
 
       - name: Create and upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          TAG_NAME="${{ github.event.release.tag_name }}"
+          VERSION="${STEPS_VERSION_OUTPUTS_VERSION}"
+          TAG_NAME="${GITHUB_EVENT_RELEASE_TAG_NAME}"
 
           echo "Creating integration zip for release $TAG_NAME"
           sleep 10s

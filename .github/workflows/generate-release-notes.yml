@@ -32,6 +32,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Clean up old draft releases
         env:
@@ -69,8 +70,8 @@ jobs:
         run: |
           # Handle both manual and automatic triggers
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TARGET_VERSION="${{ github.event.inputs.target_version }}"
-            SINCE_TAG="${{ github.event.inputs.since_tag }}"
+            TARGET_VERSION="${GITHUB_EVENT_INPUTS_TARGET_VERSION}"
+            SINCE_TAG="${GITHUB_EVENT_INPUTS_SINCE_TAG}"
           else
             # Auto-triggered by push - use semantic versioning
             # Get the latest version tag (matching v*.*.* pattern)
@@ -237,13 +238,17 @@ jobs:
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
           cat /tmp/release_notes.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_EVENT_INPUTS_TARGET_VERSION: ${{ github.event.inputs.target_version }}
+          GITHUB_EVENT_INPUTS_SINCE_TAG: ${{ github.event.inputs.since_tag }}
 
       - name: Create draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEPS_GENERATE_NOTES_OUTPUTS_TARGET_VERSION: ${{ steps.generate_notes.outputs.TARGET_VERSION }}
         run: |
           # Get the target version from the previous step output
-          TARGET_VERSION="${{ steps.generate_notes.outputs.TARGET_VERSION }}"
+          TARGET_VERSION="${STEPS_GENERATE_NOTES_OUTPUTS_TARGET_VERSION}"
           TAG_NAME="v$TARGET_VERSION"
 
           # Validate tag format before proceeding

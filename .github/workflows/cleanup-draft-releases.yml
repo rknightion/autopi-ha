@@ -29,9 +29,11 @@ jobs:
       - name: Clean up draft releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_EVENT_INPUTS_DRY_RUN: ${{ github.event.inputs.dry_run }}
+          GITHUB_EVENT_INPUTS_KEEP_LATEST: ${{ github.event.inputs.keep_latest }}
         run: |
-          DRY_RUN="${{ github.event.inputs.dry_run }}"
-          KEEP_LATEST="${{ github.event.inputs.keep_latest }}"
+          DRY_RUN="${GITHUB_EVENT_INPUTS_DRY_RUN}"
+          KEEP_LATEST="${GITHUB_EVENT_INPUTS_KEEP_LATEST}"
           
           # Validate keep_latest input
           if ! [[ "$KEEP_LATEST" =~ ^[0-9]+$ ]]; then
