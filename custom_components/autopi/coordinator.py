@@ -206,7 +206,13 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                                             new_events.append(event)
                                 else:
                                     # First time fetching events for this device
-                                    new_events = events
+                                    # Don't fire events on startup to avoid old events
+                                    new_events = []
+                                    _LOGGER.info(
+                                        "Initial event fetch for device %s: found %d events, skipping startup events to avoid replaying old events",
+                                        device_id,
+                                        len(events),
+                                    )
 
                             # Fire events for new events
                             for event in new_events:

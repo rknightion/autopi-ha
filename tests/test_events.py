@@ -1,10 +1,9 @@
 """Tests for AutoPi event entities."""
 
-import pytest
 from datetime import datetime
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock
 
-from homeassistant.components.event import EventEntity
+import pytest
 from homeassistant.core import HomeAssistant
 
 from custom_components.autopi.event import AutoPiVehicleEvent
@@ -53,7 +52,7 @@ def mock_event():
 async def test_event_entity_init(mock_coordinator, mock_vehicle):
     """Test event entity initialization."""
     event_entity = AutoPiVehicleEvent(mock_coordinator, "123")
-    
+
     assert event_entity.vehicle == mock_vehicle
     assert event_entity._device_ids == ["device1", "device2"]
     assert event_entity.name == "Events"
@@ -65,7 +64,7 @@ async def test_event_entity_unavailable(mock_coordinator):
     """Test event entity when vehicle is unavailable."""
     mock_coordinator.data = {}
     event_entity = AutoPiVehicleEvent(mock_coordinator, "123")
-    
+
     assert event_entity.vehicle is None
     assert event_entity._device_ids == []
     assert event_entity.available is False
@@ -78,12 +77,12 @@ async def test_event_entity_attributes(mock_coordinator, mock_vehicle, mock_even
         if device_id == "device1":
             return [mock_event]
         return []
-    
+
     mock_coordinator.get_device_events.side_effect = get_device_events
-    
+
     event_entity = AutoPiVehicleEvent(mock_coordinator, "123")
     attrs = event_entity.extra_state_attributes
-    
+
     assert "recent_events" in attrs
     assert len(attrs["recent_events"]) == 1
     assert attrs["recent_events"][0]["device_id"] == "device1"
@@ -97,9 +96,9 @@ async def test_event_entity_event_handling(hass: HomeAssistant, mock_coordinator
     event_entity.hass = hass
     event_entity._trigger_event = MagicMock()
     event_entity.async_write_ha_state = MagicMock()
-    
+
     await event_entity.async_added_to_hass()
-    
+
     # Simulate a device event
     event_data = {
         "device_id": "device1",
@@ -110,11 +109,11 @@ async def test_event_entity_event_handling(hass: HomeAssistant, mock_coordinator
         "event_type": "charging",
         "data": {"event.vehicle.battery.level": 95},
     }
-    
+
     # Fire the event
     hass.bus.async_fire("autopi_device_event", event_data)
     await hass.async_block_till_done()
-    
+
     # Check that the event was triggered
     event_entity._trigger_event.assert_called_once_with(
         "charging",
@@ -134,9 +133,9 @@ async def test_event_entity_ignores_other_vehicles(hass: HomeAssistant, mock_coo
     event_entity = AutoPiVehicleEvent(mock_coordinator, "123")
     event_entity.hass = hass
     event_entity._trigger_event = MagicMock()
-    
+
     await event_entity.async_added_to_hass()
-    
+
     # Simulate a device event from a different vehicle
     event_data = {
         "device_id": "device3",
@@ -147,10 +146,10 @@ async def test_event_entity_ignores_other_vehicles(hass: HomeAssistant, mock_coo
         "event_type": "charging",
         "data": {},
     }
-    
+
     # Fire the event
     hass.bus.async_fire("autopi_device_event", event_data)
     await hass.async_block_till_done()
-    
+
     # Check that the event was NOT triggered
     event_entity._trigger_event.assert_not_called()

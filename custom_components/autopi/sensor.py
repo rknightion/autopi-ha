@@ -50,10 +50,11 @@ async def async_setup_entry(
     entities.append(AutoPiFleetAlertCountSensor(coordinator))
 
     # Add diagnostic sensors (these aggregate from all coordinators)
-    entities.append(AutoPiAPICallsSensor(all_coordinators))
-    entities.append(AutoPiFailedAPICallsSensor(all_coordinators))
-    entities.append(AutoPiSuccessRateSensor(all_coordinators))
-    entities.append(AutoPiUpdateDurationSensor(all_coordinators))
+    # Use the fast coordinator for updates
+    entities.append(AutoPiAPICallsSensor(coordinator, all_coordinators))
+    entities.append(AutoPiFailedAPICallsSensor(coordinator, all_coordinators))
+    entities.append(AutoPiSuccessRateSensor(coordinator, all_coordinators))
+    entities.append(AutoPiUpdateDurationSensor(coordinator, all_coordinators))
 
     # Add individual vehicle sensors
     if coordinator.data:
@@ -264,7 +265,7 @@ class AutoPiVehicleSensor(AutoPiVehicleEntity, SensorEntity):
         return attrs
 
 
-class AutoPiAPICallsSensor(RestoreEntity, SensorEntity):
+class AutoPiAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
     """Sensor showing the total number of API calls across all coordinators."""
 
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
@@ -272,8 +273,13 @@ class AutoPiAPICallsSensor(RestoreEntity, SensorEntity):
     _attr_icon = "mdi:api"
     _attr_has_entity_name = True
 
-    def __init__(self, coordinators: dict[str, AutoPiDataUpdateCoordinator]) -> None:
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        coordinators: dict[str, AutoPiDataUpdateCoordinator],
+    ) -> None:
         """Initialize the API calls sensor."""
+        super().__init__(coordinator, "api_calls")
         self._coordinators = coordinators
         # Use the first coordinator's config entry for the unique ID
         first_coordinator = next(iter(coordinators.values()))
@@ -326,7 +332,7 @@ class AutoPiAPICallsSensor(RestoreEntity, SensorEntity):
         )
 
 
-class AutoPiFailedAPICallsSensor(RestoreEntity, SensorEntity):
+class AutoPiFailedAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
     """Sensor showing the number of failed API calls across all coordinators."""
 
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
@@ -334,8 +340,13 @@ class AutoPiFailedAPICallsSensor(RestoreEntity, SensorEntity):
     _attr_icon = "mdi:alert-circle"
     _attr_has_entity_name = True
 
-    def __init__(self, coordinators: dict[str, AutoPiDataUpdateCoordinator]) -> None:
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        coordinators: dict[str, AutoPiDataUpdateCoordinator],
+    ) -> None:
         """Initialize the failed API calls sensor."""
+        super().__init__(coordinator, "failed_api_calls")
         self._coordinators = coordinators
         first_coordinator = next(iter(coordinators.values()))
         self._config_entry_id = first_coordinator.config_entry.entry_id
@@ -390,7 +401,7 @@ class AutoPiFailedAPICallsSensor(RestoreEntity, SensorEntity):
         )
 
 
-class AutoPiSuccessRateSensor(SensorEntity):
+class AutoPiSuccessRateSensor(AutoPiEntity, SensorEntity):
     """Sensor showing the API success rate across all coordinators."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -399,8 +410,13 @@ class AutoPiSuccessRateSensor(SensorEntity):
     _attr_icon = "mdi:percent"
     _attr_has_entity_name = True
 
-    def __init__(self, coordinators: dict[str, AutoPiDataUpdateCoordinator]) -> None:
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        coordinators: dict[str, AutoPiDataUpdateCoordinator],
+    ) -> None:
         """Initialize the success rate sensor."""
+        super().__init__(coordinator, "api_success_rate")
         self._coordinators = coordinators
         first_coordinator = next(iter(coordinators.values()))
         self._config_entry_id = first_coordinator.config_entry.entry_id
@@ -444,7 +460,7 @@ class AutoPiSuccessRateSensor(SensorEntity):
         )
 
 
-class AutoPiUpdateDurationSensor(SensorEntity):
+class AutoPiUpdateDurationSensor(AutoPiEntity, SensorEntity):
     """Sensor showing the average duration of the last updates across all coordinators."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -453,8 +469,13 @@ class AutoPiUpdateDurationSensor(SensorEntity):
     _attr_icon = "mdi:timer"
     _attr_has_entity_name = True
 
-    def __init__(self, coordinators: dict[str, AutoPiDataUpdateCoordinator]) -> None:
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        coordinators: dict[str, AutoPiDataUpdateCoordinator],
+    ) -> None:
         """Initialize the update duration sensor."""
+        super().__init__(coordinator, "update_duration")
         self._coordinators = coordinators
         first_coordinator = next(iter(coordinators.values()))
         self._config_entry_id = first_coordinator.config_entry.entry_id
