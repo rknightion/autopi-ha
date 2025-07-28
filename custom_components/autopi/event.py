@@ -42,27 +42,30 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
         self._device_ids = self.vehicle.devices if self.vehicle else []
 
         # Event types this entity will handle
-        # Include all possible AutoPi event types
+        # Include all possible AutoPi event types based on API analysis
         self._attr_event_types = [
             # Battery events
             "charging",
             "charging_slow",
             "discharging",
-            # Engine events
-            "engine_start",
-            "engine_stop",
+            "critical_level",  # Battery critical level
+            # Engine/Trip events
+            "start",  # Trip start (from API)
+            "stop",  # Trip stop (from API)
+            "engine_start",  # Keep for compatibility
+            "engine_stop",  # Keep for compatibility
+            "trip_start",  # Keep for compatibility
+            "trip_end",  # Keep for compatibility
             # Movement events
             "standstill",
             "moving",
-            # Trip events
-            "trip_start",
-            "trip_end",
             # Alert events
             "alert",
             "warning",
             "error",
             # Generic fallback
             "unknown",
+            "unkown",  # Typo in API data, but we handle it  # codespell:ignore
         ]
 
     @property
@@ -109,7 +112,7 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
                         "area": event_data.get("area"),
                         "data": event_data.get("data", {}),
                         "original_event_type": event_data.get("event_type"),
-                    }
+                    },
                 )
                 self.async_write_ha_state()
 
@@ -131,13 +134,15 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
         for device_id in self._device_ids:
             events = self.coordinator.get_device_events(device_id)
             for event in events[:2]:  # Last 2 events per device
-                recent_events.append({
-                    "device_id": device_id,
-                    "timestamp": event.timestamp.isoformat(),
-                    "area": event.area,
-                    "event": event.event_type,
-                    "tag": event.tag,
-                })
+                recent_events.append(
+                    {
+                        "device_id": device_id,
+                        "timestamp": event.timestamp.isoformat(),
+                        "area": event.area,
+                        "event": event.event_type,
+                        "tag": event.tag,
+                    }
+                )
 
         # Sort by timestamp (newest first)
         recent_events.sort(key=lambda x: x["timestamp"], reverse=True)

@@ -296,12 +296,33 @@ class AutoPiTrip:
     def from_api_data(cls, data: TripData) -> AutoPiTrip:
         """Create AutoPiTrip from API data."""
         # Parse duration string "HH:MM:SS" to seconds
-        duration_parts = data["duration"].split(":")
-        duration_seconds = (
-            int(duration_parts[0]) * 3600
-            + int(duration_parts[1]) * 60
-            + int(duration_parts[2])
-        )
+        # Duration is None for in-progress trips
+        duration_seconds = 0
+        duration_str = data.get("duration")
+        if duration_str and isinstance(duration_str, str) and ":" in duration_str:
+            try:
+                duration_parts = duration_str.split(":")
+                if len(duration_parts) == 3:
+                    duration_seconds = (
+                        int(duration_parts[0]) * 3600
+                        + int(duration_parts[1]) * 60
+                        + int(duration_parts[2])
+                    )
+            except (ValueError, TypeError):
+                # If parsing fails, leave duration as 0
+                pass
+        elif duration_str is None and data.get("state") in ("in_progress", "started"):
+            # For in-progress trips, calculate duration from start time
+            try:
+                start_time = datetime.fromisoformat(
+                    data["start_time_utc"].replace("Z", "+00:00")
+                )
+                duration_seconds = int(
+                    (datetime.now(start_time.tzinfo) - start_time).total_seconds()
+                )
+            except Exception:
+                # If parsing fails, duration remains 0
+                duration_seconds = 0
 
         # Extract addresses from display data
         start_address = None
@@ -314,14 +335,24 @@ class AutoPiTrip:
         if end_display:
             end_address = end_display.get("address")
 
+        # Handle end_time_utc - can be empty string for in-progress trips
+        end_time = datetime.now()  # Default to now for in-progress trips
+        end_time_str = data.get("end_time_utc", "")
+        if end_time_str and end_time_str.strip():  # Check for non-empty string
+            try:
+                end_time = datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
+            except ValueError:
+                # If parsing fails, use start time as fallback
+                end_time = datetime.fromisoformat(
+                    data["start_time_utc"].replace("Z", "+00:00")
+                )
+
         return cls(
             trip_id=data["id"],
             start_time=datetime.fromisoformat(
                 data["start_time_utc"].replace("Z", "+00:00")
             ),
-            end_time=datetime.fromisoformat(
-                data["end_time_utc"].replace("Z", "+00:00")
-            ),
+            end_time=end_time,
             start_lat=float(data["start_position_lat"]),
             start_lng=float(data["start_position_lng"]),
             start_address=start_address,

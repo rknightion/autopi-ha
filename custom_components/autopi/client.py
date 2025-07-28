@@ -229,8 +229,10 @@ class AutoPiClient:
                 try:
                     trip = AutoPiTrip.from_api_data(trip_data)
                     trips.append(trip)
-                except (KeyError, ValueError) as err:
-                    _LOGGER.warning("Failed to parse trip data: %s", err)
+                except (KeyError, ValueError, TypeError) as err:
+                    _LOGGER.warning(
+                        "Failed to parse trip data: %s. Trip data: %s", err, trip_data
+                    )
                     continue
 
             return count, trips

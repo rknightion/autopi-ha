@@ -54,6 +54,10 @@ warn_return_any = true
 warn_unreachable = true
 strict_optional = true
 show_error_codes = true
+exclude = [
+    "tests/",
+    "scripts/",
+]
 
 # Home Assistant specific configurations
 [[tool.mypy.overrides]]

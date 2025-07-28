@@ -31,8 +31,8 @@ class TestAPITracking:
             "trip": coordinator3,
         }
 
-        # Create sensor
-        sensor = AutoPiAPICallsSensor(coordinators)
+        # Create sensor - use coordinator1 as the primary coordinator
+        sensor = AutoPiAPICallsSensor(coordinator1, coordinators)
 
         # Check total
         assert sensor.native_value == 18  # 10 + 5 + 3
@@ -54,7 +54,7 @@ class TestAPITracking:
 
         coordinators = {"base": coordinator}
 
-        sensor = AutoPiAPICallsSensor(coordinators)
+        sensor = AutoPiAPICallsSensor(coordinator, coordinators)
         assert sensor.native_value == 0
 
     def test_api_calls_sensor_restoration(self):
@@ -67,7 +67,7 @@ class TestAPITracking:
 
         coordinators = {"base": coordinator}
 
-        sensor = AutoPiAPICallsSensor(coordinators)
+        sensor = AutoPiAPICallsSensor(coordinator, coordinators)
 
         # Simulate restored value being higher
         sensor._last_value = 100
