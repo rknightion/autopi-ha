@@ -7,7 +7,7 @@
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Frknightion%2Fautopi-ha.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Frknightion%2Fautopi-ha?ref=badge_shield)
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://autopi.ha-components.m7kni.com)
 
-![AutoPi Logo](docs/images/icon.png)
+![AutoPi Logo](docs/images/logo.png)
 
 This custom integration allows you to monitor your AutoPi vehicle tracking devices through Home Assistant. AutoPi combines OBD-II diagnostic data with GPS tracking to provide comprehensive vehicle monitoring and analytics.
 
