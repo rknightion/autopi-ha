@@ -42,17 +42,27 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
         self._device_ids = self.vehicle.devices if self.vehicle else []
 
         # Event types this entity will handle
+        # Include all possible AutoPi event types
         self._attr_event_types = [
+            # Battery events
             "charging",
             "charging_slow",
             "discharging",
+            # Engine events
             "engine_start",
             "engine_stop",
+            # Movement events
+            "standstill",
+            "moving",
+            # Trip events
             "trip_start",
             "trip_end",
+            # Alert events
             "alert",
             "warning",
             "error",
+            # Generic fallback
+            "unknown",
         ]
 
     @property
@@ -71,30 +81,44 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
 
         # Listen for device events from our devices
         @callback
-        def _handle_event(event_data: dict[str, Any]) -> None:
+        def _handle_event(event: Any) -> None:
             """Handle device events."""
+            event_data = event.data
             device_id = event_data.get("device_id")
             vehicle_id = event_data.get("vehicle_id")
 
             # Only process events for our vehicle
             if vehicle_id == self._vehicle_id and device_id in self._device_ids:
+                # Map the event type or use the original if it's in our list
+                event_type = event_data.get("event_type", "unknown")
+                if event_type not in self._attr_event_types:
+                    _LOGGER.warning(
+                        "Unknown event type '%s' from device %s, using 'unknown'",
+                        event_type,
+                        device_id,
+                    )
+                    event_type = "unknown"
+
                 # Trigger the event entity
                 self._trigger_event(
-                    event_data.get("event_type", "unknown"),
+                    event_type,
                     {
                         "device_id": device_id,
                         "timestamp": event_data.get("timestamp"),
                         "tag": event_data.get("tag"),
                         "area": event_data.get("area"),
                         "data": event_data.get("data", {}),
+                        "original_event_type": event_data.get("event_type"),
                     }
                 )
                 self.async_write_ha_state()
 
         # Subscribe to device events
-        self.hass.bus.async_listen(
-            f"{DOMAIN}_device_event",
-            lambda event: _handle_event(event.data),
+        self.async_on_remove(
+            self.hass.bus.async_listen(
+                f"{DOMAIN}_device_event",
+                _handle_event,
+            )
         )
 
     @property

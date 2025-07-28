@@ -123,6 +123,7 @@ async def test_event_entity_event_handling(hass: HomeAssistant, mock_coordinator
             "tag": "vehicle/battery/charging",
             "area": "vehicle/battery",
             "data": {"event.vehicle.battery.level": 95},
+            "original_event_type": "charging",
         }
     )
     event_entity.async_write_ha_state.assert_called_once()
@@ -153,3 +154,45 @@ async def test_event_entity_ignores_other_vehicles(hass: HomeAssistant, mock_coo
 
     # Check that the event was NOT triggered
     event_entity._trigger_event.assert_not_called()
+
+
+async def test_event_entity_unknown_event_type(hass: HomeAssistant, mock_coordinator, mock_vehicle, caplog):
+    """Test event entity handles unknown event types."""
+    event_entity = AutoPiVehicleEvent(mock_coordinator, "123")
+    event_entity.hass = hass
+    event_entity._trigger_event = MagicMock()
+    event_entity.async_write_ha_state = MagicMock()
+
+    await event_entity.async_added_to_hass()
+
+    # Simulate a device event with unknown type
+    event_data = {
+        "device_id": "device1",
+        "vehicle_id": "123",
+        "timestamp": datetime.now().isoformat(),
+        "tag": "vehicle/new_feature/action",
+        "area": "vehicle/new_feature",
+        "event_type": "some_new_event_type",
+        "data": {"custom": "data"},
+    }
+
+    # Fire the event
+    hass.bus.async_fire("autopi_device_event", event_data)
+    await hass.async_block_till_done()
+
+    # Check that the event was triggered with "unknown" type
+    event_entity._trigger_event.assert_called_once_with(
+        "unknown",
+        {
+            "device_id": "device1",
+            "timestamp": event_data["timestamp"],
+            "tag": "vehicle/new_feature/action",
+            "area": "vehicle/new_feature",
+            "data": {"custom": "data"},
+            "original_event_type": "some_new_event_type",
+        }
+    )
+    event_entity.async_write_ha_state.assert_called_once()
+
+    # Check that a warning was logged
+    assert "Unknown event type 'some_new_event_type'" in caplog.text
