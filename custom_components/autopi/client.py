@@ -11,6 +11,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 from .const import (
     DATA_FIELDS_ENDPOINT,
     DEFAULT_BASE_URL,
+    TRIPS_ENDPOINT,
     USER_AGENT,
     VEHICLE_PROFILE_ENDPOINT,
 )
@@ -23,9 +24,11 @@ from .exceptions import (
     AutoPiTimeoutError,
 )
 from .types import (
+    AutoPiTrip,
     AutoPiVehicle,
     DataFieldResponse,
     DataFieldValue,
+    TripsResponse,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -163,6 +166,71 @@ class AutoPiClient:
 
         except Exception as err:
             _LOGGER.error("Failed to fetch data fields: %s", err)
+            raise
+
+    async def get_trips(
+        self, vehicle_id: int, device_id: str | None = None, page_size: int = 1
+    ) -> tuple[int, list[AutoPiTrip]]:
+        """Get trips for a specific vehicle.
+
+        Args:
+            vehicle_id: The vehicle ID
+            device_id: Optional device ID to filter by
+            page_size: Number of trips to return (default 1 for last trip only)
+
+        Returns:
+            Tuple of (total_trip_count, list of AutoPiTrip objects)
+
+        Raises:
+            AutoPiAuthenticationError: If authentication fails
+            AutoPiConnectionError: If connection fails
+            AutoPiAPIError: If API returns an error
+        """
+        _LOGGER.debug(
+            "Fetching trips for vehicle %d with page_size %d", vehicle_id, page_size
+        )
+
+        try:
+            params: dict[str, Any] = {
+                "vehicle": vehicle_id,
+                "page_size": page_size,
+                "page": 1,
+            }
+
+            if device_id:
+                params["device_id"] = device_id
+
+            response = await self._request(
+                "GET",
+                TRIPS_ENDPOINT,
+                params=params,
+            )
+
+            trips_response = cast(TripsResponse, response)
+            count = trips_response.get("count", 0)
+            results = trips_response.get("results", [])
+
+            _LOGGER.info(
+                "Successfully fetched %d of %d trips for vehicle %d",
+                len(results),
+                count,
+                vehicle_id,
+            )
+
+            # Convert API data to AutoPiTrip objects
+            trips = []
+            for trip_data in results:
+                try:
+                    trip = AutoPiTrip.from_api_data(trip_data)
+                    trips.append(trip)
+                except (KeyError, ValueError) as err:
+                    _LOGGER.warning("Failed to parse trip data: %s", err)
+                    continue
+
+            return count, trips
+
+        except Exception as err:
+            _LOGGER.error("Failed to fetch trips: %s", err)
             raise
 
     async def _request(

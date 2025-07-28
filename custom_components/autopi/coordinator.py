@@ -31,7 +31,13 @@ from .exceptions import (
     AutoPiAuthenticationError,
     AutoPiConnectionError,
 )
-from .types import AutoPiVehicle, CoordinatorData, DataFieldValue, VehiclePosition
+from .types import (
+    AutoPiTrip,
+    AutoPiVehicle,
+    CoordinatorData,
+    DataFieldValue,
+    VehiclePosition,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -475,3 +481,205 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                 exc_info=True,
             )
             raise UpdateFailed(f"Failed to fetch data fields: {err}") from err
+
+
+class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
+    """Coordinator specifically for fetching vehicle trip data."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        base_coordinator: AutoPiDataUpdateCoordinator,
+    ) -> None:
+        """Initialize the trip coordinator.
+
+        Args:
+            hass: Home Assistant instance
+            config_entry: Configuration entry for this integration
+            base_coordinator: Base coordinator to get vehicle data from
+        """
+        # Trip data updates less frequently (slow update ring - 15 min default)
+        super().__init__(hass, config_entry, UPDATE_RING_SLOW)
+        self._base_coordinator = base_coordinator
+        # Store trip history for event detection
+        self._last_trip_ids: dict[str, str] = {}
+
+    async def _async_update_data(self) -> CoordinatorData:
+        """Fetch trip data from AutoPi API.
+
+        Returns:
+            Dictionary mapping vehicle IDs to AutoPiVehicle objects with trip data
+
+        Raises:
+            UpdateFailed: If data fetching fails
+        """
+        start_time = self.hass.loop.time()
+        self._update_count += 1
+
+        try:
+            # Get vehicles from base coordinator
+            if not self._base_coordinator.data:
+                _LOGGER.debug("No vehicle data available from base coordinator")
+                return {}
+
+            # Create client if not exists
+            if self._client is None:
+                session = async_get_clientsession(self.hass)
+                self._client = AutoPiClient(
+                    session=session,
+                    api_key=self.config_entry.data[CONF_API_KEY],
+                    base_url=self.config_entry.data.get(
+                        CONF_BASE_URL, DEFAULT_BASE_URL
+                    ),
+                )
+
+            _LOGGER.debug(
+                "[%s] Fetching trip data for all vehicles",
+                self._update_ring,
+            )
+
+            # Copy vehicle data from base coordinator
+            data: CoordinatorData = {}
+            total_trips = 0
+
+            for vehicle_id, vehicle in self._base_coordinator.data.items():
+                # Create a copy of the vehicle data
+                vehicle_copy = AutoPiVehicle(
+                    id=vehicle.id,
+                    name=vehicle.name,
+                    license_plate=vehicle.license_plate,
+                    vin=vehicle.vin,
+                    year=vehicle.year,
+                    type=vehicle.type,
+                    battery_voltage=vehicle.battery_voltage,
+                    devices=vehicle.devices,
+                    make_id=vehicle.make_id,
+                    model_id=vehicle.model_id,
+                    position=vehicle.position,
+                    data_fields=vehicle.data_fields,
+                    trip_count=0,
+                    last_trip=None,
+                    total_distance_km=0.0,
+                )
+
+                # Fetch trip data
+                try:
+                    self._total_api_calls += 1
+
+                    # Use the first device if available for better filtering
+                    device_id = vehicle.devices[0] if vehicle.devices else None
+
+                    # Get last trip and total count
+                    trip_count, trips = await self._client.get_trips(
+                        vehicle.id, device_id, page_size=1
+                    )
+
+                    vehicle_copy.trip_count = trip_count
+                    total_trips += trip_count
+
+                    if trips:
+                        vehicle_copy.last_trip = trips[0]
+
+                        # Check if this is a new trip
+                        last_trip_id = self._last_trip_ids.get(vehicle_id)
+                        if last_trip_id and last_trip_id != trips[0].trip_id:
+                            # Fire event for new trip
+                            self._fire_trip_event(vehicle_copy, trips[0])
+
+                        # Update last trip ID
+                        self._last_trip_ids[vehicle_id] = trips[0].trip_id
+
+                        _LOGGER.debug(
+                            "[%s] Vehicle %s has %d trips, last trip: %s km",
+                            self._update_ring,
+                            vehicle.name,
+                            trip_count,
+                            trips[0].distance_km,
+                        )
+                    else:
+                        _LOGGER.debug(
+                            "[%s] Vehicle %s has %d trips but no trip data returned",
+                            self._update_ring,
+                            vehicle.name,
+                            trip_count,
+                        )
+
+                    # TODO: Calculate total distance from all trips (requires paginating through all trips)
+                    # For now, we'll track this separately in the sensor
+
+                except Exception as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning(
+                        "[%s] Failed to fetch trips for vehicle %s: %s",
+                        self._update_ring,
+                        vehicle.name,
+                        err,
+                    )
+
+                data[vehicle_id] = vehicle_copy
+
+            # Track successful update
+            self._last_update_duration = self.hass.loop.time() - start_time
+            self._last_api_call_time = self.hass.loop.time()
+
+            _LOGGER.info(
+                "[%s] Successfully updated trip data for %d vehicles with %d total trips in %.2fs",
+                self._update_ring,
+                len(data),
+                total_trips,
+                self._last_update_duration,
+            )
+
+            return data
+
+        except Exception as err:
+            self._failed_api_calls += 1
+            self._last_update_duration = self.hass.loop.time() - start_time
+            _LOGGER.error(
+                "[%s] Unexpected error fetching trip data: %s",
+                self._update_ring,
+                err,
+                exc_info=True,
+            )
+            raise UpdateFailed(f"Failed to fetch trip data: {err}") from err
+
+    def _fire_trip_event(self, vehicle: AutoPiVehicle, trip: AutoPiTrip) -> None:
+        """Fire an event for a new trip.
+
+        Args:
+            vehicle: The vehicle that took the trip
+            trip: The trip data
+        """
+        event_data = {
+            "vehicle_id": vehicle.id,
+            "vehicle_name": vehicle.name,
+            "vehicle_license_plate": vehicle.license_plate,
+            "trip_id": trip.trip_id,
+            "start_time": trip.start_time.isoformat(),
+            "end_time": trip.end_time.isoformat(),
+            "duration_seconds": trip.duration_seconds,
+            "distance_km": trip.distance_km,
+            "start_location": {
+                "latitude": trip.start_lat,
+                "longitude": trip.start_lng,
+                "address": trip.start_address,
+            },
+            "end_location": {
+                "latitude": trip.end_lat,
+                "longitude": trip.end_lng,
+                "address": trip.end_address,
+            },
+        }
+
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_trip_completed",
+            event_data,
+        )
+
+        _LOGGER.info(
+            "Fired trip_completed event for vehicle %s: %.1f km in %d minutes",
+            vehicle.name,
+            trip.distance_km,
+            trip.duration_seconds // 60,
+        )

@@ -34,6 +34,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][config_entry.entry_id]
     coordinator: AutoPiDataUpdateCoordinator = data["coordinator"]
     position_coordinator: AutoPiDataUpdateCoordinator = data["position_coordinator"]
+    trip_coordinator: AutoPiDataUpdateCoordinator = data.get("trip_coordinator")
     all_coordinators = data["coordinators"]
 
     _LOGGER.debug(
@@ -85,6 +86,18 @@ async def async_setup_entry(
                         "Created %d data field sensors for vehicle %s",
                         len(data_field_sensors),
                         vehicle.name,
+                    )
+
+            # Add trip sensors if trip coordinator is available
+            if trip_coordinator and trip_coordinator.data and vehicle_id in trip_coordinator.data:
+                trip_vehicle = trip_coordinator.data[vehicle_id]
+                if trip_vehicle.trip_count > 0:
+                    entities.append(AutoPiTripCountSensor(trip_coordinator, vehicle_id))
+                    entities.append(AutoPiLastTripDistanceSensor(trip_coordinator, vehicle_id))
+                    _LOGGER.debug(
+                        "Created trip sensors for vehicle %s with %d trips",
+                        vehicle.name,
+                        trip_vehicle.trip_count,
                     )
 
     _LOGGER.info("Adding %d AutoPi sensor entities", len(entities))
@@ -433,3 +446,99 @@ class AutoPiUpdateDurationSensor(SensorEntity):
             manufacturer=MANUFACTURER,
             configuration_url="https://app.autopi.io",
         )
+
+
+class AutoPiTripCountSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing the total number of trips for a vehicle."""
+
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:map-marker-distance"
+    _attr_native_unit_of_measurement = "trips"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the trip count sensor."""
+        super().__init__(coordinator, vehicle_id, "trip_count")
+        self._attr_name = "Trip Count"
+
+        _LOGGER.debug("Initialized trip count sensor for vehicle %s", vehicle_id)
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of trips."""
+        if vehicle := self.vehicle:
+            return vehicle.trip_count
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+
+        if vehicle := self.vehicle:
+            if vehicle.last_trip:
+                attrs["last_trip_id"] = vehicle.last_trip.trip_id
+                attrs["last_trip_date"] = vehicle.last_trip.end_time.isoformat()
+                attrs["last_trip_distance_km"] = vehicle.last_trip.distance_km
+                attrs["last_trip_duration_minutes"] = vehicle.last_trip.duration_seconds // 60
+
+        return attrs
+
+
+class AutoPiLastTripDistanceSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing the distance of the last trip."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "km"
+    _attr_icon = "mdi:road-variant"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the last trip distance sensor."""
+        super().__init__(coordinator, vehicle_id, "last_trip_distance")
+        self._attr_name = "Last Trip Distance"
+
+        _LOGGER.debug("Initialized last trip distance sensor for vehicle %s", vehicle_id)
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the distance of the last trip."""
+        if vehicle := self.vehicle:
+            if vehicle.last_trip:
+                return round(vehicle.last_trip.distance_km, 1)
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+
+        if vehicle := self.vehicle:
+            if vehicle.last_trip:
+                trip = vehicle.last_trip
+                attrs.update({
+                    "trip_id": trip.trip_id,
+                    "start_time": trip.start_time.isoformat(),
+                    "end_time": trip.end_time.isoformat(),
+                    "duration_minutes": trip.duration_seconds // 60,
+                    "start_location": {
+                        "latitude": trip.start_lat,
+                        "longitude": trip.start_lng,
+                        "address": trip.start_address,
+                    },
+                    "end_location": {
+                        "latitude": trip.end_lat,
+                        "longitude": trip.end_lng,
+                        "address": trip.end_address,
+                    },
+                    "state": trip.state,
+                })
+
+        return attrs

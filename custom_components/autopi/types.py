@@ -125,6 +125,9 @@ class AutoPiVehicle:
     model_id: int
     position: VehiclePosition | None = None
     data_fields: dict[str, DataFieldValue] | None = None
+    trip_count: int = 0
+    last_trip: AutoPiTrip | None = None
+    total_distance_km: float = 0.0
 
     @property
     def unique_id(self) -> str:
@@ -179,6 +182,49 @@ class DataFieldLocation(TypedDict):
     lon: float
 
 
+class TripPositionDisplay(TypedDict):
+    """Position display data for trip endpoints."""
+
+    city: str | None
+    county: str | None
+    address: str | None
+    country: str | None
+    latitude: str | None
+    provider: str | None
+    longitude: str | None
+    precision: str | None
+    postal_code: str | None
+    country_code: str | None
+
+
+class TripData(TypedDict):
+    """Trip data from API."""
+
+    id: str
+    start_time_utc: str
+    end_time_utc: str
+    start_position_lat: str
+    start_position_lng: str
+    start_position_display: TripPositionDisplay | None
+    end_position_lat: str
+    end_position_lng: str
+    end_position_display: TripPositionDisplay | None
+    vehicle: int
+    duration: str
+    distanceKm: float
+    tag: str
+    last_recalc: str
+    state: str
+
+
+class TripsResponse(TypedDict):
+    """Trips API response."""
+
+    count: int
+    results: list[TripData]
+    page_size: int
+
+
 class DataFieldResponse(TypedDict):
     """Type definition for a single data field from the API."""
 
@@ -225,4 +271,57 @@ class DataFieldValue:
             last_value=data["last_value"],
             description=data["description"],
             last_update=now,
+        )
+
+
+@dataclass
+class AutoPiTrip:
+    """Represents a trip from the AutoPi system."""
+
+    trip_id: str
+    start_time: datetime
+    end_time: datetime
+    start_lat: float
+    start_lng: float
+    start_address: str | None
+    end_lat: float
+    end_lng: float
+    end_address: str | None
+    vehicle_id: int
+    duration_seconds: int
+    distance_km: float
+    state: str
+
+    @classmethod
+    def from_api_data(cls, data: TripData) -> AutoPiTrip:
+        """Create AutoPiTrip from API data."""
+        # Parse duration string "HH:MM:SS" to seconds
+        duration_parts = data["duration"].split(":")
+        duration_seconds = int(duration_parts[0]) * 3600 + int(duration_parts[1]) * 60 + int(duration_parts[2])
+
+        # Extract addresses from display data
+        start_address = None
+        start_display = data.get("start_position_display")
+        if start_display:
+            start_address = start_display.get("address")
+
+        end_address = None
+        end_display = data.get("end_position_display")
+        if end_display:
+            end_address = end_display.get("address")
+
+        return cls(
+            trip_id=data["id"],
+            start_time=datetime.fromisoformat(data["start_time_utc"].replace("Z", "+00:00")),
+            end_time=datetime.fromisoformat(data["end_time_utc"].replace("Z", "+00:00")),
+            start_lat=float(data["start_position_lat"]),
+            start_lng=float(data["start_position_lng"]),
+            start_address=start_address,
+            end_lat=float(data["end_position_lat"]),
+            end_lng=float(data["end_position_lng"]),
+            end_address=end_address,
+            vehicle_id=data["vehicle"],
+            duration_seconds=duration_seconds,
+            distance_km=data["distanceKm"],
+            state=data["state"],
         )

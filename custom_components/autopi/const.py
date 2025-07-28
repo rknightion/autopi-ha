@@ -59,6 +59,7 @@ USER_AGENT: Final = f"HomeAssistant-AutoPi/{_LOGGER.name}"
 
 VEHICLE_PROFILE_ENDPOINT: Final = "/vehicle/v2/profile"
 DATA_FIELDS_ENDPOINT: Final = "/logbook/storage/data_fields/"
+TRIPS_ENDPOINT: Final = "/logbook/v2/trips/"
 
 MANUFACTURER: Final = "AutoPi"
 

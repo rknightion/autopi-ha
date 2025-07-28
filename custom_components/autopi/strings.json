@@ -104,6 +104,12 @@
       },
       "longitude": {
         "name": "Longitude"
+      },
+      "trip_count": {
+        "name": "Trip Count"
+      },
+      "last_trip_distance": {
+        "name": "Last Trip Distance"
       }
     },
     "device_tracker": {

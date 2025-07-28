@@ -14,8 +14,13 @@ from .const import (
     DOMAIN,
     PLATFORMS,
     UPDATE_RING_FAST,
+    UPDATE_RING_SLOW,
 )
-from .coordinator import AutoPiDataUpdateCoordinator, AutoPiPositionCoordinator
+from .coordinator import (
+    AutoPiDataUpdateCoordinator,
+    AutoPiPositionCoordinator,
+    AutoPiTripCoordinator,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,7 +75,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create the fast update coordinator (all data)
     _LOGGER.info("Creating base vehicle data coordinator")
     coordinator = AutoPiDataUpdateCoordinator(hass, entry, UPDATE_RING_FAST)
-    coordinators[UPDATE_RING_FAST] = coordinator
+    coordinators["base"] = coordinator
 
     # Perform initial data fetch
     try:
@@ -87,6 +92,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create position coordinator for fast updates (independent of base coordinator)
     _LOGGER.info("Creating position data coordinator")
     position_coordinator = AutoPiPositionCoordinator(hass, entry, coordinator)
+    coordinators["position"] = position_coordinator
 
     # Perform initial position data fetch in parallel
     try:
@@ -97,6 +103,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Position fetch failures are not critical
         _LOGGER.warning("Failed to fetch initial position data: %s", err)
 
+    # Create trip coordinator for slow updates
+    _LOGGER.info("Creating trip data coordinator")
+    trip_coordinator = AutoPiTripCoordinator(hass, entry, coordinator)
+    coordinators["trip"] = trip_coordinator
+
+    # Perform initial trip data fetch
+    try:
+        _LOGGER.debug("Performing initial trip data fetch")
+        await trip_coordinator.async_config_entry_first_refresh()
+        _LOGGER.info("Initial trip data fetch successful")
+    except Exception as err:
+        # Trip fetch failures are not critical
+        _LOGGER.warning("Failed to fetch initial trip data: %s", err)
+
     # Store coordinators
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
@@ -104,6 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Keep these for backward compatibility
         "coordinator": coordinator,
         "position_coordinator": position_coordinator,
+        "trip_coordinator": trip_coordinator,
     }
 
     _LOGGER.info(
@@ -171,11 +192,9 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
         # Schedule a reload
         await hass.config_entries.async_reload(entry.entry_id)
     else:
-        # Just trigger a refresh on both coordinators
-        if data.get("coordinator"):
-            await data["coordinator"].async_request_refresh()
-        if data.get("position_coordinator"):
-            await data["position_coordinator"].async_request_refresh()
+        # Just trigger a refresh on all coordinators
+        for coord in data.get("coordinators", {}).values():
+            await coord.async_request_refresh()
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
