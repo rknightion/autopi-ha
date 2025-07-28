@@ -6,11 +6,12 @@ import logging
 from typing import Any
 
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, UnitOfLength, UnitOfSpeed
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -28,7 +29,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up AutoPi sensors from a config entry."""
-    coordinator: AutoPiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    data = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: AutoPiDataUpdateCoordinator = data["coordinator"]
+    position_coordinator: AutoPiDataUpdateCoordinator = data["position_coordinator"]
 
     _LOGGER.debug(
         "Setting up AutoPi sensors for config entry %s", config_entry.entry_id
@@ -52,6 +55,14 @@ async def async_setup_entry(
                 "Creating vehicle sensor for %s (%s)", vehicle.name, vehicle_id
             )
             entities.append(AutoPiVehicleSensor(coordinator, vehicle_id))
+
+            # Add position-related sensors
+            entities.append(AutoPiVehicleAltitudeSensor(position_coordinator, vehicle_id))
+            entities.append(AutoPiVehicleSpeedSensor(position_coordinator, vehicle_id))
+            entities.append(AutoPiVehicleCourseSensor(position_coordinator, vehicle_id))
+            entities.append(AutoPiVehicleSatellitesSensor(position_coordinator, vehicle_id))
+            entities.append(AutoPiVehicleLatitudeSensor(position_coordinator, vehicle_id))
+            entities.append(AutoPiVehicleLongitudeSensor(position_coordinator, vehicle_id))
 
     _LOGGER.info("Adding %d AutoPi sensor entities", len(entities))
 
@@ -265,4 +276,252 @@ class AutoPiUpdateDurationSensor(AutoPiEntity, SensorEntity):
             name="AutoPi Integration",
             manufacturer=MANUFACTURER,
             configuration_url="https://app.autopi.io",
+        )
+
+
+class AutoPiVehicleAltitudeSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor representing a vehicle's altitude."""
+
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfLength.METERS
+    _attr_icon = "mdi:elevation-rise"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the altitude sensor."""
+        super().__init__(coordinator, vehicle_id, "altitude")
+        _LOGGER.debug("Initialized AutoPi altitude sensor for vehicle %s", vehicle_id)
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the sensor."""
+        return "Altitude"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the altitude of the vehicle."""
+        if vehicle := self.vehicle:
+            if vehicle.position:
+                return vehicle.position.altitude
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        # Only available if we have position data
+        return (
+            super().available
+            and self.vehicle is not None
+            and self.vehicle.position is not None
+        )
+
+
+class AutoPiVehicleSpeedSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor representing a vehicle's speed."""
+
+    _attr_device_class = SensorDeviceClass.SPEED
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfSpeed.METERS_PER_SECOND
+    _attr_icon = "mdi:speedometer"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the speed sensor."""
+        super().__init__(coordinator, vehicle_id, "speed")
+        _LOGGER.debug("Initialized AutoPi speed sensor for vehicle %s", vehicle_id)
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the sensor."""
+        return "Speed"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the speed of the vehicle."""
+        if vehicle := self.vehicle:
+            if vehicle.position:
+                return vehicle.position.speed
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return (
+            super().available
+            and self.vehicle is not None
+            and self.vehicle.position is not None
+        )
+
+
+class AutoPiVehicleCourseSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor representing a vehicle's course (direction)."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "°"
+    _attr_icon = "mdi:compass"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the course sensor."""
+        super().__init__(coordinator, vehicle_id, "course")
+        _LOGGER.debug("Initialized AutoPi course sensor for vehicle %s", vehicle_id)
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the sensor."""
+        return "Course"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the course of the vehicle."""
+        if vehicle := self.vehicle:
+            if vehicle.position:
+                return vehicle.position.course
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return (
+            super().available
+            and self.vehicle is not None
+            and self.vehicle.position is not None
+        )
+
+
+class AutoPiVehicleSatellitesSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor representing the number of GPS satellites."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:satellite-variant"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the satellites sensor."""
+        super().__init__(coordinator, vehicle_id, "satellites")
+        _LOGGER.debug("Initialized AutoPi satellites sensor for vehicle %s", vehicle_id)
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the sensor."""
+        return "GPS Satellites"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of satellites."""
+        if vehicle := self.vehicle:
+            if vehicle.position:
+                return vehicle.position.num_satellites
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return (
+            super().available
+            and self.vehicle is not None
+            and self.vehicle.position is not None
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+
+        if vehicle := self.vehicle:
+            if vehicle.position:
+                attrs["location_accuracy"] = vehicle.position.location_accuracy
+                attrs["timestamp"] = vehicle.position.timestamp.isoformat()
+
+        return attrs
+
+
+class AutoPiVehicleLatitudeSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor representing a vehicle's latitude."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:latitude"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the latitude sensor."""
+        super().__init__(coordinator, vehicle_id, "latitude")
+        _LOGGER.debug("Initialized AutoPi latitude sensor for vehicle %s", vehicle_id)
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the sensor."""
+        return "Latitude"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the latitude of the vehicle."""
+        if vehicle := self.vehicle:
+            if vehicle.position:
+                return round(vehicle.position.latitude, 6)
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return (
+            super().available
+            and self.vehicle is not None
+            and self.vehicle.position is not None
+        )
+
+
+class AutoPiVehicleLongitudeSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor representing a vehicle's longitude."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:longitude"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the longitude sensor."""
+        super().__init__(coordinator, vehicle_id, "longitude")
+        _LOGGER.debug("Initialized AutoPi longitude sensor for vehicle %s", vehicle_id)
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the sensor."""
+        return "Longitude"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the longitude of the vehicle."""
+        if vehicle := self.vehicle:
+            if vehicle.position:
+                return round(vehicle.position.longitude, 6)
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return (
+            super().available
+            and self.vehicle is not None
+            and self.vehicle.position is not None
         )

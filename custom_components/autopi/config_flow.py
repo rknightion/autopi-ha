@@ -18,9 +18,15 @@ from .const import (
     CONF_BASE_URL,
     CONF_SCAN_INTERVAL,
     CONF_SELECTED_VEHICLES,
+    CONF_UPDATE_INTERVAL_FAST,
+    CONF_UPDATE_INTERVAL_MEDIUM,
+    CONF_UPDATE_INTERVAL_SLOW,
     DEFAULT_BASE_URL,
     DEFAULT_NAME,
     DEFAULT_SCAN_INTERVAL_MINUTES,
+    DEFAULT_UPDATE_INTERVAL_FAST_MINUTES,
+    DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES,
+    DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES,
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_SCAN_INTERVAL_MINUTES,
@@ -302,15 +308,23 @@ class AutoPiOptionsFlow(OptionsFlow):
             if user_input.get("update_api_key"):
                 return await self.async_step_api_key()
 
-            # Otherwise save the scan interval
+            # Otherwise save the update intervals
             _LOGGER.debug("Updating options with: %s", user_input)
-            return self.async_create_entry(title="", data={
-                CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL]
-            })
 
-        current_interval = self.config_entry.options.get(
-            CONF_SCAN_INTERVAL,
-            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES)
+            # Remove the update_api_key from the data before saving
+            options_data = {k: v for k, v in user_input.items() if k != "update_api_key"}
+
+            return self.async_create_entry(title="", data=options_data)
+
+        # Get current intervals from options or defaults
+        current_fast = self.config_entry.options.get(
+            CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
+        )
+        current_medium = self.config_entry.options.get(
+            CONF_UPDATE_INTERVAL_MEDIUM, DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES
+        )
+        current_slow = self.config_entry.options.get(
+            CONF_UPDATE_INTERVAL_SLOW, DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
         )
 
         return self.async_show_form(
@@ -318,8 +332,30 @@ class AutoPiOptionsFlow(OptionsFlow):
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_SCAN_INTERVAL,
-                        default=current_interval,
+                        CONF_UPDATE_INTERVAL_FAST,
+                        default=current_fast,
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=MIN_SCAN_INTERVAL_MINUTES,
+                            max=MAX_SCAN_INTERVAL_MINUTES,
+                            unit_of_measurement="minutes",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                    vol.Required(
+                        CONF_UPDATE_INTERVAL_MEDIUM,
+                        default=current_medium,
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=MIN_SCAN_INTERVAL_MINUTES,
+                            max=MAX_SCAN_INTERVAL_MINUTES,
+                            unit_of_measurement="minutes",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                    vol.Required(
+                        CONF_UPDATE_INTERVAL_SLOW,
+                        default=current_slow,
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=MIN_SCAN_INTERVAL_MINUTES,
@@ -331,6 +367,11 @@ class AutoPiOptionsFlow(OptionsFlow):
                     vol.Optional("update_api_key", default=False): bool,
                 }
             ),
+            description_placeholders={
+                "fast_desc": "Vehicle position updates",
+                "medium_desc": "Vehicle status updates",
+                "slow_desc": "Reserved for future use",
+            },
         )
 
     async def async_step_api_key(

@@ -33,6 +33,82 @@ class VehicleProfileResponse(TypedDict):
     page_size: int
 
 
+class LocationData(TypedDict):
+    """TypedDict for location data."""
+
+    lat: float
+    lon: float
+
+
+class PositionData(TypedDict):
+    """TypedDict for position data from API."""
+
+    ts: str
+    utc: None | str
+    course_over_ground: float
+    speed_over_ground: float
+    altitude: float
+    nsat: int
+    location: LocationData
+
+
+class DevicePositionData(TypedDict):
+    """Type definition for device position entry from bulk API."""
+
+    ts: str
+    unit_id: str
+    id: str
+    display: str
+    last_communication: str
+    positions: list[PositionData]
+
+
+@dataclass
+class VehiclePosition:
+    """Represents a vehicle's position data."""
+
+    timestamp: datetime
+    latitude: float
+    longitude: float
+    altitude: float
+    speed: float
+    course: float
+    num_satellites: int
+
+    @property
+    def location_accuracy(self) -> float:
+        """Calculate location accuracy based on number of satellites."""
+        if self.num_satellites < 4:
+            return 100.0
+        elif self.num_satellites == 4:
+            return 30.0
+        elif self.num_satellites == 5:
+            return 20.0
+        elif self.num_satellites == 6:
+            return 15.0
+        elif self.num_satellites == 7:
+            return 11.0
+        elif self.num_satellites in (8, 9):
+            return 7.5
+        elif self.num_satellites in (10, 11):
+            return 5.0
+        else:  # 12+
+            return 3.0
+
+    @classmethod
+    def from_api_data(cls, data: PositionData) -> VehiclePosition:
+        """Create VehiclePosition from API data."""
+        return cls(
+            timestamp=datetime.fromisoformat(data["ts"].replace("Z", "+00:00")),
+            latitude=data["location"]["lat"],
+            longitude=data["location"]["lon"],
+            altitude=data["altitude"],
+            speed=data["speed_over_ground"],
+            course=data["course_over_ground"],
+            num_satellites=data["nsat"],
+        )
+
+
 @dataclass
 class AutoPiVehicle:
     """Represents an AutoPi vehicle."""
@@ -47,6 +123,7 @@ class AutoPiVehicle:
     devices: list[str]
     make_id: int
     model_id: int
+    position: VehiclePosition | None = None
 
     @property
     def unique_id(self) -> str:

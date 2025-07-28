@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from .const import (
     DEFAULT_BASE_URL,
+    MOST_RECENT_POSITIONS_ENDPOINT,
     USER_AGENT,
     VEHICLE_PROFILE_ENDPOINT,
 )
@@ -20,7 +21,7 @@ from .exceptions import (
     AutoPiRateLimitError,
     AutoPiTimeoutError,
 )
-from .types import AutoPiVehicle
+from .types import AutoPiVehicle, DevicePositionData, PositionData, VehiclePosition
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,6 +96,91 @@ class AutoPiClient:
         except Exception as err:
             _LOGGER.error("Failed to fetch vehicles: %s", err)
             raise
+
+    async def get_all_positions(self) -> dict[str, VehiclePosition]:
+        """Get the most recent positions for all devices.
+
+        Returns:
+            Dictionary mapping device IDs to VehiclePosition objects
+
+        Raises:
+            AutoPiAuthenticationError: If authentication fails
+            AutoPiConnectionError: If connection fails
+            AutoPiAPIError: If API returns an error
+        """
+        _LOGGER.debug("Fetching positions for all devices from AutoPi API")
+
+        try:
+            response = await self._request(
+                "GET",
+                MOST_RECENT_POSITIONS_ENDPOINT,
+            )
+
+            # Response should be a list
+            if not isinstance(response, list):
+                _LOGGER.error("Unexpected response type: %s", type(response))
+                return {}
+
+            positions: dict[str, VehiclePosition] = {}
+
+            for device_data in response:
+                try:
+                    device_positions = cast(DevicePositionData, device_data)
+                    unit_id = device_positions["unit_id"]
+
+                    # Get the most recent position from the positions array
+                    if device_positions["positions"]:
+                        # Sort by timestamp to get the most recent
+                        sorted_positions = sorted(
+                            device_positions["positions"],
+                            key=lambda p: p["ts"],
+                            reverse=True
+                        )
+
+                        latest_position = sorted_positions[0]
+
+                        # Validate position data
+                        if self._is_valid_position_response(latest_position):
+                            positions[unit_id] = VehiclePosition.from_api_data(
+                                cast(PositionData, latest_position)
+                            )
+                        else:
+                            _LOGGER.warning(
+                                "Invalid position data for device %s", unit_id
+                            )
+                    else:
+                        _LOGGER.debug("No positions available for device %s", unit_id)
+
+                except (KeyError, TypeError) as err:
+                    _LOGGER.warning(
+                        "Failed to parse position data for device: %s", err
+                    )
+                    continue
+
+            _LOGGER.info(
+                "Successfully fetched positions for %d devices", len(positions)
+            )
+            return positions
+
+        except Exception as err:
+            _LOGGER.error("Failed to fetch positions: %s", err)
+            raise
+
+    def _is_valid_position_response(self, data: dict[str, Any]) -> bool:
+        """Check if position response has all required fields."""
+        try:
+            return (
+                "ts" in data
+                and "location" in data
+                and "lat" in data["location"]
+                and "lon" in data["location"]
+                and "altitude" in data
+                and "speed_over_ground" in data
+                and "course_over_ground" in data
+                and "nsat" in data
+            )
+        except (KeyError, TypeError):
+            return False
 
     async def _request(
         self,
