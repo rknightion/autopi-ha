@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.3.0] - 2025-07-28
+
+
+### 🚗 Vehicle Features
+- firing events on startup to avoid replaying old events
+
+
 ## [0.2.1] - 2025-07-28
 
 

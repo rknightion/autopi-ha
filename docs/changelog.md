@@ -17,6 +17,13 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 
+## [0.3.0] - 2025-07-28
+
+
+### 🚗 Vehicle Features
+- firing events on startup to avoid replaying old events
+
+
 ## [0.2.1] - 2025-07-28
 
 
