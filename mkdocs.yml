@@ -234,3 +234,4 @@ watch:
 
 not_in_nav: |
   /includes/
+  /404.md

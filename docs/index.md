@@ -7,7 +7,7 @@ description: Monitor and track your vehicles with AutoPi cloud platform integrat
 
 The AutoPi Home Assistant integration allows you to monitor and track your vehicles equipped with AutoPi devices through Home Assistant. This integration provides real-time vehicle data, GPS tracking, and comprehensive diagnostics.
 
-![AutoPi Integration](images/autopi-hero.png)
+<!-- TODO: Add hero image ![AutoPi Integration](images/autopi-hero.png) -->
 
 ## Features
 
