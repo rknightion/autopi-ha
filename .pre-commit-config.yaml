@@ -72,7 +72,7 @@ repos:
         pass_filenames: false
         args:
         -   tests/
-        -   --cov=custom_components.autopi_dashboard
+        -   --cov=custom_components.autopi
         -   --cov-report=term-missing
         -   --cov-fail-under=10
         -   -v

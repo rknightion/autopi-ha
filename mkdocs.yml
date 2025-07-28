@@ -66,7 +66,6 @@ theme:
 
 plugins:
   - privacy
-  - social
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
       lang: en
@@ -173,9 +172,7 @@ markdown_extensions:
       - quote
 
 nav:
-  - Home:
-    - index.md
-    - Tags: tags.md
+  - Home: index.md
   - Getting Started:
     - getting-started.md
     - Installation: installation.md
@@ -186,16 +183,13 @@ nav:
     - API Optimization: api-optimization.md
   - Development:
     - development.md
-    - Architecture: architecture.md
     - Contributing: contributing.md
   - Reference:
+    - Entity Reference: entities.md
     - Changelog: changelog.md
     - FAQ: faq.md
 
 extra:
-  analytics:
-    provider: google
-    property: !ENV GOOGLE_ANALYTICS_KEY
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/rknightion/autopi-ha
@@ -203,9 +197,6 @@ extra:
     - icon: material/home-assistant
       link: https://www.home-assistant.io
       name: Home Assistant
-    - icon: fontawesome/solid/paper-plane
-      link: mailto:rob@example.com
-      name: Send a message
   version:
     provider: mike
     default: stable
@@ -229,7 +220,7 @@ extra_css:
 
 extra_javascript:
   - javascripts/mathjax.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
   - javascripts/extra.js
   - javascripts/seo.js

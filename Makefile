@@ -16,6 +16,7 @@ help:
 	@echo "  make pre-commit   Run pre-commit hooks on all files"
 	@echo "  make validate     Run all local validations"
 	@echo "  make docs         Build documentation"
+	@echo "  make docgen       Generate entity documentation from code"
 	@echo "  make check-all    Run all checks (lint, test, validate)"
 
 # Install dependencies
@@ -137,6 +138,11 @@ validate: lint pre-commit
 docs:
 	@echo "Documentation is in README.md and CONTRIBUTING.md"
 	@echo "API docs: https://rknightion.github.io/autopi-ha/"
+
+# Generate entity documentation from code
+docgen:
+	uv run python scripts/generate_docs.py
+	@echo "✅ Entity documentation generated!"
 
 # Run all checks
 check-all: lint test validate

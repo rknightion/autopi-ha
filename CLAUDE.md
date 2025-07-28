@@ -38,6 +38,7 @@ This project uses `uv` for Python dependency management. Always use `uv` to run 
 
 ### Endpoints Used
 - `/vehicle/v2/profile` - Fetches vehicle profile information
+- `/logbook/v2/most_recent_positions/` - Fetches most recent positions for all devices (bulk API)
 
 ### Rate Limiting
 - Implements exponential backoff retry logic
@@ -52,6 +53,15 @@ This project uses `uv` for Python dependency management. Always use `uv` to run 
 4. **Failed API Calls Sensor**: Tracks number of failed API calls
 5. **API Success Rate Sensor**: Shows percentage of successful API calls
 6. **Update Duration Sensor**: Shows duration of last API update in seconds
+7. **Altitude Sensor**: Vehicle altitude in meters
+8. **Speed Sensor**: Vehicle speed in m/s (converts to user's preferred unit)
+9. **Course Sensor**: Vehicle heading/direction in degrees
+10. **GPS Satellites Sensor**: Number of GPS satellites in view
+11. **Latitude Sensor**: Vehicle latitude (diagnostic)
+12. **Longitude Sensor**: Vehicle longitude (diagnostic)
+
+### Device Tracker
+- **Vehicle Tracker**: GPS-based device tracker for each vehicle
 
 ### Attributes
 Each vehicle entity includes:
@@ -72,7 +82,9 @@ Each vehicle entity includes:
 - `scan_interval`: Update interval in minutes
 
 ### Options
-- `scan_interval`: Configurable update interval (1-60 minutes)
+- `update_interval_fast`: Position update interval (1-60 minutes, default: 1)
+- `update_interval_medium`: Vehicle status update interval (1-60 minutes, default: 5)
+- `update_interval_slow`: Reserved for future use (1-60 minutes, default: 15)
 
 ## Error Handling
 
