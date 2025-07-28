@@ -229,14 +229,14 @@ class TestSpecificSensors:
 
     def test_gsm_signal_sensor(self, mock_coordinator, mock_vehicle):
         """Test GSM signal sensor percentage conversion."""
-        field = create_data_field("std.gsm_signal", "value", 15, "int")
+        field = create_data_field("std.gsm_signal", "value", 3, "int")
         mock_vehicle.data_fields = {"std.gsm_signal.value": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
         sensor = GSMSignalSensor(mock_coordinator, "123")
 
-        # 15/31 * 100 = 48.4, rounded to 48
-        assert sensor.native_value == 48
+        # 3/5 * 100 = 60
+        assert sensor.native_value == 60
         assert sensor.native_unit_of_measurement == PERCENTAGE
         assert sensor._attr_entity_category == EntityCategory.DIAGNOSTIC
 

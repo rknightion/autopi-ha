@@ -710,8 +710,9 @@ class GSMSignalSensor(AutoPiDataFieldSensor):
         """Return the sensor value."""
         value = super().native_value
         if value is not None:
-            # Convert 0-31 scale to percentage
-            return round((value / 31) * 100)
+            # Convert 1-5 scale to percentage
+            # 1 = 20%, 2 = 40%, 3 = 60%, 4 = 80%, 5 = 100%
+            return round((value / 5) * 100)
         return None
 
     @property
