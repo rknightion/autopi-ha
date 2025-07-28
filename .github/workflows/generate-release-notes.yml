@@ -75,11 +75,15 @@ jobs:
           else
             # Auto-triggered by push - use semantic versioning
             # Get the latest version tag (matching v*.*.* pattern)
-            LATEST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1 || echo "v0.1.0")
+            LATEST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1 || echo "")
             echo "Latest version tag: $LATEST_TAG"
 
-            # Extract version
-            LATEST_VERSION=${LATEST_TAG#v}
+            # Extract version or use default
+            if [ -n "$LATEST_TAG" ]; then
+              LATEST_VERSION=${LATEST_TAG#v}
+            else
+              LATEST_VERSION="0.1.0"
+            fi
             IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
             
             # Get all commits since the last tag to determine version bump

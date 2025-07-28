@@ -56,8 +56,7 @@
         },
         "data_description": {
           "update_interval_fast": "How often to fetch data from AutoPi in minutes (1-60)",
-          "update_api_key": "Check this box to update your AutoPi API key",
-          "fast_desc": "Data update interval"
+          "update_api_key": "Check this box to update your AutoPi API key"
         }
       },
       "api_key": {
