@@ -1,6 +1,6 @@
 site_name: AutoPi Home Assistant Integration
 site_description: A comprehensive Home Assistant custom integration for monitoring AutoPi vehicle tracking devices with real-time OBD-II diagnostics and GPS data
-site_url: https://m7kni.io/autopi-ha
+site_url: https://m7kni.io/autopi-ha/
 repo_name: rknightion/autopi-ha
 repo_url: https://github.com/rknightion/autopi-ha
 edit_uri: edit/main/docs/
