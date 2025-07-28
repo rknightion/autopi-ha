@@ -17,6 +17,13 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 
+## [0.3.2] - 2025-07-28
+
+
+### 🐛 Bug Fixes
+- update GSM signal scaling from 0-31 to 1-5 range
+
+
 ## [0.3.1] - 2025-07-28
 
 
