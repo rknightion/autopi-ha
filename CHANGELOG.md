@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.3.1] - 2025-07-28
+
+
+### 🐛 Bug Fixes
+- handle None values in trip end positions
+- improve error handling and trip parsing resilience
+
+### 🧰 Maintenance
+5cbd6fc chore(deps): downgrade homeassistant-stubs and update pymdown-extensions
+773d192 chore(deps): update dependency homeassistant-stubs to v2025.7.4
+
+### 📋 Other Changes
+- Merge remote-tracking branch 'origin/renovate/homeassistant-stubs-2025.x'
+- enhance(autopi): improve event handling and categorization
+
+
 ## [0.3.0] - 2025-07-28
 
 
