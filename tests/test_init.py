@@ -28,11 +28,17 @@ async def test_setup_entry(hass: HomeAssistant) -> None:
     # Mock the coordinator and its methods
     with patch(
         "custom_components.autopi.AutoPiDataUpdateCoordinator"
-    ) as mock_coordinator_class:
+    ) as mock_coordinator_class, patch(
+        "custom_components.autopi.AutoPiPositionCoordinator"
+    ) as mock_position_coordinator_class:
         mock_coordinator = AsyncMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
         mock_coordinator.get_vehicle_count = MagicMock(return_value=1)
         mock_coordinator_class.return_value = mock_coordinator
+
+        mock_position_coordinator = AsyncMock()
+        mock_position_coordinator.async_config_entry_first_refresh = AsyncMock()
+        mock_position_coordinator_class.return_value = mock_position_coordinator
 
         # Mock platform setup
         with patch(
@@ -47,4 +53,8 @@ async def test_setup_entry(hass: HomeAssistant) -> None:
 
             # Verify the coordinator was created and stored
             assert mock_entry.entry_id in hass.data[DOMAIN]
-            assert hass.data[DOMAIN][mock_entry.entry_id] == mock_coordinator
+            data = hass.data[DOMAIN][mock_entry.entry_id]
+            assert "coordinator" in data
+            assert "position_coordinator" in data
+            assert "coordinators" in data
+            assert data["coordinator"] == mock_coordinator

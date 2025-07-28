@@ -1,6 +1,7 @@
 """Tests for AutoPi data field sensors."""
 
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -58,7 +59,7 @@ def mock_vehicle():
 def create_data_field(
     field_prefix: str,
     field_name: str,
-    value: any,
+    value: Any,
     value_type: str = "float",
     frequency: float = 1.0,
     last_update: datetime | None = None,
@@ -236,7 +237,7 @@ class TestSpecificSensors:
 
         # 15/31 * 100 = 48.4, rounded to 48
         assert sensor.native_value == 48
-        assert sensor._attr_native_unit_of_measurement == PERCENTAGE
+        assert sensor.native_unit_of_measurement == PERCENTAGE
         assert sensor._attr_entity_category == EntityCategory.DIAGNOSTIC
 
     def test_obd_speed_sensor(self, mock_coordinator, mock_vehicle):
@@ -262,7 +263,7 @@ class TestSpecificSensors:
 
         # 35767143 m = 35767.1 km
         assert sensor.native_value == 35767.1
-        assert sensor._attr_native_unit_of_measurement == UnitOfLength.KILOMETERS
+        assert sensor.native_unit_of_measurement == UnitOfLength.KILOMETERS
 
     def test_temperature_sensor(self, mock_coordinator, mock_vehicle):
         """Test temperature sensor."""
@@ -305,13 +306,14 @@ class TestSensorCreation:
 
     def test_create_sensors_with_error(self, mock_coordinator, caplog):
         """Test sensor creation handles errors gracefully."""
-        # Mock a sensor class that raises an error
-        with patch("custom_components.autopi.data_field_sensors.BatteryChargeLevelSensor") as mock_sensor:
-            mock_sensor.side_effect = Exception("Test error")
+        # Mock FIELD_ID_TO_SENSOR_CLASS to include a sensor that raises an error
+        mock_sensor_class = Mock(side_effect=Exception("Test error"))
 
-            available_fields = {"obd.bat.level"}
+        with patch.dict("custom_components.autopi.data_field_sensors.FIELD_ID_TO_SENSOR_CLASS",
+                       {"test.field": mock_sensor_class}, clear=False):
+            available_fields = {"test.field", "obd.bat.level"}
             sensors = create_data_field_sensors(mock_coordinator, "123", available_fields)
 
-            # Should return empty list and log error
-            assert len(sensors) == 0
+            # Should still create valid sensors and log error for failed one
+            assert len(sensors) == 1  # Only battery sensor created
             assert "Failed to create sensor" in caplog.text

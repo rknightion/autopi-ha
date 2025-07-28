@@ -86,7 +86,8 @@ jobs:
             if [ -n "$LATEST_TAG" ]; then
               COMMITS=$(git log --oneline "$LATEST_TAG..HEAD")
             else
-              COMMITS=$(git log --oneline HEAD~20..HEAD)
+              # Get all commits if no tag exists
+              COMMITS=$(git log --oneline HEAD)
             fi
             
             # Determine version bump based on conventional commits
@@ -168,7 +169,8 @@ jobs:
           if [ -n "$SINCE_TAG" ]; then
             ALL_COMMITS=$(git log --oneline "$SINCE_TAG..HEAD")
           else
-            ALL_COMMITS=$(git log --oneline HEAD~20..HEAD)
+            # Get all commits if no tag exists
+            ALL_COMMITS=$(git log --oneline HEAD)
           fi
 
           # Helper function to add section if commits exist

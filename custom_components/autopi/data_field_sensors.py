@@ -47,7 +47,9 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
         entity_category: EntityCategory | None = None,
     ) -> None:
         """Initialize the data field sensor."""
-        super().__init__(coordinator, vehicle_id, f"data_field_{field_id.replace('.', '_')}")
+        super().__init__(
+            coordinator, vehicle_id, f"data_field_{field_id.replace('.', '_')}"
+        )
         self._field_id = field_id
         self._attr_name = name
         self._attr_icon = icon
@@ -71,7 +73,9 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
 
         # If we have a last known value and it's within timeout, return it
         if self._last_known_value is not None and self._last_update_time is not None:
-            if datetime.now() - self._last_update_time < timedelta(minutes=DATA_FIELD_TIMEOUT_MINUTES):
+            if datetime.now() - self._last_update_time < timedelta(
+                minutes=DATA_FIELD_TIMEOUT_MINUTES
+            ):
                 return self._last_known_value
 
         return None
@@ -90,7 +94,9 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
 
         # Check if we have stale data within timeout
         if self._last_known_value is not None and self._last_update_time is not None:
-            if datetime.now() - self._last_update_time < timedelta(minutes=DATA_FIELD_TIMEOUT_MINUTES):
+            if datetime.now() - self._last_update_time < timedelta(
+                minutes=DATA_FIELD_TIMEOUT_MINUTES
+            ):
                 return True
 
         return False
@@ -102,12 +108,14 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
 
         field_data = self._get_field_data()
         if field_data is not None:
-            attrs.update({
-                "frequency": round(field_data.frequency, 2),
-                "last_seen": field_data.last_seen.isoformat(),
-                "field_id": field_data.field_id,
-                "data_type": field_data.value_type,
-            })
+            attrs.update(
+                {
+                    "frequency": round(field_data.frequency, 2),
+                    "last_seen": field_data.last_seen.isoformat(),
+                    "field_id": field_data.field_id,
+                    "data_type": field_data.value_type,
+                }
+            )
 
             if field_data.description:
                 attrs["description"] = field_data.description
@@ -122,7 +130,11 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
 
     def _get_field_data(self) -> DataFieldValue | None:
         """Get the field data from the coordinator."""
-        if not self.vehicle or not hasattr(self.vehicle, "data_fields") or self.vehicle.data_fields is None:
+        if (
+            not self.vehicle
+            or not hasattr(self.vehicle, "data_fields")
+            or self.vehicle.data_fields is None
+        ):
             return None
 
         return self.vehicle.data_fields.get(self._field_id)
@@ -130,10 +142,13 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
 
 # Battery and Power Sensors
 
+
 class BatteryChargeLevelSensor(AutoPiDataFieldSensor):
     """Battery charge level sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -150,7 +165,9 @@ class BatteryChargeLevelSensor(AutoPiDataFieldSensor):
 class BatteryVoltageSensor(AutoPiDataFieldSensor):
     """Battery voltage sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -167,7 +184,9 @@ class BatteryVoltageSensor(AutoPiDataFieldSensor):
 class BatteryCurrentSensor(AutoPiDataFieldSensor):
     """Battery current sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -184,7 +203,9 @@ class BatteryCurrentSensor(AutoPiDataFieldSensor):
 class TrackerBatteryLevelSensor(AutoPiDataFieldSensor):
     """Tracker battery level sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -202,7 +223,9 @@ class TrackerBatteryLevelSensor(AutoPiDataFieldSensor):
 class VehicleBatteryVoltageSensor(AutoPiDataFieldSensor):
     """Vehicle system battery voltage sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -218,10 +241,13 @@ class VehicleBatteryVoltageSensor(AutoPiDataFieldSensor):
 
 # Accelerometer Sensors
 
+
 class AccelerometerXSensor(AutoPiDataFieldSensor):
     """X-axis accelerometer sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -244,11 +270,12 @@ class AccelerometerXSensor(AutoPiDataFieldSensor):
         return None
 
 
-
 class AccelerometerYSensor(AutoPiDataFieldSensor):
     """Y-axis accelerometer sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -271,11 +298,12 @@ class AccelerometerYSensor(AutoPiDataFieldSensor):
         return None
 
 
-
 class AccelerometerZSensor(AutoPiDataFieldSensor):
     """Z-axis accelerometer sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -298,13 +326,15 @@ class AccelerometerZSensor(AutoPiDataFieldSensor):
         return None
 
 
-
 # Odometer and Distance Sensors
+
 
 class TotalOdometerSensor(AutoPiDataFieldSensor):
     """Total odometer sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -335,7 +365,9 @@ class TotalOdometerSensor(AutoPiDataFieldSensor):
 class TripOdometerSensor(AutoPiDataFieldSensor):
     """Trip odometer sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -366,7 +398,9 @@ class TripOdometerSensor(AutoPiDataFieldSensor):
 class DistanceSinceCodesClearSensor(AutoPiDataFieldSensor):
     """Distance since diagnostic codes cleared sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -383,10 +417,13 @@ class DistanceSinceCodesClearSensor(AutoPiDataFieldSensor):
 
 # Fuel Sensors
 
+
 class FuelUsedGPSSensor(AutoPiDataFieldSensor):
     """Fuel used GPS sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -403,7 +440,9 @@ class FuelUsedGPSSensor(AutoPiDataFieldSensor):
 class FuelRateGPSSensor(AutoPiDataFieldSensor):
     """Fuel rate GPS sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -419,7 +458,9 @@ class FuelRateGPSSensor(AutoPiDataFieldSensor):
 class FuelLevelSensor(AutoPiDataFieldSensor):
     """Fuel level sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -435,7 +476,9 @@ class FuelLevelSensor(AutoPiDataFieldSensor):
 class OEMFuelLevelSensor(AutoPiDataFieldSensor):
     """OEM fuel level sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -451,10 +494,13 @@ class OEMFuelLevelSensor(AutoPiDataFieldSensor):
 
 # Engine Sensors
 
+
 class IgnitionStateSensor(AutoPiDataFieldSensor):
     """Ignition state sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -468,7 +514,9 @@ class IgnitionStateSensor(AutoPiDataFieldSensor):
 class EngineSensor(AutoPiDataFieldSensor):
     """Engine RPM sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -484,7 +532,9 @@ class EngineSensor(AutoPiDataFieldSensor):
 class EngineLoadSensor(AutoPiDataFieldSensor):
     """Engine load sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -500,7 +550,9 @@ class EngineLoadSensor(AutoPiDataFieldSensor):
 class EngineRunTimeSensor(AutoPiDataFieldSensor):
     """Engine run time sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -517,7 +569,9 @@ class EngineRunTimeSensor(AutoPiDataFieldSensor):
 class ThrottlePositionSensor(AutoPiDataFieldSensor):
     """Throttle position sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -532,10 +586,13 @@ class ThrottlePositionSensor(AutoPiDataFieldSensor):
 
 # Speed Sensors
 
+
 class OBDSpeedSensor(AutoPiDataFieldSensor):
     """OBD speed sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -552,7 +609,9 @@ class OBDSpeedSensor(AutoPiDataFieldSensor):
 class TrackerSpeedSensor(AutoPiDataFieldSensor):
     """Tracker-derived speed sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -568,10 +627,13 @@ class TrackerSpeedSensor(AutoPiDataFieldSensor):
 
 # Temperature Sensors
 
+
 class AmbientTemperatureSensor(AutoPiDataFieldSensor):
     """Ambient air temperature sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -588,7 +650,9 @@ class AmbientTemperatureSensor(AutoPiDataFieldSensor):
 class IntakeTemperatureSensor(AutoPiDataFieldSensor):
     """Intake air temperature sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -605,7 +669,9 @@ class IntakeTemperatureSensor(AutoPiDataFieldSensor):
 class CoolantTemperatureSensor(AutoPiDataFieldSensor):
     """Engine coolant temperature sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -621,10 +687,13 @@ class CoolantTemperatureSensor(AutoPiDataFieldSensor):
 
 # Other Sensors
 
+
 class GSMSignalSensor(AutoPiDataFieldSensor):
     """GSM signal strength sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -654,7 +723,9 @@ class GSMSignalSensor(AutoPiDataFieldSensor):
 class DTCCountSensor(AutoPiDataFieldSensor):
     """Diagnostic trouble code count sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,

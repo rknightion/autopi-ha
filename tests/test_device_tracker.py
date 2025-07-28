@@ -1,6 +1,7 @@
 """Tests for AutoPi device tracker."""
 
 from datetime import datetime
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -47,7 +48,7 @@ def mock_vehicle():
 def create_data_field(
     field_prefix: str,
     field_name: str,
-    value: any,
+    value: Any,
 ) -> DataFieldValue:
     """Create a data field value for testing."""
     now = datetime.now()

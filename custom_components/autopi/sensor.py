@@ -234,8 +234,7 @@ class AutoPiAPICallsSensor(RestoreEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
-            ring: coord.api_call_count
-            for ring, coord in self._coordinators.items()
+            ring: coord.api_call_count for ring, coord in self._coordinators.items()
         }
 
     @property
@@ -279,7 +278,9 @@ class AutoPiFailedAPICallsSensor(RestoreEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         """Return the total number of failed API calls from all coordinators."""
-        total = sum(coord.failed_api_call_count for coord in self._coordinators.values())
+        total = sum(
+            coord.failed_api_call_count for coord in self._coordinators.values()
+        )
         # Handle restoration - if the new total is less than restored, use restored
         if self._last_value is not None and total < self._last_value:
             total = self._last_value
@@ -335,7 +336,9 @@ class AutoPiSuccessRateSensor(SensorEntity):
         if total_calls == 0:
             return 100.0
 
-        total_failed = sum(coord.failed_api_call_count for coord in self._coordinators.values())
+        total_failed = sum(
+            coord.failed_api_call_count for coord in self._coordinators.values()
+        )
         success_rate = ((total_calls - total_failed) / total_calls) * 100
         return round(success_rate, 1)
 
@@ -430,5 +433,3 @@ class AutoPiUpdateDurationSensor(SensorEntity):
             manufacturer=MANUFACTURER,
             configuration_url="https://app.autopi.io",
         )
-
-

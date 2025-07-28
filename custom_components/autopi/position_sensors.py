@@ -26,7 +26,9 @@ _LOGGER = logging.getLogger(__name__)
 class GPSAltitudeSensor(AutoPiDataFieldSensor):
     """GPS altitude sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -43,7 +45,9 @@ class GPSAltitudeSensor(AutoPiDataFieldSensor):
 class GPSSpeedSensor(AutoPiDataFieldSensor):
     """GPS speed sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -60,7 +64,9 @@ class GPSSpeedSensor(AutoPiDataFieldSensor):
 class GPSCourseSensor(AutoPiDataFieldSensor):
     """GPS course/heading sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -76,7 +82,9 @@ class GPSCourseSensor(AutoPiDataFieldSensor):
 class GPSSatellitesSensor(AutoPiDataFieldSensor):
     """GPS satellites sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(
             coordinator,
@@ -120,11 +128,15 @@ class GPSSatellitesSensor(AutoPiDataFieldSensor):
 class GPSLatitudeSensor(AutoPiDataFieldSensor):
     """GPS latitude sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         # We need to override the entity initialization to use a unique suffix
         # Call AutoPiVehicleEntity init directly to set custom suffix
-        AutoPiVehicleEntity.__init__(self, coordinator, vehicle_id, "data_field_track_pos_lat")
+        AutoPiVehicleEntity.__init__(
+            self, coordinator, vehicle_id, "data_field_track_pos_lat"
+        )
         # Then initialize the sensor attributes
         self._field_id = "track.pos.loc"
         self._attr_name = "GPS Latitude"
@@ -154,11 +166,15 @@ class GPSLatitudeSensor(AutoPiDataFieldSensor):
 class GPSLongitudeSensor(AutoPiDataFieldSensor):
     """GPS longitude sensor."""
 
-    def __init__(self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str) -> None:
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
         """Initialize the sensor."""
         # We need to override the entity initialization to use a unique suffix
         # Call AutoPiVehicleEntity init directly to set custom suffix
-        AutoPiVehicleEntity.__init__(self, coordinator, vehicle_id, "data_field_track_pos_lon")
+        AutoPiVehicleEntity.__init__(
+            self, coordinator, vehicle_id, "data_field_track_pos_lon"
+        )
         # Then initialize the sensor attributes
         self._field_id = "track.pos.loc"
         self._attr_name = "GPS Longitude"
@@ -191,7 +207,10 @@ POSITION_FIELD_TO_SENSOR_CLASS: dict[str, Any] = {
     "track.pos.sog": GPSSpeedSensor,
     "track.pos.cog": GPSCourseSensor,
     "track.pos.nsat": GPSSatellitesSensor,
-    "track.pos.loc": (GPSLatitudeSensor, GPSLongitudeSensor),  # Special case for lat/lon
+    "track.pos.loc": (
+        GPSLatitudeSensor,
+        GPSLongitudeSensor,
+    ),  # Special case for lat/lon
 }
 
 

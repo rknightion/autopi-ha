@@ -224,7 +224,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         """Get the API call success rate as a percentage."""
         if self._total_api_calls == 0:
             return 100.0
-        return ((self._total_api_calls - self._failed_api_calls) / self._total_api_calls) * 100
+        return (
+            (self._total_api_calls - self._failed_api_calls) / self._total_api_calls
+        ) * 100
 
     @property
     def last_update_duration(self) -> float | None:
@@ -314,44 +316,91 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                             self._total_api_calls += 1
 
                             # Fetch data fields
-                            fields = await self._client.get_data_fields(device_id, vehicle.id)
+                            fields = await self._client.get_data_fields(
+                                device_id, vehicle.id
+                            )
 
                             if fields:
                                 # Merge fields from all devices (later devices override earlier ones)
-                                vehicle_copy.data_fields = vehicle_copy.data_fields or {}
+                                vehicle_copy.data_fields = (
+                                    vehicle_copy.data_fields or {}
+                                )
                                 vehicle_copy.data_fields.update(fields)
                                 data_field_count += len(fields)
 
                                 # Extract position data from fields if available
-                                if "track.pos.loc" in fields and "track.pos.alt" in fields:
+                                if (
+                                    "track.pos.loc" in fields
+                                    and "track.pos.alt" in fields
+                                ):
                                     try:
                                         loc_field = fields["track.pos.loc"]
                                         if isinstance(loc_field.last_value, dict):
                                             # Construct position from data fields
                                             vehicle_copy.position = VehiclePosition(
                                                 timestamp=loc_field.last_seen,
-                                                latitude=loc_field.last_value.get("lat", 0),
-                                                longitude=loc_field.last_value.get("lon", 0),
-                                                altitude=fields.get("track.pos.alt", DataFieldValue(
-                                                    field_prefix="", field_name="", frequency=0,
-                                                    value_type="", title="", last_seen=loc_field.last_seen,
-                                                    last_value=0, description="", last_update=loc_field.last_update
-                                                )).last_value,
-                                                speed=fields.get("track.pos.sog", DataFieldValue(
-                                                    field_prefix="", field_name="", frequency=0,
-                                                    value_type="", title="", last_seen=loc_field.last_seen,
-                                                    last_value=0, description="", last_update=loc_field.last_update
-                                                )).last_value,
-                                                course=fields.get("track.pos.cog", DataFieldValue(
-                                                    field_prefix="", field_name="", frequency=0,
-                                                    value_type="", title="", last_seen=loc_field.last_seen,
-                                                    last_value=0, description="", last_update=loc_field.last_update
-                                                )).last_value,
-                                                num_satellites=fields.get("track.pos.nsat", DataFieldValue(
-                                                    field_prefix="", field_name="", frequency=0,
-                                                    value_type="", title="", last_seen=loc_field.last_seen,
-                                                    last_value=0, description="", last_update=loc_field.last_update
-                                                )).last_value,
+                                                latitude=loc_field.last_value.get(
+                                                    "lat", 0
+                                                ),
+                                                longitude=loc_field.last_value.get(
+                                                    "lon", 0
+                                                ),
+                                                altitude=fields.get(
+                                                    "track.pos.alt",
+                                                    DataFieldValue(
+                                                        field_prefix="",
+                                                        field_name="",
+                                                        frequency=0,
+                                                        value_type="",
+                                                        title="",
+                                                        last_seen=loc_field.last_seen,
+                                                        last_value=0,
+                                                        description="",
+                                                        last_update=loc_field.last_update,
+                                                    ),
+                                                ).last_value,
+                                                speed=fields.get(
+                                                    "track.pos.sog",
+                                                    DataFieldValue(
+                                                        field_prefix="",
+                                                        field_name="",
+                                                        frequency=0,
+                                                        value_type="",
+                                                        title="",
+                                                        last_seen=loc_field.last_seen,
+                                                        last_value=0,
+                                                        description="",
+                                                        last_update=loc_field.last_update,
+                                                    ),
+                                                ).last_value,
+                                                course=fields.get(
+                                                    "track.pos.cog",
+                                                    DataFieldValue(
+                                                        field_prefix="",
+                                                        field_name="",
+                                                        frequency=0,
+                                                        value_type="",
+                                                        title="",
+                                                        last_seen=loc_field.last_seen,
+                                                        last_value=0,
+                                                        description="",
+                                                        last_update=loc_field.last_update,
+                                                    ),
+                                                ).last_value,
+                                                num_satellites=fields.get(
+                                                    "track.pos.nsat",
+                                                    DataFieldValue(
+                                                        field_prefix="",
+                                                        field_name="",
+                                                        frequency=0,
+                                                        value_type="",
+                                                        title="",
+                                                        last_seen=loc_field.last_seen,
+                                                        last_value=0,
+                                                        description="",
+                                                        last_update=loc_field.last_update,
+                                                    ),
+                                                ).last_value,
                                             )
                                             _LOGGER.debug(
                                                 "[%s] Extracted position from data fields for vehicle %s",

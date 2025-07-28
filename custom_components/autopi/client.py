@@ -18,6 +18,7 @@ from .exceptions import (
     AutoPiAPIError,
     AutoPiAuthenticationError,
     AutoPiConnectionError,
+    AutoPiError,
     AutoPiRateLimitError,
     AutoPiTimeoutError,
 )
@@ -101,7 +102,6 @@ class AutoPiClient:
             _LOGGER.error("Failed to fetch vehicles: %s", err)
             raise
 
-
     async def get_data_fields(
         self, device_id: str, vehicle_id: int
     ) -> dict[str, DataFieldValue]:
@@ -164,7 +164,6 @@ class AutoPiClient:
         except Exception as err:
             _LOGGER.error("Failed to fetch data fields: %s", err)
             raise
-
 
     async def _request(
         self,
@@ -270,6 +269,10 @@ class AutoPiClient:
                         "Invalid JSON response from API",
                         data={"response": response_text},
                     ) from err
+
+        except AutoPiError:
+            # Re-raise our custom exceptions without modification
+            raise
 
         except TimeoutError as err:
             _LOGGER.error("Request timeout for %s %s", method, url)

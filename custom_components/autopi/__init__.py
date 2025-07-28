@@ -108,7 +108,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.info(
         "Successfully set up AutoPi integration with update interval: %d min",
-        entry.options.get(CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES),
+        entry.options.get(
+            CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
+        ),
     )
 
     # Set up platforms
@@ -140,7 +142,9 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     intervals_changed = False
 
     # Check fast interval for all coordinators
-    new_interval = entry.options.get(CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES)
+    new_interval = entry.options.get(
+        CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
+    )
 
     # Check main coordinator
     coordinator = data.get("coordinator")

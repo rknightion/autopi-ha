@@ -247,9 +247,13 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._api_key = user_input[CONF_API_KEY]
 
             # Get the existing config entry
-            existing_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+            existing_entry = self.hass.config_entries.async_get_entry(
+                self.context["entry_id"]
+            )
             if existing_entry:
-                self._base_url = existing_entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
+                self._base_url = existing_entry.data.get(
+                    CONF_BASE_URL, DEFAULT_BASE_URL
+                )
 
                 try:
                     # Test the new API key
@@ -265,7 +269,9 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             },
                         )
 
-                        await self.hass.config_entries.async_reload(existing_entry.entry_id)
+                        await self.hass.config_entries.async_reload(
+                            existing_entry.entry_id
+                        )
 
                         return self.async_abort(reason="reauth_successful")
                     else:
@@ -308,7 +314,9 @@ class AutoPiOptionsFlow(OptionsFlow):
             _LOGGER.debug("Updating options with: %s", user_input)
 
             # Remove the update_api_key from the data before saving
-            options_data = {k: v for k, v in user_input.items() if k != "update_api_key"}
+            options_data = {
+                k: v for k, v in user_input.items() if k != "update_api_key"
+            }
 
             return self.async_create_entry(title="", data=options_data)
 
@@ -379,7 +387,9 @@ class AutoPiOptionsFlow(OptionsFlow):
                         )
 
                         # Reload the integration
-                        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                        await self.hass.config_entries.async_reload(
+                            self.config_entry.entry_id
+                        )
 
                         return self.async_abort(reason="api_key_updated")
                     else:
