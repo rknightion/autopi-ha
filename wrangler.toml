@@ -1,7 +1,7 @@
 name = "autopi-ha"
 compatibility_date = "2024-01-15"
 routes = [
-  { pattern = "m7kni.io/autopi-ha/*", custom_domain = true }
+  { pattern = "m7kni.io/autopi-ha/*", zone_id = "040860c93967852c90bb3ecb9865f006" }
 ]
 
 [assets]
