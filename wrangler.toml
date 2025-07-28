@@ -1,7 +1,7 @@
-name = "autopi-ha-docs"
+name = "autopi-ha"
 compatibility_date = "2024-01-15"
 routes = [
-  { pattern = "autopi.homeassistant.m7kni.com", custom_domain = true }
+  { pattern = "m7kni.io/autopi-ha/*", custom_domain = true }
 ]
 
 [assets]
