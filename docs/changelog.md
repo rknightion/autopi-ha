@@ -17,6 +17,16 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 
+## [0.2.1] - 2025-07-28
+
+
+### 📋 Other Changes
+- Add fleet alerts and device events functionality
+- Add trip tracking functionality to AutoPi integration
+- Update README.md
+- add logo
+
+
 ## [0.2.0] - 2025-07-28
 
 
