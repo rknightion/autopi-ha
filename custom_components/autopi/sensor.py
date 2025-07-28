@@ -46,6 +46,9 @@ async def async_setup_entry(
     # Add vehicle count sensor
     entities.append(AutoPiVehicleCountSensor(coordinator))
 
+    # Add fleet alert count sensor
+    entities.append(AutoPiFleetAlertCountSensor(coordinator))
+
     # Add diagnostic sensors (these aggregate from all coordinators)
     entities.append(AutoPiAPICallsSensor(all_coordinators))
     entities.append(AutoPiFailedAPICallsSensor(all_coordinators))
@@ -89,11 +92,17 @@ async def async_setup_entry(
                     )
 
             # Add trip sensors if trip coordinator is available
-            if trip_coordinator and trip_coordinator.data and vehicle_id in trip_coordinator.data:
+            if (
+                trip_coordinator
+                and trip_coordinator.data
+                and vehicle_id in trip_coordinator.data
+            ):
                 trip_vehicle = trip_coordinator.data[vehicle_id]
                 if trip_vehicle.trip_count > 0:
                     entities.append(AutoPiTripCountSensor(trip_coordinator, vehicle_id))
-                    entities.append(AutoPiLastTripDistanceSensor(trip_coordinator, vehicle_id))
+                    entities.append(
+                        AutoPiLastTripDistanceSensor(trip_coordinator, vehicle_id)
+                    )
                     _LOGGER.debug(
                         "Created trip sensors for vehicle %s with %d trips",
                         vehicle.name,
@@ -152,6 +161,62 @@ class AutoPiVehicleCountSensor(AutoPiEntity, SensorEntity):
                 for vehicle in self.coordinator.data.values()
             ]
         }
+
+
+class AutoPiFleetAlertCountSensor(AutoPiEntity, SensorEntity):
+    """Sensor showing the total number of fleet alerts."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "alerts"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:alert"
+
+    def __init__(self, coordinator: AutoPiDataUpdateCoordinator) -> None:
+        """Initialize the fleet alert count sensor."""
+        super().__init__(coordinator, "fleet_alert_count")
+        self._attr_name = "Fleet Alert Count"
+
+        _LOGGER.debug("Initialized AutoPi fleet alert count sensor")
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of fleet alerts."""
+        return self.coordinator.fleet_alerts_total
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional state attributes."""
+        attrs = dict(super().extra_state_attributes or {})
+
+        # Group alerts by severity
+        severity_counts: dict[str, int] = {}
+        for alert in self.coordinator.fleet_alerts:
+            severity_counts[alert.severity] = severity_counts.get(alert.severity, 0) + 1
+
+        attrs["severities"] = severity_counts
+
+        # Include individual alert details
+        attrs["alerts"] = [
+            {
+                "title": alert.title,
+                "severity": alert.severity,
+                "vehicle_count": alert.vehicle_count,
+                "id": alert.alert_id,
+            }
+            for alert in self.coordinator.fleet_alerts
+        ]
+
+        return attrs
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.config_entry.entry_id)},
+            name="AutoPi Integration",
+            manufacturer=MANUFACTURER,
+            configuration_url="https://app.autopi.io",
+        )
 
 
 class AutoPiVehicleSensor(AutoPiVehicleEntity, SensorEntity):
@@ -484,7 +549,9 @@ class AutoPiTripCountSensor(AutoPiVehicleEntity, SensorEntity):
                 attrs["last_trip_id"] = vehicle.last_trip.trip_id
                 attrs["last_trip_date"] = vehicle.last_trip.end_time.isoformat()
                 attrs["last_trip_distance_km"] = vehicle.last_trip.distance_km
-                attrs["last_trip_duration_minutes"] = vehicle.last_trip.duration_seconds // 60
+                attrs["last_trip_duration_minutes"] = (
+                    vehicle.last_trip.duration_seconds // 60
+                )
 
         return attrs
 
@@ -505,7 +572,9 @@ class AutoPiLastTripDistanceSensor(AutoPiVehicleEntity, SensorEntity):
         super().__init__(coordinator, vehicle_id, "last_trip_distance")
         self._attr_name = "Last Trip Distance"
 
-        _LOGGER.debug("Initialized last trip distance sensor for vehicle %s", vehicle_id)
+        _LOGGER.debug(
+            "Initialized last trip distance sensor for vehicle %s", vehicle_id
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -523,22 +592,24 @@ class AutoPiLastTripDistanceSensor(AutoPiVehicleEntity, SensorEntity):
         if vehicle := self.vehicle:
             if vehicle.last_trip:
                 trip = vehicle.last_trip
-                attrs.update({
-                    "trip_id": trip.trip_id,
-                    "start_time": trip.start_time.isoformat(),
-                    "end_time": trip.end_time.isoformat(),
-                    "duration_minutes": trip.duration_seconds // 60,
-                    "start_location": {
-                        "latitude": trip.start_lat,
-                        "longitude": trip.start_lng,
-                        "address": trip.start_address,
-                    },
-                    "end_location": {
-                        "latitude": trip.end_lat,
-                        "longitude": trip.end_lng,
-                        "address": trip.end_address,
-                    },
-                    "state": trip.state,
-                })
+                attrs.update(
+                    {
+                        "trip_id": trip.trip_id,
+                        "start_time": trip.start_time.isoformat(),
+                        "end_time": trip.end_time.isoformat(),
+                        "duration_minutes": trip.duration_seconds // 60,
+                        "start_location": {
+                            "latitude": trip.start_lat,
+                            "longitude": trip.start_lng,
+                            "address": trip.start_address,
+                        },
+                        "end_location": {
+                            "latitude": trip.end_lat,
+                            "longitude": trip.end_lng,
+                            "address": trip.end_address,
+                        },
+                        "state": trip.state,
+                    }
+                )
 
         return attrs

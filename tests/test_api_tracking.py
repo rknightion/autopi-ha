@@ -2,8 +2,6 @@
 
 from unittest.mock import Mock
 
-import pytest
-
 from custom_components.autopi.sensor import AutoPiAPICallsSensor
 
 
@@ -70,15 +68,15 @@ class TestAPITracking:
         coordinators = {"base": coordinator}
 
         sensor = AutoPiAPICallsSensor(coordinators)
-        
+
         # Simulate restored value being higher
         sensor._last_value = 100
-        
+
         # Should use restored value when current is lower
         assert sensor.native_value == 100
-        
+
         # Update coordinator count
         coordinator.api_call_count = 150
-        
+
         # Should use actual value when it's higher than restored
         assert sensor.native_value == 150

@@ -36,7 +36,7 @@ DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES: Final = 15
 MIN_SCAN_INTERVAL_MINUTES: Final = 1
 MAX_SCAN_INTERVAL_MINUTES: Final = 60
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.DEVICE_TRACKER]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.DEVICE_TRACKER, Platform.EVENT]
 
 # Future platforms to be implemented:
 # Platform.BINARY_SENSOR - for vehicle status indicators
@@ -60,6 +60,8 @@ USER_AGENT: Final = f"HomeAssistant-AutoPi/{_LOGGER.name}"
 VEHICLE_PROFILE_ENDPOINT: Final = "/vehicle/v2/profile"
 DATA_FIELDS_ENDPOINT: Final = "/logbook/storage/data_fields/"
 TRIPS_ENDPOINT: Final = "/logbook/v2/trips/"
+ALERTS_ENDPOINT: Final = "/logbook/fleet_summary/alerts/"
+EVENTS_ENDPOINT: Final = "/logbook/events/"
 
 MANUFACTURER: Final = "AutoPi"
 

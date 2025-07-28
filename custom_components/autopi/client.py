@@ -9,8 +9,10 @@ from typing import Any, Final, cast
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from .const import (
+    ALERTS_ENDPOINT,
     DATA_FIELDS_ENDPOINT,
     DEFAULT_BASE_URL,
+    EVENTS_ENDPOINT,
     TRIPS_ENDPOINT,
     USER_AGENT,
     VEHICLE_PROFILE_ENDPOINT,
@@ -24,10 +26,14 @@ from .exceptions import (
     AutoPiTimeoutError,
 )
 from .types import (
+    AlertsData,
+    AutoPiEvent,
     AutoPiTrip,
     AutoPiVehicle,
     DataFieldResponse,
     DataFieldValue,
+    EventsResponse,
+    FleetAlert,
     TripsResponse,
 )
 
@@ -231,6 +237,104 @@ class AutoPiClient:
 
         except Exception as err:
             _LOGGER.error("Failed to fetch trips: %s", err)
+            raise
+
+    async def get_fleet_alerts(self) -> tuple[int, list[FleetAlert]]:
+        """Get fleet-wide alerts summary.
+
+        Returns:
+            Tuple of (total_alert_count, list of FleetAlert objects)
+
+        Raises:
+            AutoPiAuthenticationError: If authentication fails
+            AutoPiConnectionError: If connection fails
+            AutoPiAPIError: If API returns an error
+        """
+        _LOGGER.debug("Fetching fleet alerts from AutoPi API")
+
+        try:
+            response = await self._request(
+                "GET",
+                ALERTS_ENDPOINT,
+            )
+
+            alerts_response = cast(AlertsData, response)
+            total = alerts_response.get("total", 0)
+            severities = alerts_response.get("severities", [])
+
+            _LOGGER.info("Successfully fetched fleet alerts: %d total alerts", total)
+
+            # Convert API data to FleetAlert objects
+            alerts = []
+            for severity_data in severities:
+                severity = severity_data["severity"]
+                for alert_data in severity_data["alerts"]:
+                    try:
+                        alert = FleetAlert.from_api_data(severity, alert_data)
+                        alerts.append(alert)
+                    except (KeyError, ValueError) as err:
+                        _LOGGER.warning("Failed to parse alert data: %s", err)
+                        continue
+
+            return total, alerts
+
+        except Exception as err:
+            _LOGGER.error("Failed to fetch fleet alerts: %s", err)
+            raise
+
+    async def get_device_events(
+        self, device_id: str, page_hits: int = 5
+    ) -> list[AutoPiEvent]:
+        """Get recent events for a specific device.
+
+        Args:
+            device_id: The AutoPi device ID
+            page_hits: Number of events to fetch (default: 5)
+
+        Returns:
+            List of AutoPiEvent objects
+
+        Raises:
+            AutoPiAuthenticationError: If authentication fails
+            AutoPiConnectionError: If connection fails
+            AutoPiAPIError: If API returns an error
+        """
+        _LOGGER.debug("Fetching events for device %s", device_id)
+
+        try:
+            response = await self._request(
+                "GET",
+                EVENTS_ENDPOINT,
+                params={
+                    "device_id": device_id,
+                    "page_num": 1,
+                    "page_hits": page_hits,
+                },
+            )
+
+            events_response = cast(EventsResponse, response)
+            results = events_response.get("results", [])
+
+            _LOGGER.info(
+                "Successfully fetched %d events for device %s",
+                len(results),
+                device_id,
+            )
+
+            # Convert API data to AutoPiEvent objects
+            events = []
+            for event_data in results:
+                try:
+                    event = AutoPiEvent.from_api_data(event_data, device_id)
+                    events.append(event)
+                except (KeyError, ValueError) as err:
+                    _LOGGER.warning("Failed to parse event data: %s", err)
+                    continue
+
+            return events
+
+        except Exception as err:
+            _LOGGER.error("Failed to fetch events for device %s: %s", device_id, err)
             raise
 
     async def _request(

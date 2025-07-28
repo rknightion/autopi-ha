@@ -10,11 +10,15 @@ from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
     CONF_UPDATE_INTERVAL_FAST,
+    CONF_UPDATE_INTERVAL_SLOW,
     DEFAULT_UPDATE_INTERVAL_FAST_MINUTES,
+    DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES,
     DOMAIN,
     PLATFORMS,
     UPDATE_RING_FAST,
-    UPDATE_RING_SLOW,
+)
+from .const import (
+    UPDATE_RING_SLOW as UPDATE_RING_SLOW,
 )
 from .coordinator import (
     AutoPiDataUpdateCoordinator,
@@ -163,11 +167,14 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     intervals_changed = False
 
     # Check fast interval for all coordinators
-    new_interval = entry.options.get(
+    new_fast_interval = entry.options.get(
         CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
     )
+    new_slow_interval = entry.options.get(
+        CONF_UPDATE_INTERVAL_SLOW, DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
+    )
 
-    # Check main coordinator
+    # Check main coordinator (fast interval)
     coordinator = data.get("coordinator")
     if coordinator:
         current_interval_minutes = (
@@ -175,15 +182,29 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
             if coordinator.update_interval
             else DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
         )
-        if new_interval != current_interval_minutes:
+        if new_fast_interval != current_interval_minutes:
             intervals_changed = True
             _LOGGER.info(
-                "Update interval changed from %d to %d minutes",
+                "Fast update interval changed from %d to %d minutes",
                 current_interval_minutes,
-                new_interval,
+                new_fast_interval,
             )
 
-    # Position coordinator uses the same interval
+    # Check trip coordinator (slow interval)
+    trip_coordinator = data.get("trip_coordinator")
+    if trip_coordinator:
+        current_slow_minutes = (
+            trip_coordinator.update_interval.total_seconds() / 60
+            if trip_coordinator.update_interval
+            else DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
+        )
+        if new_slow_interval != current_slow_minutes:
+            intervals_changed = True
+            _LOGGER.info(
+                "Slow update interval changed from %d to %d minutes",
+                current_slow_minutes,
+                new_slow_interval,
+            )
 
     if intervals_changed:
         _LOGGER.warning(

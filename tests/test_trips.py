@@ -1,7 +1,7 @@
 """Tests for AutoPi trip functionality."""
 
-from datetime import datetime, timezone
-from unittest.mock import Mock, AsyncMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -57,8 +57,8 @@ class TestTripData:
         trip = AutoPiTrip.from_api_data(trip_data)
 
         assert trip.trip_id == "8ef02061-b186-493f-aa01-2d273b0e16e5"
-        assert trip.start_time == datetime(2025, 7, 28, 6, 36, 24, tzinfo=timezone.utc)
-        assert trip.end_time == datetime(2025, 7, 28, 7, 14, 50, tzinfo=timezone.utc)
+        assert trip.start_time == datetime(2025, 7, 28, 6, 36, 24, tzinfo=UTC)
+        assert trip.end_time == datetime(2025, 7, 28, 7, 14, 50, tzinfo=UTC)
         assert trip.start_lat == 50.968820
         assert trip.start_lng == -1.301295
         assert trip.start_address == "Mitchell Drive, Fair Oak, Eastleigh"

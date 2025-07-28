@@ -297,7 +297,11 @@ class AutoPiTrip:
         """Create AutoPiTrip from API data."""
         # Parse duration string "HH:MM:SS" to seconds
         duration_parts = data["duration"].split(":")
-        duration_seconds = int(duration_parts[0]) * 3600 + int(duration_parts[1]) * 60 + int(duration_parts[2])
+        duration_seconds = (
+            int(duration_parts[0]) * 3600
+            + int(duration_parts[1]) * 60
+            + int(duration_parts[2])
+        )
 
         # Extract addresses from display data
         start_address = None
@@ -312,8 +316,12 @@ class AutoPiTrip:
 
         return cls(
             trip_id=data["id"],
-            start_time=datetime.fromisoformat(data["start_time_utc"].replace("Z", "+00:00")),
-            end_time=datetime.fromisoformat(data["end_time_utc"].replace("Z", "+00:00")),
+            start_time=datetime.fromisoformat(
+                data["start_time_utc"].replace("Z", "+00:00")
+            ),
+            end_time=datetime.fromisoformat(
+                data["end_time_utc"].replace("Z", "+00:00")
+            ),
             start_lat=float(data["start_position_lat"]),
             start_lng=float(data["start_position_lng"]),
             start_address=start_address,
@@ -324,4 +332,104 @@ class AutoPiTrip:
             duration_seconds=duration_seconds,
             distance_km=data["distanceKm"],
             state=data["state"],
+        )
+
+
+class AlertDict(TypedDict):
+    """Alert information from fleet alerts API."""
+
+    title: str
+    uuid: str
+    vehicle_count: int
+
+
+class SeverityDict(TypedDict):
+    """Severity grouping from fleet alerts API."""
+
+    severity: str
+    alerts: list[AlertDict]
+
+
+class AlertsData(TypedDict):
+    """Fleet alerts response from API."""
+
+    total: int
+    severities: list[SeverityDict]
+
+
+@dataclass
+class FleetAlert:
+    """Represents a fleet-wide alert."""
+
+    alert_id: str
+    title: str
+    severity: str
+    vehicle_count: int
+
+    @classmethod
+    def from_api_data(cls, severity: str, alert_data: AlertDict) -> FleetAlert:
+        """Create FleetAlert from API data."""
+        return cls(
+            alert_id=alert_data["uuid"],
+            title=alert_data["title"],
+            severity=severity,
+            vehicle_count=alert_data["vehicle_count"],
+        )
+
+
+class EventDataDict(TypedDict):
+    """Event data dictionary from API."""
+
+    # This is a flexible dict that can contain various event-specific fields
+
+
+class EventDict(TypedDict):
+    """Event from AutoPi API."""
+
+    ts: str
+    data: list[EventDataDict]
+    tag: str
+    area: str
+    event: str
+
+
+class EventsResponse(TypedDict):
+    """Events API response."""
+
+    results: list[EventDict]
+    count: int
+    page_size: int
+
+
+@dataclass
+class AutoPiEvent:
+    """Represents an AutoPi event."""
+
+    timestamp: datetime
+    tag: str
+    area: str
+    event_type: str
+    data: dict[str, Any]
+    device_id: str
+
+    @property
+    def unique_id(self) -> str:
+        """Get unique identifier for this event."""
+        return f"{self.device_id}_{self.timestamp.isoformat()}_{self.tag}"
+
+    @classmethod
+    def from_api_data(cls, data: EventDict, device_id: str) -> AutoPiEvent:
+        """Create AutoPiEvent from API data."""
+        # Merge all data dicts into one
+        merged_data: dict[str, Any] = {}
+        for data_item in data.get("data", []):
+            merged_data.update(data_item)
+
+        return cls(
+            timestamp=datetime.fromisoformat(data["ts"].replace("Z", "+00:00")),
+            tag=data["tag"],
+            area=data["area"],
+            event_type=data["event"],
+            data=merged_data,
+            device_id=device_id,
         )

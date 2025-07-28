@@ -19,10 +19,12 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SELECTED_VEHICLES,
     CONF_UPDATE_INTERVAL_FAST,
+    CONF_UPDATE_INTERVAL_SLOW,
     DEFAULT_BASE_URL,
     DEFAULT_NAME,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DEFAULT_UPDATE_INTERVAL_FAST_MINUTES,
+    DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES,
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_SCAN_INTERVAL_MINUTES,
@@ -313,16 +315,23 @@ class AutoPiOptionsFlow(OptionsFlow):
             # Otherwise save the update intervals
             _LOGGER.debug("Updating options with: %s", user_input)
 
-            # Remove the update_api_key from the data before saving
-            options_data = {
-                k: v for k, v in user_input.items() if k != "update_api_key"
-            }
+            # Map friendly names to internal config keys and remove update_api_key
+            options_data = {}
+            if "polling_interval" in user_input:
+                options_data[CONF_UPDATE_INTERVAL_FAST] = user_input["polling_interval"]
+            if "trip_update_interval" in user_input:
+                options_data[CONF_UPDATE_INTERVAL_SLOW] = user_input[
+                    "trip_update_interval"
+                ]
 
             return self.async_create_entry(title="", data=options_data)
 
-        # Get current interval from options or default
+        # Get current intervals from options or defaults
         current_fast = self.config_entry.options.get(
             CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
+        )
+        current_slow = self.config_entry.options.get(
+            CONF_UPDATE_INTERVAL_SLOW, DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
         )
 
         return self.async_show_form(
@@ -330,8 +339,19 @@ class AutoPiOptionsFlow(OptionsFlow):
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_UPDATE_INTERVAL_FAST,
+                        "polling_interval",
                         default=current_fast,
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=MIN_SCAN_INTERVAL_MINUTES,
+                            max=MAX_SCAN_INTERVAL_MINUTES,
+                            unit_of_measurement="minutes",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                    vol.Required(
+                        "trip_update_interval",
+                        default=current_slow,
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=MIN_SCAN_INTERVAL_MINUTES,
@@ -345,6 +365,7 @@ class AutoPiOptionsFlow(OptionsFlow):
             ),
             description_placeholders={
                 "fast_desc": "Data update interval",
+                "slow_desc": "Trip update interval",
             },
         )
 

@@ -51,11 +51,13 @@
         "title": "AutoPi Options",
         "description": "Configure AutoPi integration options.",
         "data": {
-          "update_interval_fast": "Update Interval",
+          "polling_interval": "Polling Interval",
+          "trip_update_interval": "Trip Update Interval",
           "update_api_key": "Update API Key"
         },
         "data_description": {
-          "update_interval_fast": "How often to fetch data from AutoPi in minutes (1-60)",
+          "polling_interval": "How often to fetch vehicle and position data from AutoPi in minutes (1-60)",
+          "trip_update_interval": "How often to fetch trip data from AutoPi in minutes (1-60)",
           "update_api_key": "Check this box to update your AutoPi API key"
         }
       },
@@ -83,6 +85,9 @@
     "sensor": {
       "vehicle_count": {
         "name": "Vehicle Count"
+      },
+      "fleet_alert_count": {
+        "name": "Fleet Alert Count"
       },
       "vehicle": {
         "name": "{vehicle_name}"
@@ -115,6 +120,11 @@
     "device_tracker": {
       "vehicle": {
         "name": "{vehicle_name}"
+      }
+    },
+    "event": {
+      "vehicle_events": {
+        "name": "Events"
       }
     }
   }

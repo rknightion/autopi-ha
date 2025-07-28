@@ -32,10 +32,12 @@ from .exceptions import (
     AutoPiConnectionError,
 )
 from .types import (
+    AutoPiEvent,
     AutoPiTrip,
     AutoPiVehicle,
     CoordinatorData,
     DataFieldValue,
+    FleetAlert,
     VehiclePosition,
 )
 
@@ -69,6 +71,15 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._failed_api_calls = 0
         self._last_update_duration: float | None = None
         self._last_api_call_time: float | None = None
+
+        # Fleet-wide data
+        self._fleet_alerts: list[FleetAlert] = []
+        self._fleet_alerts_total: int = 0
+        self._last_alert_ids: set[str] = set()
+
+        # Device events tracking
+        self._device_events: dict[str, list[AutoPiEvent]] = {}
+        self._last_event_timestamps: dict[str, str] = {}
 
         # Get configured intervals from options or use defaults
         options = config_entry.options
@@ -141,6 +152,81 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             data: CoordinatorData = {str(vehicle.id): vehicle for vehicle in vehicles}
 
             _LOGGER.debug("Successfully updated data for %d vehicles", len(data))
+
+            # Fetch fleet alerts (only for base coordinator in fast ring)
+            if self._update_ring == UPDATE_RING_FAST:
+                try:
+                    self._total_api_calls += 1
+                    total_alerts, alerts = await self._client.get_fleet_alerts()
+                    self._fleet_alerts_total = total_alerts
+                    self._fleet_alerts = alerts
+
+                    # Check for new alerts
+                    current_alert_ids = {alert.alert_id for alert in alerts}
+                    new_alert_ids = current_alert_ids - self._last_alert_ids
+
+                    if new_alert_ids:
+                        # Fire events for new alerts
+                        for alert in alerts:
+                            if alert.alert_id in new_alert_ids:
+                                self._fire_alert_event(alert)
+
+                    self._last_alert_ids = current_alert_ids
+
+                    _LOGGER.debug("Successfully fetched %d fleet alerts", total_alerts)
+                except Exception as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning("Failed to fetch fleet alerts: %s", err)
+                    # Continue even if alerts fail
+
+                # Fetch events for each device
+                for vehicle in data.values():
+                    for device_id in vehicle.devices:
+                        try:
+                            self._total_api_calls += 1
+                            events = await self._client.get_device_events(device_id)
+
+                            # Store all events for this device
+                            self._device_events[device_id] = events
+
+                            # Check for new events based on timestamp
+                            last_timestamp = self._last_event_timestamps.get(device_id)
+                            new_events = []
+
+                            if events:
+                                # Update last timestamp to the most recent event
+                                self._last_event_timestamps[device_id] = events[
+                                    0
+                                ].timestamp.isoformat()
+
+                                # Find new events
+                                if last_timestamp:
+                                    for event in events:
+                                        if event.timestamp.isoformat() > last_timestamp:
+                                            new_events.append(event)
+                                else:
+                                    # First time fetching events for this device
+                                    new_events = events
+
+                            # Fire events for new events
+                            for event in new_events:
+                                self._fire_device_event(event, str(vehicle.id))
+
+                            if new_events:
+                                _LOGGER.info(
+                                    "Found %d new events for device %s",
+                                    len(new_events),
+                                    device_id,
+                                )
+
+                        except Exception as err:
+                            self._failed_api_calls += 1
+                            _LOGGER.warning(
+                                "Failed to fetch events for device %s: %s",
+                                device_id,
+                                err,
+                            )
+                            # Continue even if events fail for one device
 
             # Track successful update
             self._last_update_duration = self.hass.loop.time() - start_time
@@ -238,6 +324,86 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
     def last_update_duration(self) -> float | None:
         """Get the duration of the last update in seconds."""
         return self._last_update_duration
+
+    @property
+    def fleet_alerts(self) -> list[FleetAlert]:
+        """Get the current fleet alerts."""
+        return self._fleet_alerts
+
+    @property
+    def fleet_alerts_total(self) -> int:
+        """Get the total number of fleet alerts."""
+        return self._fleet_alerts_total
+
+    def _fire_alert_event(self, alert: FleetAlert) -> None:
+        """Fire an event for a new fleet alert.
+
+        Args:
+            alert: The alert data
+        """
+        event_data = {
+            "alert_id": alert.alert_id,
+            "title": alert.title,
+            "severity": alert.severity,
+            "vehicle_count": alert.vehicle_count,
+        }
+
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_fleet_alert",
+            event_data,
+        )
+
+        _LOGGER.info(
+            "Fired fleet_alert event: %s (severity: %s, affecting %d vehicles)",
+            alert.title,
+            alert.severity,
+            alert.vehicle_count,
+        )
+
+    def _fire_device_event(self, event: AutoPiEvent, vehicle_id: str) -> None:
+        """Fire an event for a new device event.
+
+        Args:
+            event: The event data
+            vehicle_id: The vehicle ID associated with the device
+        """
+        event_data = {
+            "device_id": event.device_id,
+            "vehicle_id": vehicle_id,
+            "timestamp": event.timestamp.isoformat(),
+            "tag": event.tag,
+            "area": event.area,
+            "event_type": event.event_type,
+            "data": event.data,
+        }
+
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_device_event",
+            event_data,
+        )
+
+        _LOGGER.debug(
+            "Fired device_event: %s/%s for device %s",
+            event.area,
+            event.event_type,
+            event.device_id,
+        )
+
+    @property
+    def device_events(self) -> dict[str, list[AutoPiEvent]]:
+        """Get device events."""
+        return self._device_events
+
+    def get_device_events(self, device_id: str) -> list[AutoPiEvent]:
+        """Get events for a specific device.
+
+        Args:
+            device_id: The device ID
+
+        Returns:
+            List of events for the device
+        """
+        return self._device_events.get(device_id, [])
 
 
 class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
