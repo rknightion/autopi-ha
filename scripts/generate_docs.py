@@ -45,8 +45,6 @@ def extract_class_info(file_path: Path) -> list[dict[str, Any]]:
                             # Try to extract the value
                             if isinstance(item.value, ast.Constant):
                                 attr_value = item.value.value
-                            elif isinstance(item.value, ast.Str):
-                                attr_value = item.value.s
                             elif isinstance(item.value, ast.Name):
                                 attr_value = item.value.id
                             elif isinstance(item.value, ast.Attribute):
@@ -165,11 +163,24 @@ def main():
     device_tracker_entities = []
     binary_sensor_entities = []
 
-    # Process sensor.py
+    # Process all Python files containing sensor definitions
+    # Main sensor.py file
     sensor_file = integration_path / "sensor.py"
     if sensor_file.exists():
         classes = extract_class_info(sensor_file)
-        sensor_entities = [cls for cls in classes if "Sensor" in cls["name"] and cls["name"] != "SensorEntity"]
+        sensor_entities.extend([cls for cls in classes if "Sensor" in cls["name"] and cls["name"] != "SensorEntity" and cls["name"] != "AutoPiDataFieldSensor"])
+
+    # Position sensors
+    position_sensor_file = integration_path / "position_sensors.py"
+    if position_sensor_file.exists():
+        classes = extract_class_info(position_sensor_file)
+        sensor_entities.extend([cls for cls in classes if "Sensor" in cls["name"] and cls["name"] != "SensorEntity" and cls["name"] != "AutoPiDataFieldSensor"])
+
+    # Data field sensors
+    data_field_sensor_file = integration_path / "data_field_sensors.py"
+    if data_field_sensor_file.exists():
+        classes = extract_class_info(data_field_sensor_file)
+        sensor_entities.extend([cls for cls in classes if "Sensor" in cls["name"] and cls["name"] != "SensorEntity" and cls["name"] != "AutoPiDataFieldSensor"])
 
     # Process device_tracker.py
     tracker_file = integration_path / "device_tracker.py"
@@ -199,19 +210,107 @@ These sensors provide information about the AutoPi integration itself:
 """
 
     # Filter integration-level sensors (non-vehicle specific)
-    integration_sensors = [s for s in sensor_entities if "Vehicle" not in s["name"]]
+    integration_sensors = [s for s in sensor_entities if "Vehicle" not in s["name"] and not any(x in s["name"] for x in ["GPS", "Battery", "Accelerometer", "Odometer", "Fuel", "Engine", "Throttle", "OBD", "Tracker", "Temperature", "Coolant", "GSM", "DTC", "Ignition"])]
     docs_content += generate_entity_table(integration_sensors, "Integration")
 
     docs_content += """
-### Vehicle Sensors
+### Vehicle Status Sensors
 
-These sensors provide information specific to each vehicle:
+These sensors provide general status information for each vehicle:
 
 """
 
-    # Filter vehicle-specific sensors
-    vehicle_sensors = [s for s in sensor_entities if "Vehicle" in s["name"]]
-    docs_content += generate_entity_table(vehicle_sensors, "Vehicle")
+    # Filter vehicle status sensors
+    vehicle_status_sensors = [s for s in sensor_entities if "AutoPiVehicleSensor" in s["name"] or ("Vehicle" in s["name"] and "Count" in s["name"])]
+    docs_content += generate_entity_table(vehicle_status_sensors, "Vehicle Status")
+
+    docs_content += """
+### GPS/Position Sensors
+
+These sensors provide GPS and position data for each vehicle:
+
+"""
+
+    # Filter GPS/position sensors
+    gps_sensors = [s for s in sensor_entities if "GPS" in s["name"]]
+    docs_content += generate_entity_table(gps_sensors, "GPS/Position")
+
+    docs_content += """
+### Battery Sensors
+
+These sensors provide battery information for vehicles and devices:
+
+"""
+
+    # Filter battery sensors
+    battery_sensors = [s for s in sensor_entities if "Battery" in s["name"] or "Voltage" in s["name"] and "Vehicle" not in s["name"]]
+    docs_content += generate_entity_table(battery_sensors, "Battery")
+
+    docs_content += """
+### Engine & Performance Sensors
+
+These sensors provide engine and performance data:
+
+"""
+
+    # Filter engine/performance sensors
+    engine_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["Engine", "Throttle", "OBD", "Load", "Ignition"])]
+    docs_content += generate_entity_table(engine_sensors, "Engine & Performance")
+
+    docs_content += """
+### Fuel Sensors
+
+These sensors provide fuel consumption and level data:
+
+"""
+
+    # Filter fuel sensors
+    fuel_sensors = [s for s in sensor_entities if "Fuel" in s["name"]]
+    docs_content += generate_entity_table(fuel_sensors, "Fuel")
+
+    docs_content += """
+### Distance & Odometer Sensors
+
+These sensors provide distance and odometer readings:
+
+"""
+
+    # Filter distance/odometer sensors
+    distance_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["Odometer", "Distance", "Trip"]) and "Fuel" not in s["name"]]
+    docs_content += generate_entity_table(distance_sensors, "Distance & Odometer")
+
+    docs_content += """
+### Temperature Sensors
+
+These sensors provide various temperature readings:
+
+"""
+
+    # Filter temperature sensors
+    temp_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["Temperature", "Coolant", "Intake", "Ambient"])]
+    docs_content += generate_entity_table(temp_sensors, "Temperature")
+
+    docs_content += """
+### Motion & Tracking Sensors
+
+These sensors provide motion and tracking data:
+
+"""
+
+    # Filter motion/tracking sensors
+    motion_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["Accelerometer", "TrackerSpeed", "TrackerBattery"])]
+    docs_content += generate_entity_table(motion_sensors, "Motion & Tracking")
+
+    docs_content += """
+### Diagnostic Sensors
+
+These sensors provide diagnostic information:
+
+"""
+
+    # Filter diagnostic sensors
+    diagnostic_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["GSM", "DTC", "API", "Success", "Duration", "Failed"])]
+    docs_content += generate_entity_table(diagnostic_sensors, "Diagnostic")
 
     docs_content += """
 ## Device Trackers
@@ -275,6 +374,18 @@ Entities use appropriate state classes for statistics and energy tracking:
 
     print(f"Generated entity documentation: {docs_path}")
     print(f"Found {len(sensor_entities)} sensors, {len(device_tracker_entities)} device trackers, {len(binary_sensor_entities)} binary sensors")
+    
+    # Print detailed breakdown of sensor types
+    sensor_files = {}
+    for sensor in sensor_entities:
+        file_name = sensor.get("file", "unknown")
+        if file_name not in sensor_files:
+            sensor_files[file_name] = 0
+        sensor_files[file_name] += 1
+    
+    print("\nSensor breakdown by file:")
+    for file_name, count in sorted(sensor_files.items()):
+        print(f"  {file_name}: {count} sensors")
 
 if __name__ == "__main__":
     main()
