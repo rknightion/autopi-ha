@@ -108,3 +108,34 @@ def test_trip_parsing_in_progress():
     assert trip.duration_seconds >= 0
     assert trip.duration_seconds < 5  # Should be less than 5 seconds
     assert trip.state == "in_progress"
+
+
+def test_trip_parsing_in_progress_with_none_positions():
+    """Test that in-progress trips with None end positions are parsed correctly."""
+    trip_data: TripData = {
+        "id": "test-trip-5",
+        "start_time_utc": "2025-07-28T15:58:40Z",
+        "end_time_utc": None,
+        "start_position_lat": "51.264327",
+        "start_position_lng": "-1.085937",
+        "start_position_display": {},
+        "end_position_lat": None,
+        "end_position_lng": None,
+        "end_position_display": {},
+        "vehicle": 5353,
+        "duration": None,
+        "distanceKm": 0.0,
+        "tag": "",
+        "last_recalc": None,
+        "state": "IN_PROGRESS_WITHOUT_END",
+    }
+
+    # This should not raise an exception
+    trip = AutoPiTrip.from_api_data(trip_data)
+
+    assert trip.trip_id == "test-trip-5"
+    assert trip.start_lat == 51.264327
+    assert trip.start_lng == -1.085937
+    assert trip.end_lat == 0.0  # Default value for None
+    assert trip.end_lng == 0.0  # Default value for None
+    assert trip.state == "IN_PROGRESS_WITHOUT_END"

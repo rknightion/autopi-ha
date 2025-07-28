@@ -347,6 +347,26 @@ class AutoPiTrip:
                     data["start_time_utc"].replace("Z", "+00:00")
                 )
 
+        # Handle end position - can be None for in-progress trips
+        end_lat = 0.0
+        end_lng = 0.0
+        end_lat_str = data.get("end_position_lat")
+        end_lng_str = data.get("end_position_lng")
+
+        if end_lat_str is not None and end_lat_str != "":
+            try:
+                end_lat = float(end_lat_str)
+            except (ValueError, TypeError):
+                # If parsing fails, use start position as fallback
+                end_lat = float(data["start_position_lat"])
+
+        if end_lng_str is not None and end_lng_str != "":
+            try:
+                end_lng = float(end_lng_str)
+            except (ValueError, TypeError):
+                # If parsing fails, use start position as fallback
+                end_lng = float(data["start_position_lng"])
+
         return cls(
             trip_id=data["id"],
             start_time=datetime.fromisoformat(
@@ -356,8 +376,8 @@ class AutoPiTrip:
             start_lat=float(data["start_position_lat"]),
             start_lng=float(data["start_position_lng"]),
             start_address=start_address,
-            end_lat=float(data["end_position_lat"]),
-            end_lng=float(data["end_position_lng"]),
+            end_lat=end_lat,
+            end_lng=end_lng,
             end_address=end_address,
             vehicle_id=data["vehicle"],
             duration_seconds=duration_seconds,
