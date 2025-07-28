@@ -58,7 +58,7 @@ ATTR_TIMESTAMP: Final = "timestamp"
 USER_AGENT: Final = f"HomeAssistant-AutoPi/{_LOGGER.name}"
 
 VEHICLE_PROFILE_ENDPOINT: Final = "/vehicle/v2/profile"
-MOST_RECENT_POSITIONS_ENDPOINT: Final = "/logbook/v2/most_recent_positions/"
+DATA_FIELDS_ENDPOINT: Final = "/logbook/storage/data_fields/"
 
 MANUFACTURER: Final = "AutoPi"
 
@@ -68,3 +68,6 @@ UPDATE_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
 UPDATE_RING_FAST: Final = "fast"
 UPDATE_RING_MEDIUM: Final = "medium"
 UPDATE_RING_SLOW: Final = "slow"
+
+# Data field timeout - how long to show stale data before marking unavailable
+DATA_FIELD_TIMEOUT_MINUTES: Final = 30

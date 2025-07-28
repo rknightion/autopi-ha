@@ -51,19 +51,13 @@
         "title": "AutoPi Options",
         "description": "Configure AutoPi integration options.",
         "data": {
-          "update_interval_fast": "Fast Update Interval (Position)",
-          "update_interval_medium": "Medium Update Interval (Vehicle Status)",
-          "update_interval_slow": "Slow Update Interval (Reserved)",
+          "update_interval_fast": "Update Interval",
           "update_api_key": "Update API Key"
         },
         "data_description": {
-          "update_interval_fast": "How often to fetch position data in minutes (1-60)",
-          "update_interval_medium": "How often to fetch vehicle status in minutes (1-60)",
-          "update_interval_slow": "Reserved for future features in minutes (1-60)",
+          "update_interval_fast": "How often to fetch data from AutoPi in minutes (1-60)",
           "update_api_key": "Check this box to update your AutoPi API key",
-          "fast_desc": "Vehicle position updates",
-          "medium_desc": "Vehicle status updates",
-          "slow_desc": "Reserved for future use"
+          "fast_desc": "Data update interval"
         }
       },
       "api_key": {

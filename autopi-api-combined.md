@@ -11,28 +11,6 @@ This guide provides a comprehensive overview of AutoPi API endpoints and metrics
 
 ---
 
-## 1. Vehicle Tracking & Location 🛰️
-
-These endpoints are essential for the core `device_tracker` functionality in Home Assistant, providing the vehicle's geographical location and related data.
-
-### Current Vehicle Position
-
-| Endpoint | Parameters | Response Data | Use Case |
-|----------|------------|---------------|----------|
-| `GET /logbook/v2/most_recent_position/` | `device_id` (UUID) or `vehicle_id` (int) | `RecentPosition` object containing:<br>• `timestamp`<br>• `utc_time`<br>• `course_over_ground` (heading in degrees)<br>• `speed_over_ground`<br>• `altitude`<br>• `nsat` (number of satellites)<br>• `location` object with `latitude` and `longitude` | Feed Home Assistant `device_tracker` entity. Provides GPS position and immediate motion data. |
-
-### All Vehicle Positions
-
-| Endpoint | Parameters | Response Data | Use Case |
-|----------|------------|---------------|----------|
-| `GET /logbook/v2/most_recent_positions/` | None | Array of `RecentPositions` objects for each unit, including timestamp and positions array | Fleet dashboards or tracking multiple vehicles |
-
-### Legacy Vehicle Position
-
-| Endpoint | Parameters | Response Data | Use Case |
-|----------|------------|---------------|----------|
-| `GET /logbook/most_recent_vehicle_positions/` | None | Most recent positions for all devices in customer account | Equivalent to v2 call but labeled "vehicle" |
-
 ### Historical Positions
 
 | Endpoint | Parameters | Response Data | Use Case |

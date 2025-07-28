@@ -56,6 +56,7 @@ class AutoPiDeviceTracker(AutoPiVehicleEntity, TrackerEntity):
         """
         super().__init__(coordinator, vehicle_id, "tracker")
         self._attr_icon = "mdi:car"
+        self._attr_name = None  # Use the device name
 
     @property
     def source_type(self) -> SourceType:
@@ -65,6 +66,11 @@ class AutoPiDeviceTracker(AutoPiVehicleEntity, TrackerEntity):
     @property
     def latitude(self) -> float | None:
         """Return latitude value of the device."""
+        if self.vehicle and self.vehicle.data_fields:
+            loc_field = self.vehicle.data_fields.get("track.pos.loc")
+            if loc_field and isinstance(loc_field.last_value, dict):
+                return loc_field.last_value.get("lat")
+        # Fallback to position if available
         if self.vehicle and self.vehicle.position:
             return self.vehicle.position.latitude
         return None
@@ -72,6 +78,11 @@ class AutoPiDeviceTracker(AutoPiVehicleEntity, TrackerEntity):
     @property
     def longitude(self) -> float | None:
         """Return longitude value of the device."""
+        if self.vehicle and self.vehicle.data_fields:
+            loc_field = self.vehicle.data_fields.get("track.pos.loc")
+            if loc_field and isinstance(loc_field.last_value, dict):
+                return loc_field.last_value.get("lon")
+        # Fallback to position if available
         if self.vehicle and self.vehicle.position:
             return self.vehicle.position.longitude
         return None
@@ -82,6 +93,28 @@ class AutoPiDeviceTracker(AutoPiVehicleEntity, TrackerEntity):
 
         Value in meters.
         """
+        # Calculate accuracy based on satellite count
+        if self.vehicle and self.vehicle.data_fields:
+            nsat_field = self.vehicle.data_fields.get("track.pos.nsat")
+            if nsat_field and nsat_field.last_value is not None:
+                num_satellites = int(nsat_field.last_value)
+                if num_satellites < 4:
+                    return 100
+                elif num_satellites == 4:
+                    return 30
+                elif num_satellites == 5:
+                    return 20
+                elif num_satellites == 6:
+                    return 15
+                elif num_satellites == 7:
+                    return 11
+                elif num_satellites in (8, 9):
+                    return 8
+                elif num_satellites in (10, 11):
+                    return 5
+                else:  # 12+
+                    return 3
+        # Fallback to position if available
         if self.vehicle and self.vehicle.position:
             return int(self.vehicle.position.location_accuracy)
         return 0

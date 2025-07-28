@@ -19,14 +19,10 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SELECTED_VEHICLES,
     CONF_UPDATE_INTERVAL_FAST,
-    CONF_UPDATE_INTERVAL_MEDIUM,
-    CONF_UPDATE_INTERVAL_SLOW,
     DEFAULT_BASE_URL,
     DEFAULT_NAME,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DEFAULT_UPDATE_INTERVAL_FAST_MINUTES,
-    DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES,
-    DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES,
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_SCAN_INTERVAL_MINUTES,
@@ -316,15 +312,9 @@ class AutoPiOptionsFlow(OptionsFlow):
 
             return self.async_create_entry(title="", data=options_data)
 
-        # Get current intervals from options or defaults
+        # Get current interval from options or default
         current_fast = self.config_entry.options.get(
             CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
-        )
-        current_medium = self.config_entry.options.get(
-            CONF_UPDATE_INTERVAL_MEDIUM, DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES
-        )
-        current_slow = self.config_entry.options.get(
-            CONF_UPDATE_INTERVAL_SLOW, DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
         )
 
         return self.async_show_form(
@@ -342,35 +332,11 @@ class AutoPiOptionsFlow(OptionsFlow):
                             mode=selector.NumberSelectorMode.BOX,
                         )
                     ),
-                    vol.Required(
-                        CONF_UPDATE_INTERVAL_MEDIUM,
-                        default=current_medium,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=MIN_SCAN_INTERVAL_MINUTES,
-                            max=MAX_SCAN_INTERVAL_MINUTES,
-                            unit_of_measurement="minutes",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
-                    vol.Required(
-                        CONF_UPDATE_INTERVAL_SLOW,
-                        default=current_slow,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=MIN_SCAN_INTERVAL_MINUTES,
-                            max=MAX_SCAN_INTERVAL_MINUTES,
-                            unit_of_measurement="minutes",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
                     vol.Optional("update_api_key", default=False): bool,
                 }
             ),
             description_placeholders={
-                "fast_desc": "Vehicle position updates",
-                "medium_desc": "Vehicle status updates",
-                "slow_desc": "Reserved for future use",
+                "fast_desc": "Data update interval",
             },
         )
 

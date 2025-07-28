@@ -9,8 +9,8 @@ from typing import Any, Final, cast
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from .const import (
+    DATA_FIELDS_ENDPOINT,
     DEFAULT_BASE_URL,
-    MOST_RECENT_POSITIONS_ENDPOINT,
     USER_AGENT,
     VEHICLE_PROFILE_ENDPOINT,
 )
@@ -21,7 +21,11 @@ from .exceptions import (
     AutoPiRateLimitError,
     AutoPiTimeoutError,
 )
-from .types import AutoPiVehicle, DevicePositionData, PositionData, VehiclePosition
+from .types import (
+    AutoPiVehicle,
+    DataFieldResponse,
+    DataFieldValue,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,23 +101,33 @@ class AutoPiClient:
             _LOGGER.error("Failed to fetch vehicles: %s", err)
             raise
 
-    async def get_all_positions(self) -> dict[str, VehiclePosition]:
-        """Get the most recent positions for all devices.
+
+    async def get_data_fields(
+        self, device_id: str, vehicle_id: int
+    ) -> dict[str, DataFieldValue]:
+        """Get all available data fields for a specific device and vehicle.
+
+        Args:
+            device_id: The device ID
+            vehicle_id: The vehicle ID
 
         Returns:
-            Dictionary mapping device IDs to VehiclePosition objects
+            Dictionary mapping field IDs to DataFieldValue objects
 
         Raises:
             AutoPiAuthenticationError: If authentication fails
             AutoPiConnectionError: If connection fails
             AutoPiAPIError: If API returns an error
         """
-        _LOGGER.debug("Fetching positions for all devices from AutoPi API")
+        _LOGGER.debug(
+            "Fetching data fields for device %s, vehicle %d", device_id, vehicle_id
+        )
 
         try:
             response = await self._request(
                 "GET",
-                MOST_RECENT_POSITIONS_ENDPOINT,
+                DATA_FIELDS_ENDPOINT,
+                params={"device_id": device_id, "vehicle_id": vehicle_id},
             )
 
             # Response should be a list
@@ -121,66 +135,36 @@ class AutoPiClient:
                 _LOGGER.error("Unexpected response type: %s", type(response))
                 return {}
 
-            positions: dict[str, VehiclePosition] = {}
+            fields: dict[str, DataFieldValue] = {}
 
-            for device_data in response:
+            for field_data in response:
                 try:
-                    device_positions = cast(DevicePositionData, device_data)
-                    unit_id = device_positions["unit_id"]
+                    field_response = cast(DataFieldResponse, field_data)
+                    field_value = DataFieldValue.from_api_data(field_response)
+                    fields[field_value.field_id] = field_value
 
-                    # Get the most recent position from the positions array
-                    if device_positions["positions"]:
-                        # Sort by timestamp to get the most recent
-                        sorted_positions = sorted(
-                            device_positions["positions"],
-                            key=lambda p: p["ts"],
-                            reverse=True
-                        )
-
-                        latest_position = sorted_positions[0]
-
-                        # Validate position data
-                        if self._is_valid_position_response(latest_position):
-                            positions[unit_id] = VehiclePosition.from_api_data(
-                                cast(PositionData, latest_position)
-                            )
-                        else:
-                            _LOGGER.warning(
-                                "Invalid position data for device %s", unit_id
-                            )
-                    else:
-                        _LOGGER.debug("No positions available for device %s", unit_id)
+                    _LOGGER.debug(
+                        "Parsed field %s: %s = %s",
+                        field_value.field_id,
+                        field_value.title,
+                        field_value.last_value,
+                    )
 
                 except (KeyError, TypeError) as err:
-                    _LOGGER.warning(
-                        "Failed to parse position data for device: %s", err
-                    )
+                    _LOGGER.warning("Failed to parse field data: %s", err)
                     continue
 
             _LOGGER.info(
-                "Successfully fetched positions for %d devices", len(positions)
+                "Successfully fetched %d data fields for device %s",
+                len(fields),
+                device_id,
             )
-            return positions
+            return fields
 
         except Exception as err:
-            _LOGGER.error("Failed to fetch positions: %s", err)
+            _LOGGER.error("Failed to fetch data fields: %s", err)
             raise
 
-    def _is_valid_position_response(self, data: dict[str, Any]) -> bool:
-        """Check if position response has all required fields."""
-        try:
-            return (
-                "ts" in data
-                and "location" in data
-                and "lat" in data["location"]
-                and "lon" in data["location"]
-                and "altitude" in data
-                and "speed_over_ground" in data
-                and "course_over_ground" in data
-                and "nsat" in data
-            )
-        except (KeyError, TypeError):
-            return False
 
     async def _request(
         self,

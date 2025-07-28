@@ -124,6 +124,7 @@ class AutoPiVehicle:
     make_id: int
     model_id: int
     position: VehiclePosition | None = None
+    data_fields: dict[str, DataFieldValue] | None = None
 
     @property
     def unique_id(self) -> str:
@@ -169,3 +170,59 @@ class AutoPiData:
         self.config_entry = config_entry
         self.vehicles: dict[str, AutoPiVehicle] = {}
         self.last_update: datetime | None = None
+
+
+class DataFieldLocation(TypedDict):
+    """Location data in data field response."""
+
+    lat: float
+    lon: float
+
+
+class DataFieldResponse(TypedDict):
+    """Type definition for a single data field from the API."""
+
+    field_prefix: str
+    field_name: str
+    frequency: float
+    type: str
+    title: str
+    last_seen: str
+    last_value: int | float | str | dict[str, Any] | DataFieldLocation
+    description: str
+
+
+@dataclass
+class DataFieldValue:
+    """Represents a single data field value with metadata."""
+
+    field_prefix: str
+    field_name: str
+    frequency: float
+    value_type: str
+    title: str
+    last_seen: datetime
+    last_value: Any
+    description: str
+    last_update: datetime  # When we last received this data
+
+    @property
+    def field_id(self) -> str:
+        """Get the unique field identifier."""
+        return f"{self.field_prefix}.{self.field_name}"
+
+    @classmethod
+    def from_api_data(cls, data: DataFieldResponse) -> DataFieldValue:
+        """Create DataFieldValue from API data."""
+        now = datetime.now()
+        return cls(
+            field_prefix=data["field_prefix"],
+            field_name=data["field_name"],
+            frequency=data["frequency"],
+            value_type=data["type"],
+            title=data["title"],
+            last_seen=datetime.fromisoformat(data["last_seen"].replace("Z", "+00:00")),
+            last_value=data["last_value"],
+            description=data["description"],
+            last_update=now,
+        )

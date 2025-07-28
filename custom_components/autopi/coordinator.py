@@ -24,7 +24,6 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES,
     DOMAIN,
     UPDATE_RING_FAST,
-    UPDATE_RING_MEDIUM,
     UPDATE_RING_SLOW,
 )
 from .exceptions import (
@@ -32,7 +31,7 @@ from .exceptions import (
     AutoPiAuthenticationError,
     AutoPiConnectionError,
 )
-from .types import AutoPiVehicle, CoordinatorData
+from .types import AutoPiVehicle, CoordinatorData, DataFieldValue, VehiclePosition
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,7 +43,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self,
         hass: HomeAssistant,
         config_entry: ConfigEntry,
-        update_ring: str = UPDATE_RING_MEDIUM,
+        update_ring: str = UPDATE_RING_FAST,
     ) -> None:
         """Initialize the coordinator.
 
@@ -234,7 +233,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
 
 class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
-    """Coordinator specifically for fetching vehicle position data."""
+    """Coordinator specifically for fetching vehicle position and data field data."""
 
     def __init__(
         self,
@@ -253,16 +252,15 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
         self._base_coordinator = base_coordinator
 
     async def _async_update_data(self) -> CoordinatorData:
-        """Fetch position data from AutoPi API.
+        """Fetch position and data field data from AutoPi API.
 
         Returns:
-            Dictionary mapping vehicle IDs to AutoPiVehicle objects with position
+            Dictionary mapping vehicle IDs to AutoPiVehicle objects with position and data fields
 
         Raises:
             UpdateFailed: If data fetching fails
         """
         start_time = self.hass.loop.time()
-        self._total_api_calls += 1
         self._update_count += 1
 
         try:
@@ -283,22 +281,13 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                 )
 
             _LOGGER.debug(
-                "[%s] Fetching position data for all devices",
+                "[%s] Fetching data fields for all vehicles",
                 self._update_ring,
             )
 
-            # Fetch all positions in one API call
-            all_positions = await self._client.get_all_positions()
-
-            _LOGGER.debug(
-                "[%s] Received positions for %d devices",
-                self._update_ring,
-                len(all_positions),
-            )
-
-            # Copy vehicle data from base coordinator and match with positions
+            # Copy vehicle data from base coordinator
             data: CoordinatorData = {}
-            position_count = 0
+            data_field_count = 0
 
             for vehicle_id, vehicle in self._base_coordinator.data.items():
                 # Create a copy of the vehicle data
@@ -313,33 +302,93 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                     devices=vehicle.devices,
                     make_id=vehicle.make_id,
                     model_id=vehicle.model_id,
-                    position=None,  # Will be updated below
+                    position=None,
+                    data_fields={},
                 )
 
-                # Match position data by device ID
+                # Fetch data fields for each device
                 if vehicle.devices:
                     for device_id in vehicle.devices:
-                        if device_id in all_positions:
-                            vehicle_copy.position = all_positions[device_id]
-                            position_count += 1
-                            _LOGGER.debug(
-                                "[%s] Got position for vehicle %s (device %s): lat=%.6f, lon=%.6f, alt=%.1fm, %d satellites",
+                        try:
+                            # Count API calls for each request
+                            self._total_api_calls += 1
+
+                            # Fetch data fields
+                            fields = await self._client.get_data_fields(device_id, vehicle.id)
+
+                            if fields:
+                                # Merge fields from all devices (later devices override earlier ones)
+                                vehicle_copy.data_fields = vehicle_copy.data_fields or {}
+                                vehicle_copy.data_fields.update(fields)
+                                data_field_count += len(fields)
+
+                                # Extract position data from fields if available
+                                if "track.pos.loc" in fields and "track.pos.alt" in fields:
+                                    try:
+                                        loc_field = fields["track.pos.loc"]
+                                        if isinstance(loc_field.last_value, dict):
+                                            # Construct position from data fields
+                                            vehicle_copy.position = VehiclePosition(
+                                                timestamp=loc_field.last_seen,
+                                                latitude=loc_field.last_value.get("lat", 0),
+                                                longitude=loc_field.last_value.get("lon", 0),
+                                                altitude=fields.get("track.pos.alt", DataFieldValue(
+                                                    field_prefix="", field_name="", frequency=0,
+                                                    value_type="", title="", last_seen=loc_field.last_seen,
+                                                    last_value=0, description="", last_update=loc_field.last_update
+                                                )).last_value,
+                                                speed=fields.get("track.pos.sog", DataFieldValue(
+                                                    field_prefix="", field_name="", frequency=0,
+                                                    value_type="", title="", last_seen=loc_field.last_seen,
+                                                    last_value=0, description="", last_update=loc_field.last_update
+                                                )).last_value,
+                                                course=fields.get("track.pos.cog", DataFieldValue(
+                                                    field_prefix="", field_name="", frequency=0,
+                                                    value_type="", title="", last_seen=loc_field.last_seen,
+                                                    last_value=0, description="", last_update=loc_field.last_update
+                                                )).last_value,
+                                                num_satellites=fields.get("track.pos.nsat", DataFieldValue(
+                                                    field_prefix="", field_name="", frequency=0,
+                                                    value_type="", title="", last_seen=loc_field.last_seen,
+                                                    last_value=0, description="", last_update=loc_field.last_update
+                                                )).last_value,
+                                            )
+                                            _LOGGER.debug(
+                                                "[%s] Extracted position from data fields for vehicle %s",
+                                                self._update_ring,
+                                                vehicle.name,
+                                            )
+                                    except Exception as err:
+                                        _LOGGER.warning(
+                                            "[%s] Failed to extract position from data fields: %s",
+                                            self._update_ring,
+                                            err,
+                                        )
+
+                                _LOGGER.debug(
+                                    "[%s] Got %d data fields for vehicle %s (device %s)",
+                                    self._update_ring,
+                                    len(fields),
+                                    vehicle.name,
+                                    device_id,
+                                )
+                            else:
+                                _LOGGER.debug(
+                                    "[%s] No data fields for vehicle %s (device %s)",
+                                    self._update_ring,
+                                    vehicle.name,
+                                    device_id,
+                                )
+
+                        except Exception as err:
+                            self._failed_api_calls += 1
+                            _LOGGER.warning(
+                                "[%s] Failed to fetch data fields for device %s: %s",
                                 self._update_ring,
-                                vehicle.name,
                                 device_id,
-                                vehicle_copy.position.latitude,
-                                vehicle_copy.position.longitude,
-                                vehicle_copy.position.altitude,
-                                vehicle_copy.position.num_satellites,
+                                err,
                             )
-                            break  # Use first device with position data
-                    else:
-                        _LOGGER.debug(
-                            "[%s] No position data available for vehicle %s (devices: %s)",
-                            self._update_ring,
-                            vehicle.name,
-                            vehicle.devices,
-                        )
+                            continue
                 else:
                     _LOGGER.debug(
                         "[%s] Vehicle %s has no devices",
@@ -354,9 +403,9 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
             self._last_api_call_time = self.hass.loop.time()
 
             _LOGGER.info(
-                "[%s] Successfully updated position data for %d/%d vehicles in %.2fs (update #%d, %.1f%% success rate)",
+                "[%s] Successfully updated data with %d fields for %d vehicles in %.2fs (update #%d, %.1f%% success rate)",
                 self._update_ring,
-                position_count,
+                data_field_count,
                 len(data),
                 self._last_update_duration,
                 self._update_count,
@@ -369,11 +418,11 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
             self._failed_api_calls += 1
             self._last_update_duration = self.hass.loop.time() - start_time
             _LOGGER.error(
-                "[%s] Unexpected error fetching position data (update #%d, %.1f%% success rate): %s",
+                "[%s] Unexpected error fetching data fields (update #%d, %.1f%% success rate): %s",
                 self._update_ring,
                 self._update_count,
                 self.success_rate,
                 err,
                 exc_info=True,
             )
-            raise UpdateFailed(f"Failed to fetch position data: {err}") from err
+            raise UpdateFailed(f"Failed to fetch data fields: {err}") from err

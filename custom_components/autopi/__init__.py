@@ -10,16 +10,10 @@ from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
     CONF_UPDATE_INTERVAL_FAST,
-    CONF_UPDATE_INTERVAL_MEDIUM,
-    CONF_UPDATE_INTERVAL_SLOW,
     DEFAULT_UPDATE_INTERVAL_FAST_MINUTES,
-    DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES,
-    DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES,
     DOMAIN,
     PLATFORMS,
     UPDATE_RING_FAST,
-    UPDATE_RING_MEDIUM,
-    UPDATE_RING_SLOW,
 )
 from .coordinator import AutoPiDataUpdateCoordinator, AutoPiPositionCoordinator
 
@@ -73,10 +67,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create coordinators dictionary
     coordinators = {}
 
-    # Create the medium update coordinator (base vehicle data)
+    # Create the fast update coordinator (all data)
     _LOGGER.info("Creating base vehicle data coordinator")
-    coordinator = AutoPiDataUpdateCoordinator(hass, entry, UPDATE_RING_MEDIUM)
-    coordinators[UPDATE_RING_MEDIUM] = coordinator
+    coordinator = AutoPiDataUpdateCoordinator(hass, entry, UPDATE_RING_FAST)
+    coordinators[UPDATE_RING_FAST] = coordinator
 
     # Perform initial data fetch
     try:
@@ -93,7 +87,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create position coordinator for fast updates (independent of base coordinator)
     _LOGGER.info("Creating position data coordinator")
     position_coordinator = AutoPiPositionCoordinator(hass, entry, coordinator)
-    coordinators[UPDATE_RING_FAST] = position_coordinator
 
     # Perform initial position data fetch in parallel
     try:
@@ -109,15 +102,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinators": coordinators,
         # Keep these for backward compatibility
-        "coordinator": coordinators[UPDATE_RING_MEDIUM],
-        "position_coordinator": coordinators[UPDATE_RING_FAST],
+        "coordinator": coordinator,
+        "position_coordinator": position_coordinator,
     }
 
     _LOGGER.info(
-        "Successfully set up AutoPi integration with %d coordinators: fast=%d min, medium=%d min",
-        len(coordinators),
+        "Successfully set up AutoPi integration with update interval: %d min",
         entry.options.get(CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES),
-        entry.options.get(CONF_UPDATE_INTERVAL_MEDIUM, DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES),
     )
 
     # Set up platforms
@@ -142,34 +133,32 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """
     _LOGGER.debug("Updating options for entry %s", entry.entry_id)
 
-    # Get the coordinators
+    # Get the data
     data = hass.data[DOMAIN][entry.entry_id]
-    coordinators = data["coordinators"]
 
     # Check if any intervals have changed
     intervals_changed = False
-    for ring_type, conf_key, default_val in [
-        (UPDATE_RING_FAST, CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES),
-        (UPDATE_RING_MEDIUM, CONF_UPDATE_INTERVAL_MEDIUM, DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES),
-        (UPDATE_RING_SLOW, CONF_UPDATE_INTERVAL_SLOW, DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES),
-    ]:
-        if ring_type in coordinators:
-            coordinator = coordinators[ring_type]
-            new_interval = entry.options.get(conf_key, default_val)
-            current_interval_minutes = (
-                coordinator.update_interval.total_seconds() / 60
-                if coordinator.update_interval
-                else default_val
+
+    # Check fast interval for all coordinators
+    new_interval = entry.options.get(CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES)
+
+    # Check main coordinator
+    coordinator = data.get("coordinator")
+    if coordinator:
+        current_interval_minutes = (
+            coordinator.update_interval.total_seconds() / 60
+            if coordinator.update_interval
+            else DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
+        )
+        if new_interval != current_interval_minutes:
+            intervals_changed = True
+            _LOGGER.info(
+                "Update interval changed from %d to %d minutes",
+                current_interval_minutes,
+                new_interval,
             )
 
-            if new_interval != current_interval_minutes:
-                intervals_changed = True
-                _LOGGER.info(
-                    "Update interval for %s ring changed from %d to %d minutes",
-                    ring_type,
-                    current_interval_minutes,
-                    new_interval,
-                )
+    # Position coordinator uses the same interval
 
     if intervals_changed:
         _LOGGER.warning(
@@ -178,9 +167,11 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
         # Schedule a reload
         await hass.config_entries.async_reload(entry.entry_id)
     else:
-        # Just trigger a refresh on all coordinators
-        for coordinator in coordinators.values():
-            await coordinator.async_request_refresh()
+        # Just trigger a refresh on both coordinators
+        if data.get("coordinator"):
+            await data["coordinator"].async_request_refresh()
+        if data.get("position_coordinator"):
+            await data["position_coordinator"].async_request_refresh()
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
