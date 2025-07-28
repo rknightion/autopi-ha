@@ -426,3 +426,4 @@ make docgen        # Generate documentation
 - **Security Issues**: Immediate attention
 
 Thank you for contributing to the AutoPi Home Assistant integration! Your contributions help make the project better for everyone. 🚗✨ 
+
