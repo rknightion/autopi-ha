@@ -12,10 +12,13 @@ These sensors provide information about the AutoPi integration itself:
 
 | Entity | Description | Category | Device Class | Unit | State Class | Icon |
 |--------|-------------|----------|--------------|------|-------------|------|
-| APICalls | Sensor showing the total number of API calls. | Diagnostic | - | - | Total_Increasing | mdi:api |
-| FailedAPICalls | Sensor showing the number of failed API calls. | Diagnostic | - | - | Total_Increasing | mdi:alert-circle |
-| SuccessRate | Sensor showing the API success rate. | Diagnostic | - | % | Measurement | mdi:percent |
-| UpdateDuration | Sensor showing the duration of the last update. | Diagnostic | - | s | Measurement | mdi:timer |
+| FleetAlertCount | Sensor showing the total number of fleet alerts. | Diagnostic | - | alerts | Measurement | mdi:alert |
+| APICalls | Sensor showing the total number of API calls across all coordinators. | Diagnostic | - | - | Total_Increasing | mdi:api |
+| FailedAPICalls | Sensor showing the number of failed API calls across all coordinators. | Diagnostic | - | - | Total_Increasing | mdi:alert-circle |
+| SuccessRate | Sensor showing the API success rate across all coordinators. | Diagnostic | - | % | Measurement | mdi:percent |
+| UpdateDuration | Sensor showing the average duration of the last updates across all coordinators. | Diagnostic | - | s | Measurement | mdi:timer |
+| TripCount | Sensor showing the total number of trips for a vehicle. | Diagnostic | - | trips | Total | mdi:map-marker-distance |
+| LastTripDistance | Sensor showing the distance of the last trip. | Primary | - | km | Measurement | mdi:road-variant |
 
 ### Vehicle Sensors
 
@@ -25,12 +28,6 @@ These sensors provide information specific to each vehicle:
 |--------|-------------|----------|--------------|------|-------------|------|
 | Count | Sensor showing the total number of vehicles. | Diagnostic | - | vehicles | Measurement | mdi:car-multiple |
 | AutoPiVehicleSensor | Sensor representing an individual vehicle. | Primary | - | - | - | mdi:car |
-| Altitude | Sensor representing a vehicle's altitude. | Primary | Distance | METERS | Measurement | mdi:elevation-rise |
-| Speed | Sensor representing a vehicle's speed. | Primary | Speed | METERS_PER_SECOND | Measurement | mdi:speedometer |
-| Course | Sensor representing a vehicle's course (direction). | Primary | - | ° | Measurement | mdi:compass |
-| Satellites | Sensor representing the number of GPS satellites. | Primary | - | - | Measurement | mdi:satellite-variant |
-| Latitude | Sensor representing a vehicle's latitude. | Diagnostic | - | - | Measurement | mdi:latitude |
-| Longitude | Sensor representing a vehicle's longitude. | Diagnostic | - | - | Measurement | mdi:longitude |
 
 ## Device Trackers
 
