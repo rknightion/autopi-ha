@@ -17,6 +17,41 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 
+## [0.4.0] - 2025-07-29
+
+
+### 🚗 Vehicle Features
+- add state persistence for zeroed metrics
+- add event types for vehicle events
+
+### 🐛 Bug Fixes
+- implement comprehensive error handling and logging
+
+### 🧰 Maintenance
+8f2dd93 refactor: simplify update interval configuration to use single unified interval
+e351c26 refactor: split AutoPiDataFieldSensor for better auto-zero support
+3a3055b chore: trigger build
+fcb2218 chore: trigger build
+c720bff ci: add workflow to trigger documentation sync
+58d8508 chore: update project name and custom domain pattern
+
+### 📚 Documentation
+- expand entity documentation with comprehensive sensor categories
+- update
+
+### 📋 Other Changes
+- Add auto-zero functionality for stale vehicle metrics
+- build
+- fix
+- trigger pipeline
+- fix missing /
+- fix mkdocs site URL
+- handle base route
+- use redirects not routes
+- add www route
+- fix route
+
+
 ## [0.3.2] - 2025-07-28
 
 
