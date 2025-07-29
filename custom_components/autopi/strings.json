@@ -124,7 +124,26 @@
     },
     "event": {
       "vehicle_events": {
-        "name": "Events"
+        "name": "Events",
+        "event_types": {
+          "charging": "Charging",
+          "charging_slow": "Charging (Slow)",
+          "discharging": "Discharging",
+          "critical_level": "Battery Critical Level",
+          "start": "Trip Start",
+          "stop": "Trip Stop",
+          "engine_start": "Engine Start",
+          "engine_stop": "Engine Stop",
+          "trip_start": "Trip Start",
+          "trip_end": "Trip End",
+          "standstill": "Vehicle Standstill",
+          "moving": "Vehicle Moving",
+          "alert": "Alert",
+          "warning": "Warning",
+          "error": "Error",
+          "unknown": "Unknown Event",
+          "unkown": "Unknown Event"
+        }
       }
     }
   }
