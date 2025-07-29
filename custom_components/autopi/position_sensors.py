@@ -18,7 +18,6 @@ from homeassistant.const import (
 
 from .coordinator import AutoPiDataUpdateCoordinator
 from .data_field_sensors import AutoPiDataFieldSensor
-from .entities.base import AutoPiVehicleEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -132,19 +131,18 @@ class GPSLatitudeSensor(AutoPiDataFieldSensor):
         self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
     ) -> None:
         """Initialize the sensor."""
-        # We need to override the entity initialization to use a unique suffix
-        # Call AutoPiVehicleEntity init directly to set custom suffix
-        AutoPiVehicleEntity.__init__(
-            self, coordinator, vehicle_id, "data_field_track_pos_lat"
+        # Call parent init with custom parameters
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "track.pos.loc",  # field_id
+            "GPS Latitude",  # name
+            icon="mdi:latitude",
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
         )
-        # Then initialize the sensor attributes
-        self._field_id = "track.pos.loc"
-        self._attr_name = "GPS Latitude"
-        self._attr_icon = "mdi:latitude"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
-        self._last_known_value: Any = None
-        self._last_update_time: datetime | None = None
+        # Override the unique_id suffix
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_vehicle_{vehicle_id}_data_field_track_pos_lat"
 
     @property
     def native_value(self) -> float | None:
@@ -170,19 +168,18 @@ class GPSLongitudeSensor(AutoPiDataFieldSensor):
         self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
     ) -> None:
         """Initialize the sensor."""
-        # We need to override the entity initialization to use a unique suffix
-        # Call AutoPiVehicleEntity init directly to set custom suffix
-        AutoPiVehicleEntity.__init__(
-            self, coordinator, vehicle_id, "data_field_track_pos_lon"
+        # Call parent init with custom parameters
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "track.pos.loc",  # field_id
+            "GPS Longitude",  # name
+            icon="mdi:longitude",
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
         )
-        # Then initialize the sensor attributes
-        self._field_id = "track.pos.loc"
-        self._attr_name = "GPS Longitude"
-        self._attr_icon = "mdi:longitude"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
-        self._last_known_value: Any = None
-        self._last_update_time: datetime | None = None
+        # Override the unique_id suffix
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_vehicle_{vehicle_id}_data_field_track_pos_lon"
 
     @property
     def native_value(self) -> float | None:

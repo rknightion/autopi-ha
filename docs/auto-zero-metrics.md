@@ -83,6 +83,18 @@ The implementation includes comprehensive safeguards:
 - **Immediate response** to trip state changes or new data
 - **Memory cleanup** runs hourly to remove only data older than 24 hours
 
+### State Persistence
+
+The auto-zero feature includes state persistence to handle Home Assistant restarts:
+
+- **Automatic State Restoration**: Zeroed metrics remain at zero after HA restarts
+- **Storage of Zeroed Status**: Each zeroed metric's state is saved to disk
+- **Graceful Recovery**: If storage files are corrupted or missing, the system logs a warning and starts fresh
+- **Per-Entity Tracking**: Each metric is tracked individually - one metric's stale data won't affect others
+- **Smart Un-zeroing**: When new data arrives from the API with a recent `last_seen` timestamp, metrics automatically un-zero
+
+This ensures that even if Home Assistant is down for extended periods, sensors won't briefly show stale values before re-zeroing.
+
 ## Limitations
 
 1. **Trip Data Dependency**: The primary method requires trip data to be available and accurate

@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
+from .auto_zero import get_auto_zero_manager
 from .const import (
     CONF_UPDATE_INTERVAL_FAST,
     CONF_UPDATE_INTERVAL_SLOW,
@@ -120,6 +121,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:
         # Trip fetch failures are not critical
         _LOGGER.warning("Failed to fetch initial trip data: %s", err)
+
+    # Initialize auto-zero manager with storage
+    _LOGGER.debug("Initializing auto-zero manager")
+    auto_zero_manager = get_auto_zero_manager()
+    await auto_zero_manager.async_initialize(hass)
 
     # Store coordinators
     hass.data.setdefault(DOMAIN, {})

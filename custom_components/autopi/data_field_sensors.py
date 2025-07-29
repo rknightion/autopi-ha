@@ -22,6 +22,7 @@ from homeassistant.const import (
     UnitOfTime,
     UnitOfVolume,
 )
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .auto_zero import AUTO_ZERO_METRICS, get_auto_zero_manager
 from .const import CONF_AUTO_ZERO_ENABLED, DATA_FIELD_TIMEOUT_MINUTES
@@ -32,7 +33,7 @@ from .types import DataFieldValue
 _LOGGER = logging.getLogger(__name__)
 
 
-class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
+class AutoPiDataFieldSensor(AutoPiVehicleEntity, RestoreEntity, SensorEntity):
     """Base class for AutoPi data field sensors."""
 
     def __init__(
@@ -60,11 +61,67 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
         self._attr_entity_category = entity_category
         self._last_known_value: Any = None
         self._last_update_time: datetime | None = None
+        self._was_zeroed: bool = False
+        self._restored_value: Any = None
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity being added to Home Assistant."""
+        await super().async_added_to_hass()
+
+        # Only restore if auto-zero is enabled for this metric
+        if self._field_id not in AUTO_ZERO_METRICS:
+            return
+
+        # Restore last state
+        if (last_state := await self.async_get_last_state()) is not None:
+            _LOGGER.debug(
+                "Restoring state for %s on vehicle %s: %s",
+                self._attr_name,
+                self._vehicle_id,
+                last_state.state,
+            )
+
+            # Check if it was zeroed
+            if (attrs := last_state.attributes) is not None:
+                if attrs.get("is_zeroed", False):
+                    # Restore as zeroed
+                    self._was_zeroed = True
+                    self._restored_value = 0
+                    _LOGGER.info(
+                        "Restored zeroed state for %s on vehicle %s",
+                        self._attr_name,
+                        self._vehicle_id,
+                    )
+                elif last_state.state not in ("unknown", "unavailable"):
+                    # Restore the actual value
+                    try:
+                        if self._attr_device_class == SensorDeviceClass.TEMPERATURE:
+                            self._restored_value = float(last_state.state)
+                        elif self._attr_state_class == SensorStateClass.MEASUREMENT:
+                            self._restored_value = float(last_state.state)
+                        else:
+                            self._restored_value = last_state.state
+                    except (ValueError, TypeError):
+                        _LOGGER.warning(
+                            "Failed to restore value for %s on vehicle %s",
+                            self._attr_name,
+                            self._vehicle_id,
+                        )
 
     @property
     def native_value(self) -> Any:
         """Return the sensor value."""
         try:
+            # If we have a restored value and no new data yet, use it
+            if self._restored_value is not None and not self._last_known_value:
+                _LOGGER.debug(
+                    "Using restored value %s for sensor %s on vehicle %s",
+                    self._restored_value,
+                    self._attr_name,
+                    self._vehicle_id,
+                )
+                return self._restored_value
+
             field_data = self._get_field_data()
 
             if field_data is not None:
@@ -201,6 +258,14 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
             time_since_update = datetime.now() - self._last_update_time
             if time_since_update > timedelta(seconds=0):
                 attrs["data_age_seconds"] = int(time_since_update.total_seconds())
+
+        # Add auto-zero status
+        if self._field_id in AUTO_ZERO_METRICS:
+            auto_zero_manager = get_auto_zero_manager()
+            auto_zero_status = auto_zero_manager.get_metric_status(
+                self._vehicle_id, self._field_id
+            )
+            attrs.update(auto_zero_status)
 
         return attrs
 

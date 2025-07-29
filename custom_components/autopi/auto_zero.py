@@ -1,9 +1,39 @@
-"""Auto-zero functionality for AutoPi metrics."""
+"""Auto-zero functionality for AutoPi metrics.
+
+This module manages automatic zeroing of specific vehicle metrics when the vehicle
+is not on an active trip. It includes state persistence across Home Assistant restarts
+to ensure zeroed metrics remain zeroed until new data arrives.
+
+Key Features:
+- Trip-based detection with 6 consecutive COMPLETED calls validation
+- 30-minute fallback method using consecutive stale readings
+- State persistence using Home Assistant's storage system
+- Per-metric cooldown periods to prevent rapid cycling
+- Graceful error handling for corrupted/missing storage
+
+Storage Format:
+The module stores zeroed metrics in JSON format at .storage/autopi_auto_zero
+with the following structure:
+{
+    "zeroed_metrics": [
+        {
+            "vehicle_id": "123",
+            "field_id": "obd.rpm.value",
+            "zeroed_at": "2025-07-29T10:30:00",
+            "reason": "trip_completed"
+        }
+    ]
+}
+"""
 
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from typing import Any, TypedDict
+
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 
 from .types import AutoPiTrip, DataFieldValue
 
@@ -38,6 +68,25 @@ FALLBACK_TIMEOUT_MINUTES = 30
 # Number of consecutive stale readings required for fallback zeroing
 REQUIRED_STALE_CALLS = 30  # 30 minutes with 1-minute polling
 
+# Storage constants
+STORAGE_VERSION = 1
+STORAGE_KEY = "autopi_auto_zero"
+
+
+class ZeroedMetricData(TypedDict):
+    """Data structure for a zeroed metric."""
+
+    vehicle_id: str
+    field_id: str
+    zeroed_at: str  # ISO format timestamp
+    reason: str  # "trip_completed" or "stale_data"
+
+
+class AutoZeroStorageData(TypedDict):
+    """Storage data structure for auto-zero state."""
+
+    zeroed_metrics: list[ZeroedMetricData]
+
 
 class AutoZeroManager:
     """Manages auto-zero state for vehicle metrics."""
@@ -67,6 +116,121 @@ class AutoZeroManager:
         # Track consecutive stale readings for fallback method
         # Key: (vehicle_id, metric_id), Value: (count, last_seen_time)
         self._stale_call_counts: dict[tuple[str, str], tuple[int, datetime]] = {}
+
+        # Storage for persistence
+        self._hass: HomeAssistant | None = None
+        self._store: Store[AutoZeroStorageData] | None = None
+
+    async def async_initialize(self, hass: HomeAssistant) -> None:
+        """Initialize storage and load persisted state.
+
+        Args:
+            hass: Home Assistant instance
+        """
+        self._hass = hass
+        self._store = Store[AutoZeroStorageData](
+            hass, STORAGE_VERSION, STORAGE_KEY
+        )
+
+        # Load persisted state
+        await self._async_load()
+
+    async def _async_load(self) -> None:
+        """Load persisted zeroed metrics from storage."""
+        if not self._store:
+            _LOGGER.debug("No storage available, skipping load")
+            return
+
+        try:
+            data = await self._store.async_load()
+
+            if data and "zeroed_metrics" in data:
+                _LOGGER.debug(
+                    "Loading %d persisted zeroed metrics from storage",
+                    len(data["zeroed_metrics"])
+                )
+
+                # Restore zeroed metrics
+                for metric_data in data["zeroed_metrics"]:
+                    try:
+                        vehicle_id = metric_data["vehicle_id"]
+                        field_id = metric_data["field_id"]
+                        zeroed_at = datetime.fromisoformat(metric_data["zeroed_at"])
+
+                        metric_key = (vehicle_id, field_id)
+                        self._zeroed_metrics[metric_key] = zeroed_at
+
+                        _LOGGER.info(
+                            "Restored zeroed state for %s on vehicle %s (zeroed at %s)",
+                            AUTO_ZERO_METRICS.get(field_id, field_id),
+                            vehicle_id,
+                            zeroed_at.isoformat(),
+                        )
+                    except (KeyError, ValueError) as e:
+                        _LOGGER.warning(
+                            "Failed to restore zeroed metric: %s",
+                            str(e),
+                        )
+            else:
+                _LOGGER.debug("No persisted zeroed metrics found")
+
+        except Exception as e:
+            _LOGGER.warning(
+                "Failed to load auto-zero state from storage, starting fresh: %s",
+                str(e),
+            )
+            # Continue with empty state - don't crash on storage errors
+
+    async def _async_save(self) -> None:
+        """Save current zeroed metrics to storage."""
+        if not self._store:
+            _LOGGER.debug("No storage available, skipping save")
+            return
+
+        try:
+            # Convert zeroed metrics to storage format
+            zeroed_metrics: list[ZeroedMetricData] = []
+
+            for (vehicle_id, field_id), zeroed_at in self._zeroed_metrics.items():
+                # Determine reason based on current state
+                reason = "trip_completed"  # Default
+                if (vehicle_id, field_id) in self._stale_call_counts:
+                    count, _ = self._stale_call_counts[(vehicle_id, field_id)]
+                    if count >= REQUIRED_STALE_CALLS:
+                        reason = "stale_data"
+
+                zeroed_metrics.append({
+                    "vehicle_id": vehicle_id,
+                    "field_id": field_id,
+                    "zeroed_at": zeroed_at.isoformat(),
+                    "reason": reason,
+                })
+
+            data: AutoZeroStorageData = {
+                "zeroed_metrics": zeroed_metrics
+            }
+
+            await self._store.async_save(data)
+
+            _LOGGER.debug(
+                "Saved %d zeroed metrics to storage",
+                len(zeroed_metrics)
+            )
+
+        except Exception as e:
+            _LOGGER.error(
+                "Failed to save auto-zero state to storage: %s",
+                str(e),
+                exc_info=True,
+            )
+
+    def _schedule_save(self) -> None:
+        """Schedule a save operation to persist state."""
+        if self._hass:
+            # Use Home Assistant's async_create_task to schedule the save
+            self._hass.async_create_task(self._async_save())
+        else:
+            _LOGGER.debug("No Home Assistant instance available, cannot schedule save")
 
     def should_zero_metric(
         self,
@@ -161,6 +325,8 @@ class AutoZeroManager:
                     del self._zeroed_metrics[metric_key]
                     # Add cooldown to prevent immediate re-zeroing
                     self._metric_cooldowns[metric_key] = now + timedelta(minutes=METRIC_COOLDOWN_MINUTES)
+                    # Schedule save
+                    self._schedule_save()
                     return False
 
             # Primary method: Use trip data
@@ -220,6 +386,8 @@ class AutoZeroManager:
                             last_trip.state,
                         )
                         del self._zeroed_metrics[metric_key]
+                        # Schedule save
+                        self._schedule_save()
                     return False
 
                 # Require minimum consecutive COMPLETED calls
@@ -255,6 +423,8 @@ class AutoZeroManager:
                                     vehicle_id,
                                 )
                                 self._zeroed_metrics[metric_key] = field_data.last_seen
+                                # Schedule save
+                                self._schedule_save()
                             return True
                         else:
                             _LOGGER.debug(
@@ -303,6 +473,8 @@ class AutoZeroManager:
                                 vehicle_id,
                             )
                             self._zeroed_metrics[metric_key] = field_data.last_seen
+                            # Schedule save
+                            self._schedule_save()
                         return True
 
             # Don't zero
@@ -386,11 +558,41 @@ class AutoZeroManager:
                 exc_info=True,
             )
 
+    def get_metric_status(self, vehicle_id: str, metric_id: str) -> dict[str, Any]:
+        """Get the current status of a metric for entity attributes.
+
+        Args:
+            vehicle_id: Vehicle ID
+            metric_id: Metric field ID
+
+        Returns:
+            Dictionary with metric status information
+        """
+        metric_key = (vehicle_id, metric_id)
+
+        status: dict[str, Any] = {
+            "auto_zero_enabled": metric_id in AUTO_ZERO_METRICS,
+            "is_zeroed": metric_key in self._zeroed_metrics,
+        }
+
+        if metric_key in self._zeroed_metrics:
+            status["zeroed_at"] = self._zeroed_metrics[metric_key].isoformat()
+
+        if metric_key in self._metric_cooldowns:
+            cooldown_expiry = self._metric_cooldowns[metric_key]
+            if datetime.now() < cooldown_expiry:
+                status["cooldown_until"] = cooldown_expiry.isoformat()
+
+        return status
+
 
 # Global instance
-_auto_zero_manager = AutoZeroManager()
+_auto_zero_manager: AutoZeroManager | None = None
 
 
 def get_auto_zero_manager() -> AutoZeroManager:
     """Get the global auto-zero manager instance."""
+    global _auto_zero_manager
+    if _auto_zero_manager is None:
+        _auto_zero_manager = AutoZeroManager()
     return _auto_zero_manager
