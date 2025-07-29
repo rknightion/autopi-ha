@@ -136,17 +136,38 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                     ),
                 )
 
-            _LOGGER.debug("Fetching vehicle data from AutoPi API")
+            _LOGGER.debug(
+                "[%s] Starting API update %d (total calls: %d, failed: %d)",
+                self._update_ring,
+                self._update_count,
+                self._total_api_calls,
+                self._failed_api_calls,
+            )
 
             # Get all vehicles
             vehicles = await self._client.get_vehicles()
 
-            _LOGGER.info("Received %d vehicles from AutoPi API", len(vehicles))
+            _LOGGER.debug(
+                "[%s] Received %d vehicles from API",
+                self._update_ring,
+                len(vehicles),
+            )
 
             # Filter to selected vehicles if specified
             if self._selected_vehicles:
                 vehicles = [v for v in vehicles if str(v.id) in self._selected_vehicles]
-                _LOGGER.debug("Filtered to %d selected vehicles", len(vehicles))
+                _LOGGER.debug(
+                    "[%s] Filtered to %d selected vehicles (from %d total)",
+                    self._update_ring,
+                    len(vehicles),
+                    len(self._selected_vehicles),
+                )
+            else:
+                _LOGGER.debug(
+                    "[%s] No vehicle filter applied, using all %d vehicles",
+                    self._update_ring,
+                    len(vehicles),
+                )
 
             # Convert to coordinator data format
             data: CoordinatorData = {str(vehicle.id): vehicle for vehicle in vehicles}

@@ -86,35 +86,64 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
         @callback
         def _handle_event(event: Any) -> None:
             """Handle device events."""
-            event_data = event.data
-            device_id = event_data.get("device_id")
-            vehicle_id = event_data.get("vehicle_id")
+            try:
+                event_data = event.data
+                device_id = event_data.get("device_id")
+                vehicle_id = event_data.get("vehicle_id")
 
-            # Only process events for our vehicle
-            if vehicle_id == self._vehicle_id and device_id in self._device_ids:
-                # Map the event type or use the original if it's in our list
-                event_type = event_data.get("event_type", "unknown")
-                if event_type not in self._attr_event_types:
-                    _LOGGER.warning(
-                        "Unknown event type '%s' from device %s, using 'unknown'",
+                _LOGGER.debug(
+                    "Received event for device %s, vehicle %s (our vehicle: %s)",
+                    device_id,
+                    vehicle_id,
+                    self._vehicle_id,
+                )
+
+                # Only process events for our vehicle
+                if vehicle_id == self._vehicle_id and device_id in self._device_ids:
+                    # Map the event type or use the original if it's in our list
+                    event_type = event_data.get("event_type", "unknown")
+                    if event_type not in self._attr_event_types:
+                        _LOGGER.warning(
+                            "Unknown event type '%s' from device %s, mapping to 'unknown'",
+                            event_type,
+                            device_id,
+                        )
+                        event_type = "unknown"
+
+                    _LOGGER.debug(
+                        "Processing %s event from device %s for vehicle %s",
                         event_type,
                         device_id,
+                        vehicle_id,
                     )
-                    event_type = "unknown"
 
-                # Trigger the event entity
-                self._trigger_event(
-                    event_type,
-                    {
-                        "device_id": device_id,
-                        "timestamp": event_data.get("timestamp"),
-                        "tag": event_data.get("tag"),
-                        "area": event_data.get("area"),
-                        "data": event_data.get("data", {}),
-                        "original_event_type": event_data.get("event_type"),
-                    },
+                    # Trigger the event entity
+                    self._trigger_event(
+                        event_type,
+                        {
+                            "device_id": device_id,
+                            "timestamp": event_data.get("timestamp"),
+                            "tag": event_data.get("tag"),
+                            "area": event_data.get("area"),
+                            "data": event_data.get("data", {}),
+                            "original_event_type": event_data.get("event_type"),
+                        },
+                    )
+                    self.async_write_ha_state()
+
+                    _LOGGER.info(
+                        "Triggered %s event for vehicle %s",
+                        event_type,
+                        self._vehicle_id,
+                    )
+
+            except Exception as e:
+                _LOGGER.error(
+                    "Error handling event for vehicle %s: %s",
+                    self._vehicle_id,
+                    str(e),
+                    exc_info=True,
                 )
-                self.async_write_ha_state()
 
         # Subscribe to device events
         self.async_on_remove(

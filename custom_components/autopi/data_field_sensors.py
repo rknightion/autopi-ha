@@ -64,51 +64,97 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the sensor value."""
-        field_data = self._get_field_data()
+        try:
+            field_data = self._get_field_data()
 
-        if field_data is not None:
-            # Update our last known value and time
-            self._last_known_value = field_data.last_value
-            self._last_update_time = field_data.last_update
+            if field_data is not None:
+                # Update our last known value and time
+                self._last_known_value = field_data.last_value
+                self._last_update_time = field_data.last_update
 
-            # Check if auto-zero should be applied
-            if self._field_id in AUTO_ZERO_METRICS:
-                auto_zero_enabled = self.coordinator.config_entry.options.get(
-                    CONF_AUTO_ZERO_ENABLED, False
+                _LOGGER.debug(
+                    "Sensor %s for vehicle %s has value %s (last_seen: %s)",
+                    self._attr_name,
+                    self._vehicle_id,
+                    field_data.last_value,
+                    field_data.last_seen.isoformat() if field_data.last_seen else "None",
                 )
 
-                # Get trip data if available
-                last_trip = None
-                from .const import DOMAIN
-                domain_data = self.coordinator.hass.data.get(DOMAIN, {})
-                entry_data = domain_data.get(self.coordinator.config_entry.entry_id, {})
-                trip_coordinator = entry_data.get("trip_coordinator")
+                # Check if auto-zero should be applied
+                if self._field_id in AUTO_ZERO_METRICS:
+                    auto_zero_enabled = self.coordinator.config_entry.options.get(
+                        CONF_AUTO_ZERO_ENABLED, False
+                    )
 
-                if trip_coordinator and trip_coordinator.data and self._vehicle_id in trip_coordinator.data:
-                    trip_vehicle = trip_coordinator.data[self._vehicle_id]
-                    last_trip = trip_vehicle.last_trip
+                    # Get trip data if available
+                    last_trip = None
+                    try:
+                        from .const import DOMAIN
+                        domain_data = self.coordinator.hass.data.get(DOMAIN, {})
+                        entry_data = domain_data.get(self.coordinator.config_entry.entry_id, {})
+                        trip_coordinator = entry_data.get("trip_coordinator")
 
-                # Check if we should zero the metric
-                auto_zero_manager = get_auto_zero_manager()
-                if auto_zero_manager.should_zero_metric(
-                    self._vehicle_id,
-                    self._field_id,
-                    field_data,
-                    last_trip,
-                    auto_zero_enabled,
+                        if trip_coordinator and trip_coordinator.data and self._vehicle_id in trip_coordinator.data:
+                            trip_vehicle = trip_coordinator.data[self._vehicle_id]
+                            last_trip = trip_vehicle.last_trip
+                            _LOGGER.debug(
+                                "Found trip data for vehicle %s: state=%s",
+                                self._vehicle_id,
+                                last_trip.state if last_trip else "None",
+                            )
+                    except Exception as e:
+                        _LOGGER.warning(
+                            "Failed to get trip data for auto-zero evaluation: %s",
+                            str(e),
+                        )
+
+                    # Check if we should zero the metric
+                    auto_zero_manager = get_auto_zero_manager()
+                    if auto_zero_manager.should_zero_metric(
+                        self._vehicle_id,
+                        self._field_id,
+                        field_data,
+                        last_trip,
+                        auto_zero_enabled,
+                    ):
+                        _LOGGER.debug(
+                            "Auto-zeroing sensor %s for vehicle %s",
+                            self._attr_name,
+                            self._vehicle_id,
+                        )
+                        return 0
+
+                return field_data.last_value
+
+            # If we have a last known value and it's within timeout, return it
+            if self._last_known_value is not None and self._last_update_time is not None:
+                if datetime.now() - self._last_update_time < timedelta(
+                    minutes=DATA_FIELD_TIMEOUT_MINUTES
                 ):
-                    return 0
+                    _LOGGER.debug(
+                        "Using cached value %s for sensor %s on vehicle %s",
+                        self._last_known_value,
+                        self._attr_name,
+                        self._vehicle_id,
+                    )
+                    return self._last_known_value
 
-            return field_data.last_value
+            _LOGGER.debug(
+                "No value available for sensor %s on vehicle %s",
+                self._attr_name,
+                self._vehicle_id,
+            )
+            return None
 
-        # If we have a last known value and it's within timeout, return it
-        if self._last_known_value is not None and self._last_update_time is not None:
-            if datetime.now() - self._last_update_time < timedelta(
-                minutes=DATA_FIELD_TIMEOUT_MINUTES
-            ):
-                return self._last_known_value
-
-        return None
+        except Exception as e:
+            _LOGGER.error(
+                "Error getting value for sensor %s on vehicle %s: %s",
+                self._attr_name,
+                self._vehicle_id,
+                str(e),
+                exc_info=True,
+            )
+            return None
 
     @property
     def available(self) -> bool:

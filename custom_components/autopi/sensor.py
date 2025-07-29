@@ -59,56 +59,109 @@ async def async_setup_entry(
     # Add individual vehicle sensors
     if coordinator.data:
         for vehicle_id, vehicle in coordinator.data.items():
-            _LOGGER.debug(
-                "Creating vehicle sensor for %s (%s)", vehicle.name, vehicle_id
-            )
-            entities.append(AutoPiVehicleSensor(coordinator, vehicle_id))
+            try:
+                _LOGGER.debug(
+                    "Creating vehicle sensor for %s (%s)", vehicle.name, vehicle_id
+                )
+                entities.append(AutoPiVehicleSensor(coordinator, vehicle_id))
 
-            # Add data field sensors if available (includes position sensors)
-            if position_coordinator.data and vehicle_id in position_coordinator.data:
-                vehicle_data = position_coordinator.data[vehicle_id]
-                if vehicle_data.data_fields:
-                    available_fields = set(vehicle_data.data_fields.keys())
+                # Add data field sensors if available (includes position sensors)
+                if position_coordinator.data and vehicle_id in position_coordinator.data:
+                    vehicle_data = position_coordinator.data[vehicle_id]
+                    if vehicle_data.data_fields:
+                        available_fields = set(vehicle_data.data_fields.keys())
+                        _LOGGER.debug(
+                            "Found %d available data fields for vehicle %s",
+                            len(available_fields),
+                            vehicle.name,
+                        )
 
-                    # Create position sensors from data fields
-                    position_sensors = create_position_sensors(
-                        position_coordinator, vehicle_id, available_fields
-                    )
-                    entities.extend(position_sensors)
+                        # Create position sensors from data fields
+                        try:
+                            position_sensors = create_position_sensors(
+                                position_coordinator, vehicle_id, available_fields
+                            )
+                            entities.extend(position_sensors)
+                            _LOGGER.debug(
+                                "Created %d position sensors for vehicle %s",
+                                len(position_sensors),
+                                vehicle.name,
+                            )
+                        except Exception as e:
+                            _LOGGER.error(
+                                "Failed to create position sensors for vehicle %s: %s",
+                                vehicle.name,
+                                str(e),
+                                exc_info=True,
+                            )
+
+                        # Create other data field sensors
+                        try:
+                            data_field_sensors = create_data_field_sensors(
+                                position_coordinator, vehicle_id, available_fields
+                            )
+                            entities.extend(data_field_sensors)
+                            _LOGGER.debug(
+                                "Created %d data field sensors for vehicle %s",
+                                len(data_field_sensors),
+                                vehicle.name,
+                            )
+                        except Exception as e:
+                            _LOGGER.error(
+                                "Failed to create data field sensors for vehicle %s: %s",
+                                vehicle.name,
+                                str(e),
+                                exc_info=True,
+                            )
+                    else:
+                        _LOGGER.debug(
+                            "No data fields available for vehicle %s",
+                            vehicle.name,
+                        )
+                else:
                     _LOGGER.debug(
-                        "Created %d position sensors for vehicle %s",
-                        len(position_sensors),
+                        "No position data available for vehicle %s",
                         vehicle.name,
                     )
 
-                    # Create other data field sensors
-                    data_field_sensors = create_data_field_sensors(
-                        position_coordinator, vehicle_id, available_fields
-                    )
-                    entities.extend(data_field_sensors)
-                    _LOGGER.debug(
-                        "Created %d data field sensors for vehicle %s",
-                        len(data_field_sensors),
-                        vehicle.name,
-                    )
+            except Exception as e:
+                _LOGGER.error(
+                    "Failed to create sensors for vehicle %s: %s",
+                    vehicle.name,
+                    str(e),
+                    exc_info=True,
+                )
 
             # Add trip sensors if trip coordinator is available
-            if (
-                trip_coordinator
-                and trip_coordinator.data
-                and vehicle_id in trip_coordinator.data
-            ):
-                trip_vehicle = trip_coordinator.data[vehicle_id]
-                if trip_vehicle.trip_count > 0:
-                    entities.append(AutoPiTripCountSensor(trip_coordinator, vehicle_id))
-                    entities.append(
-                        AutoPiLastTripDistanceSensor(trip_coordinator, vehicle_id)
-                    )
-                    _LOGGER.debug(
-                        "Created trip sensors for vehicle %s with %d trips",
-                        vehicle.name,
-                        trip_vehicle.trip_count,
-                    )
+            try:
+                if (
+                    trip_coordinator
+                    and trip_coordinator.data
+                    and vehicle_id in trip_coordinator.data
+                ):
+                    trip_vehicle = trip_coordinator.data[vehicle_id]
+                    if trip_vehicle.trip_count > 0:
+                        entities.append(AutoPiTripCountSensor(trip_coordinator, vehicle_id))
+                        entities.append(
+                            AutoPiLastTripDistanceSensor(trip_coordinator, vehicle_id)
+                        )
+                        _LOGGER.debug(
+                            "Created trip sensors for vehicle %s with %d trips",
+                            vehicle.name,
+                            trip_vehicle.trip_count,
+                        )
+                    else:
+                        _LOGGER.debug(
+                            "No trips found for vehicle %s",
+                            vehicle.name,
+                        )
+            except Exception as e:
+                _LOGGER.error(
+                    "Failed to create trip sensors for vehicle %s: %s",
+                    vehicle.name,
+                    str(e),
+                    exc_info=True,
+                )
 
     _LOGGER.info("Adding %d AutoPi sensor entities", len(entities))
 

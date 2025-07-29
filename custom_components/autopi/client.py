@@ -369,10 +369,15 @@ class AutoPiClient:
         _LOGGER.debug(
             "Making %s request to %s (retry %d/%d)",
             method,
-            url,
+            endpoint,  # Log endpoint without base URL to avoid exposing full URLs
             retry_count,
             MAX_RETRIES,
         )
+
+        if params:
+            # Log params but filter out any sensitive data
+            safe_params = {k: v for k, v in params.items() if k not in ["api_key", "token"]}
+            _LOGGER.debug("Request params: %s", safe_params)
 
         try:
             async with self._session.request(
