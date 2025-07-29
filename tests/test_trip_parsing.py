@@ -1,6 +1,6 @@
 """Tests for trip data parsing."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from custom_components.autopi.types import AutoPiTrip, TripData
 
@@ -86,7 +86,7 @@ def test_trip_parsing_in_progress():
     """Test that in-progress trips are parsed correctly."""
     trip_data: TripData = {
         "id": "test-trip-4",
-        "start_time_utc": datetime.utcnow().isoformat() + "Z",  # Started just now
+        "start_time_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),  # Started just now
         "end_time_utc": "",  # Not ended yet
         "start_position_lat": "52.520008",
         "start_position_lng": "13.404954",
@@ -98,7 +98,7 @@ def test_trip_parsing_in_progress():
         "duration": None,  # In-progress
         "distanceKm": 0.0,
         "tag": "trip",
-        "last_recalc": datetime.utcnow().isoformat() + "Z",
+        "last_recalc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "state": "in_progress",
     }
 

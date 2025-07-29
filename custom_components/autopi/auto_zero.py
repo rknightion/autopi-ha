@@ -128,9 +128,7 @@ class AutoZeroManager:
             hass: Home Assistant instance
         """
         self._hass = hass
-        self._store = Store[AutoZeroStorageData](
-            hass, STORAGE_VERSION, STORAGE_KEY
-        )
+        self._store = Store[AutoZeroStorageData](hass, STORAGE_VERSION, STORAGE_KEY)
 
         # Load persisted state
         await self._async_load()
@@ -147,7 +145,7 @@ class AutoZeroManager:
             if data and "zeroed_metrics" in data:
                 _LOGGER.debug(
                     "Loading %d persisted zeroed metrics from storage",
-                    len(data["zeroed_metrics"])
+                    len(data["zeroed_metrics"]),
                 )
 
                 # Restore zeroed metrics
@@ -199,23 +197,20 @@ class AutoZeroManager:
                     if count >= REQUIRED_STALE_CALLS:
                         reason = "stale_data"
 
-                zeroed_metrics.append({
-                    "vehicle_id": vehicle_id,
-                    "field_id": field_id,
-                    "zeroed_at": zeroed_at.isoformat(),
-                    "reason": reason,
-                })
+                zeroed_metrics.append(
+                    {
+                        "vehicle_id": vehicle_id,
+                        "field_id": field_id,
+                        "zeroed_at": zeroed_at.isoformat(),
+                        "reason": reason,
+                    }
+                )
 
-            data: AutoZeroStorageData = {
-                "zeroed_metrics": zeroed_metrics
-            }
+            data: AutoZeroStorageData = {"zeroed_metrics": zeroed_metrics}
 
             await self._store.async_save(data)
 
-            _LOGGER.debug(
-                "Saved %d zeroed metrics to storage",
-                len(zeroed_metrics)
-            )
+            _LOGGER.debug("Saved %d zeroed metrics to storage", len(zeroed_metrics))
 
         except Exception as e:
             _LOGGER.error(
@@ -293,7 +288,9 @@ class AutoZeroManager:
             # Check if metric is in cooldown period
             if metric_key in self._metric_cooldowns:
                 if now < self._metric_cooldowns[metric_key]:
-                    remaining = (self._metric_cooldowns[metric_key] - now).total_seconds() / 60
+                    remaining = (
+                        self._metric_cooldowns[metric_key] - now
+                    ).total_seconds() / 60
                     _LOGGER.debug(
                         "Metric %s for vehicle %s is in cooldown (%.1f minutes remaining)",
                         metric_name,
@@ -324,7 +321,9 @@ class AutoZeroManager:
                     )
                     del self._zeroed_metrics[metric_key]
                     # Add cooldown to prevent immediate re-zeroing
-                    self._metric_cooldowns[metric_key] = now + timedelta(minutes=METRIC_COOLDOWN_MINUTES)
+                    self._metric_cooldowns[metric_key] = now + timedelta(
+                        minutes=METRIC_COOLDOWN_MINUTES
+                    )
                     # Schedule save
                     self._schedule_save()
                     return False
@@ -367,7 +366,9 @@ class AutoZeroManager:
 
                 # Track consecutive COMPLETED calls
                 if last_trip.state == "COMPLETED":
-                    self._completed_call_counts[vehicle_id] = self._completed_call_counts.get(vehicle_id, 0) + 1
+                    self._completed_call_counts[vehicle_id] = (
+                        self._completed_call_counts.get(vehicle_id, 0) + 1
+                    )
                     _LOGGER.debug(
                         "Vehicle %s has %d/%d consecutive COMPLETED calls",
                         vehicle_id,
@@ -386,16 +387,25 @@ class AutoZeroManager:
                             last_trip.state,
                         )
                         del self._zeroed_metrics[metric_key]
+                        _LOGGER.debug(
+                            "Scheduling save after removing auto-zero for %s on vehicle %s",
+                            metric_name,
+                            vehicle_id,
+                        )
                         # Schedule save
                         self._schedule_save()
                     return False
 
                 # Require minimum consecutive COMPLETED calls
-                if self._completed_call_counts.get(vehicle_id, 0) < REQUIRED_COMPLETED_CALLS:
+                if (
+                    self._completed_call_counts.get(vehicle_id, 0)
+                    < REQUIRED_COMPLETED_CALLS
+                ):
                     _LOGGER.debug(
                         "Vehicle %s needs %d more COMPLETED calls before zeroing",
                         vehicle_id,
-                        REQUIRED_COMPLETED_CALLS - self._completed_call_counts.get(vehicle_id, 0),
+                        REQUIRED_COMPLETED_CALLS
+                        - self._completed_call_counts.get(vehicle_id, 0),
                     )
                     return False
 
@@ -411,11 +421,15 @@ class AutoZeroManager:
                         time_since_completion.total_seconds() / 60,
                     )
 
-                    if time_since_completion >= timedelta(minutes=TRIP_COMPLETION_WAIT_MINUTES):
+                    if time_since_completion >= timedelta(
+                        minutes=TRIP_COMPLETION_WAIT_MINUTES
+                    ):
                         # Check if metric is stale
                         time_since_update = now - field_data.last_seen
 
-                        if time_since_update >= timedelta(minutes=TRIP_COMPLETION_WAIT_MINUTES):
+                        if time_since_update >= timedelta(
+                            minutes=TRIP_COMPLETION_WAIT_MINUTES
+                        ):
                             if not was_zeroed:
                                 _LOGGER.info(
                                     "Auto-zeroing %s for vehicle %s (trip method)",
@@ -438,7 +452,9 @@ class AutoZeroManager:
             # Fallback method: Use consecutive stale readings
             else:
                 # Track consecutive stale readings
-                current_count, previous_last_seen = self._stale_call_counts.get(metric_key, (0, field_data.last_seen))
+                current_count, previous_last_seen = self._stale_call_counts.get(
+                    metric_key, (0, field_data.last_seen)
+                )
 
                 # If last_seen changed, reset count
                 if field_data.last_seen != previous_last_seen:
@@ -454,7 +470,10 @@ class AutoZeroManager:
                 time_since_update = now - field_data.last_seen
                 if time_since_update >= timedelta(minutes=1):  # At least 1 minute old
                     current_count += 1
-                    self._stale_call_counts[metric_key] = (current_count, field_data.last_seen)
+                    self._stale_call_counts[metric_key] = (
+                        current_count,
+                        field_data.last_seen,
+                    )
 
                     _LOGGER.debug(
                         "Metric %s for vehicle %s has %d/%d consecutive stale readings",
@@ -503,7 +522,8 @@ class AutoZeroManager:
 
             # Remove old trip completion times (only those older than cutoff)
             old_trip_keys = [
-                key for key, time in self._trip_completion_times.items()
+                key
+                for key, time in self._trip_completion_times.items()
                 if time < cutoff
             ]
 
@@ -512,8 +532,7 @@ class AutoZeroManager:
 
             # Remove old cooldowns that have expired
             expired_cooldowns = [
-                key for key, expiry in self._metric_cooldowns.items()
-                if expiry < now
+                key for key, expiry in self._metric_cooldowns.items() if expiry < now
             ]
 
             for key in expired_cooldowns:

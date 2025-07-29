@@ -33,7 +33,7 @@ from .types import DataFieldValue
 _LOGGER = logging.getLogger(__name__)
 
 
-class AutoPiDataFieldSensor(AutoPiVehicleEntity, RestoreEntity, SensorEntity):
+class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
     """Base class for AutoPi data field sensors."""
 
     def __init__(
@@ -61,67 +61,11 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, RestoreEntity, SensorEntity):
         self._attr_entity_category = entity_category
         self._last_known_value: Any = None
         self._last_update_time: datetime | None = None
-        self._was_zeroed: bool = False
-        self._restored_value: Any = None
-
-    async def async_added_to_hass(self) -> None:
-        """Handle entity being added to Home Assistant."""
-        await super().async_added_to_hass()
-
-        # Only restore if auto-zero is enabled for this metric
-        if self._field_id not in AUTO_ZERO_METRICS:
-            return
-
-        # Restore last state
-        if (last_state := await self.async_get_last_state()) is not None:
-            _LOGGER.debug(
-                "Restoring state for %s on vehicle %s: %s",
-                self._attr_name,
-                self._vehicle_id,
-                last_state.state,
-            )
-
-            # Check if it was zeroed
-            if (attrs := last_state.attributes) is not None:
-                if attrs.get("is_zeroed", False):
-                    # Restore as zeroed
-                    self._was_zeroed = True
-                    self._restored_value = 0
-                    _LOGGER.info(
-                        "Restored zeroed state for %s on vehicle %s",
-                        self._attr_name,
-                        self._vehicle_id,
-                    )
-                elif last_state.state not in ("unknown", "unavailable"):
-                    # Restore the actual value
-                    try:
-                        if self._attr_device_class == SensorDeviceClass.TEMPERATURE:
-                            self._restored_value = float(last_state.state)
-                        elif self._attr_state_class == SensorStateClass.MEASUREMENT:
-                            self._restored_value = float(last_state.state)
-                        else:
-                            self._restored_value = last_state.state
-                    except (ValueError, TypeError):
-                        _LOGGER.warning(
-                            "Failed to restore value for %s on vehicle %s",
-                            self._attr_name,
-                            self._vehicle_id,
-                        )
 
     @property
     def native_value(self) -> Any:
         """Return the sensor value."""
         try:
-            # If we have a restored value and no new data yet, use it
-            if self._restored_value is not None and not self._last_known_value:
-                _LOGGER.debug(
-                    "Using restored value %s for sensor %s on vehicle %s",
-                    self._restored_value,
-                    self._attr_name,
-                    self._vehicle_id,
-                )
-                return self._restored_value
-
             field_data = self._get_field_data()
 
             if field_data is not None:
@@ -134,7 +78,9 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, RestoreEntity, SensorEntity):
                     self._attr_name,
                     self._vehicle_id,
                     field_data.last_value,
-                    field_data.last_seen.isoformat() if field_data.last_seen else "None",
+                    field_data.last_seen.isoformat()
+                    if field_data.last_seen
+                    else "None",
                 )
 
                 # Check if auto-zero should be applied
@@ -147,11 +93,18 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, RestoreEntity, SensorEntity):
                     last_trip = None
                     try:
                         from .const import DOMAIN
+
                         domain_data = self.coordinator.hass.data.get(DOMAIN, {})
-                        entry_data = domain_data.get(self.coordinator.config_entry.entry_id, {})
+                        entry_data = domain_data.get(
+                            self.coordinator.config_entry.entry_id, {}
+                        )
                         trip_coordinator = entry_data.get("trip_coordinator")
 
-                        if trip_coordinator and trip_coordinator.data and self._vehicle_id in trip_coordinator.data:
+                        if (
+                            trip_coordinator
+                            and trip_coordinator.data
+                            and self._vehicle_id in trip_coordinator.data
+                        ):
                             trip_vehicle = trip_coordinator.data[self._vehicle_id]
                             last_trip = trip_vehicle.last_trip
                             _LOGGER.debug(
@@ -184,7 +137,10 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, RestoreEntity, SensorEntity):
                 return field_data.last_value
 
             # If we have a last known value and it's within timeout, return it
-            if self._last_known_value is not None and self._last_update_time is not None:
+            if (
+                self._last_known_value is not None
+                and self._last_update_time is not None
+            ):
                 if datetime.now() - self._last_update_time < timedelta(
                     minutes=DATA_FIELD_TIMEOUT_MINUTES
                 ):
@@ -279,6 +235,110 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, RestoreEntity, SensorEntity):
             return None
 
         return self.vehicle.data_fields.get(self._field_id)
+
+
+class AutoPiDataFieldSensor(AutoPiDataFieldSensorBase):
+    """Data field sensor without auto-zero support."""
+
+    pass
+
+
+class AutoPiAutoZeroDataFieldSensor(AutoPiDataFieldSensorBase, RestoreEntity):
+    """Data field sensor with auto-zero support and state restoration."""
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+        field_id: str,
+        name: str,
+        icon: str | None = None,
+        device_class: SensorDeviceClass | None = None,
+        unit_of_measurement: str | None = None,
+        state_class: SensorStateClass | None = None,
+        entity_category: EntityCategory | None = None,
+    ) -> None:
+        """Initialize the auto-zero data field sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            field_id,
+            name,
+            icon,
+            device_class,
+            unit_of_measurement,
+            state_class,
+            entity_category,
+        )
+        self._was_zeroed: bool = False
+        self._restored_value: Any = None
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity being added to Home Assistant."""
+        await super().async_added_to_hass()
+
+        # Restore last state
+        if (last_state := await self.async_get_last_state()) is not None:
+            _LOGGER.debug(
+                "Restoring state for %s on vehicle %s: %s",
+                self._attr_name,
+                self._vehicle_id,
+                last_state.state,
+            )
+
+            # Check if it was zeroed
+            if (attrs := last_state.attributes) is not None:
+                if attrs.get("is_zeroed", False):
+                    # Restore as zeroed
+                    self._was_zeroed = True
+                    self._restored_value = 0
+                    _LOGGER.info(
+                        "Restored zeroed state for %s on vehicle %s",
+                        self._attr_name,
+                        self._vehicle_id,
+                    )
+                elif last_state.state not in ("unknown", "unavailable"):
+                    # Restore the actual value
+                    try:
+                        if self._attr_device_class == SensorDeviceClass.TEMPERATURE:
+                            self._restored_value = float(last_state.state)
+                        elif self._attr_state_class == SensorStateClass.MEASUREMENT:
+                            self._restored_value = float(last_state.state)
+                        else:
+                            self._restored_value = last_state.state
+                    except (ValueError, TypeError):
+                        _LOGGER.warning(
+                            "Failed to restore value for %s on vehicle %s",
+                            self._attr_name,
+                            self._vehicle_id,
+                        )
+
+    @property
+    def native_value(self) -> Any:
+        """Return the sensor value."""
+        try:
+            # If we have a restored value and no new data yet, use it
+            if self._restored_value is not None and not self._last_known_value:
+                _LOGGER.debug(
+                    "Using restored value %s for sensor %s on vehicle %s",
+                    self._restored_value,
+                    self._attr_name,
+                    self._vehicle_id,
+                )
+                return self._restored_value
+
+            # Call parent implementation
+            return super().native_value
+
+        except Exception as e:
+            _LOGGER.error(
+                "Error getting value for sensor %s on vehicle %s: %s",
+                self._attr_name,
+                self._vehicle_id,
+                str(e),
+                exc_info=True,
+            )
+            return None
 
 
 # Battery and Power Sensors
@@ -383,7 +443,7 @@ class VehicleBatteryVoltageSensor(AutoPiDataFieldSensor):
 # Accelerometer Sensors
 
 
-class AccelerometerXSensor(AutoPiDataFieldSensor):
+class AccelerometerXSensor(AutoPiAutoZeroDataFieldSensor):
     """X-axis accelerometer sensor."""
 
     def __init__(
@@ -411,7 +471,7 @@ class AccelerometerXSensor(AutoPiDataFieldSensor):
         return None
 
 
-class AccelerometerYSensor(AutoPiDataFieldSensor):
+class AccelerometerYSensor(AutoPiAutoZeroDataFieldSensor):
     """Y-axis accelerometer sensor."""
 
     def __init__(
@@ -439,7 +499,7 @@ class AccelerometerYSensor(AutoPiDataFieldSensor):
         return None
 
 
-class AccelerometerZSensor(AutoPiDataFieldSensor):
+class AccelerometerZSensor(AutoPiAutoZeroDataFieldSensor):
     """Z-axis accelerometer sensor."""
 
     def __init__(
@@ -559,7 +619,7 @@ class DistanceSinceCodesClearSensor(AutoPiDataFieldSensor):
 # Fuel Sensors
 
 
-class FuelUsedGPSSensor(AutoPiDataFieldSensor):
+class FuelUsedGPSSensor(AutoPiAutoZeroDataFieldSensor):
     """Fuel used GPS sensor."""
 
     def __init__(
@@ -652,7 +712,7 @@ class IgnitionStateSensor(AutoPiDataFieldSensor):
         )
 
 
-class EngineSensor(AutoPiDataFieldSensor):
+class EngineSensor(AutoPiAutoZeroDataFieldSensor):
     """Engine RPM sensor."""
 
     def __init__(
@@ -670,7 +730,7 @@ class EngineSensor(AutoPiDataFieldSensor):
         )
 
 
-class EngineLoadSensor(AutoPiDataFieldSensor):
+class EngineLoadSensor(AutoPiAutoZeroDataFieldSensor):
     """Engine load sensor."""
 
     def __init__(
@@ -688,7 +748,7 @@ class EngineLoadSensor(AutoPiDataFieldSensor):
         )
 
 
-class EngineRunTimeSensor(AutoPiDataFieldSensor):
+class EngineRunTimeSensor(AutoPiAutoZeroDataFieldSensor):
     """Engine run time sensor."""
 
     def __init__(
@@ -707,7 +767,7 @@ class EngineRunTimeSensor(AutoPiDataFieldSensor):
         )
 
 
-class ThrottlePositionSensor(AutoPiDataFieldSensor):
+class ThrottlePositionSensor(AutoPiAutoZeroDataFieldSensor):
     """Throttle position sensor."""
 
     def __init__(
@@ -728,7 +788,7 @@ class ThrottlePositionSensor(AutoPiDataFieldSensor):
 # Speed Sensors
 
 
-class OBDSpeedSensor(AutoPiDataFieldSensor):
+class OBDSpeedSensor(AutoPiAutoZeroDataFieldSensor):
     """OBD speed sensor."""
 
     def __init__(
@@ -807,7 +867,7 @@ class IntakeTemperatureSensor(AutoPiDataFieldSensor):
         )
 
 
-class CoolantTemperatureSensor(AutoPiDataFieldSensor):
+class CoolantTemperatureSensor(AutoPiAutoZeroDataFieldSensor):
     """Engine coolant temperature sensor."""
 
     def __init__(

@@ -30,15 +30,28 @@ async def test_setup_entry(hass: HomeAssistant) -> None:
         "custom_components.autopi.AutoPiDataUpdateCoordinator"
     ) as mock_coordinator_class, patch(
         "custom_components.autopi.AutoPiPositionCoordinator"
-    ) as mock_position_coordinator_class:
+    ) as mock_position_coordinator_class, patch(
+        "custom_components.autopi.AutoPiTripCoordinator"
+    ) as mock_trip_coordinator_class, patch(
+        "custom_components.autopi.get_auto_zero_manager"
+    ) as mock_auto_zero_manager:
         mock_coordinator = AsyncMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
         mock_coordinator.get_vehicle_count = MagicMock(return_value=1)
+        mock_coordinator.data = {}  # Add empty data to prevent the RuntimeWarning
         mock_coordinator_class.return_value = mock_coordinator
 
         mock_position_coordinator = AsyncMock()
         mock_position_coordinator.async_config_entry_first_refresh = AsyncMock()
         mock_position_coordinator_class.return_value = mock_position_coordinator
+
+        mock_trip_coordinator = AsyncMock()
+        mock_trip_coordinator.async_config_entry_first_refresh = AsyncMock()
+        mock_trip_coordinator_class.return_value = mock_trip_coordinator
+
+        mock_auto_zero = AsyncMock()
+        mock_auto_zero.async_initialize = AsyncMock()
+        mock_auto_zero_manager.return_value = mock_auto_zero
 
         # Mock platform setup
         with patch(

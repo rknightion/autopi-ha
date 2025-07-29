@@ -827,6 +827,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             # Periodically clean up old trip data from auto-zero manager
             if self._update_count % 60 == 0:  # Every 60 updates (60 minutes)
                 from .auto_zero import get_auto_zero_manager
+
                 auto_zero_manager = get_auto_zero_manager()
                 auto_zero_manager.cleanup_old_trips()
 

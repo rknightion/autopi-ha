@@ -66,7 +66,10 @@ async def async_setup_entry(
                 entities.append(AutoPiVehicleSensor(coordinator, vehicle_id))
 
                 # Add data field sensors if available (includes position sensors)
-                if position_coordinator.data and vehicle_id in position_coordinator.data:
+                if (
+                    position_coordinator.data
+                    and vehicle_id in position_coordinator.data
+                ):
                     vehicle_data = position_coordinator.data[vehicle_id]
                     if vehicle_data.data_fields:
                         available_fields = set(vehicle_data.data_fields.keys())
@@ -141,7 +144,9 @@ async def async_setup_entry(
                 ):
                     trip_vehicle = trip_coordinator.data[vehicle_id]
                     if trip_vehicle.trip_count > 0:
-                        entities.append(AutoPiTripCountSensor(trip_coordinator, vehicle_id))
+                        entities.append(
+                            AutoPiTripCountSensor(trip_coordinator, vehicle_id)
+                        )
                         entities.append(
                             AutoPiLastTripDistanceSensor(trip_coordinator, vehicle_id)
                         )

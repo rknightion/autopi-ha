@@ -336,9 +336,7 @@ class AutoPiOptionsFlow(OptionsFlow):
         current_slow = self.config_entry.options.get(
             CONF_UPDATE_INTERVAL_SLOW, DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
         )
-        current_auto_zero = self.config_entry.options.get(
-            CONF_AUTO_ZERO_ENABLED, False
-        )
+        current_auto_zero = self.config_entry.options.get(CONF_AUTO_ZERO_ENABLED, False)
 
         return self.async_show_form(
             step_id="init",

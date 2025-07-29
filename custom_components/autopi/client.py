@@ -376,7 +376,9 @@ class AutoPiClient:
 
         if params:
             # Log params but filter out any sensitive data
-            safe_params = {k: v for k, v in params.items() if k not in ["api_key", "token"]}
+            safe_params = {
+                k: v for k, v in params.items() if k not in ["api_key", "token"]
+            }
             _LOGGER.debug("Request params: %s", safe_params)
 
         try:
