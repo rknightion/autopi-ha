@@ -2,32 +2,29 @@
 
 ## Overview
 
-The Auto-Zero Metrics feature is a **BETA** functionality that automatically sets certain vehicle metrics to zero when the vehicle is not on an active trip. This prevents stale sensor values from being displayed for extended periods when the vehicle is parked or turned off.
+The Auto-Zero Metrics feature is a **BETA** functionality that automatically sets certain vehicle metrics to zero when the data becomes stale (older than 15 minutes). This prevents outdated sensor values from being displayed for extended periods when the vehicle is parked or turned off.
 
 ## ⚠️ BETA Warning
 
-This feature is currently in BETA and is based on assumptions about vehicle behavior and API data patterns. It may not work correctly in all scenarios. Please report any issues you encounter.
+This feature is currently in BETA and may not work correctly in all scenarios. Please report any issues you encounter.
 
 ## How It Works
 
-### Primary Method: Trip-Based Detection
+### Simple Time-Based Detection
 
-The integration monitors your vehicle's trip status through the AutoPi API with robust validation:
+The integration monitors each metric's `last_seen` timestamp from the AutoPi API:
 
-1. **Consecutive Validation**: Requires 6 consecutive API calls returning "COMPLETED" status (6 minutes)
-2. **Time Validation**: After 6 consecutive COMPLETED calls, verifies 5+ minutes have passed since trip completion
-3. **Metric Staleness Check**: Confirms each metric's `last_seen` timestamp is older than 5 minutes
-4. **Zero Application**: Only then are qualifying metrics set to zero
-5. **Cooldown Period**: After a metric receives new data, it cannot be re-zeroed for 30 minutes
+1. **Staleness Check**: On every update, checks if each metric's `last_seen` is older than 15 minutes
+2. **Automatic Zeroing**: If data is stale (> 15 minutes old), the metric is set to zero
+3. **Automatic Recovery**: When fresh data arrives (≤ 15 minutes old), the metric automatically returns to showing the actual value
+4. **No Complex Logic**: No trip detection, no consecutive call counting, just simple time comparison
 
-### Fallback Method: Consecutive Stale Readings
+### Update Interval Considerations
 
-If trip data is unavailable, the fallback method is equally robust:
-
-1. **Consecutive Tracking**: Monitors each metric individually for consecutive stale readings
-2. **30 Consecutive Calls**: Requires 30 consecutive API calls (30 minutes) where the metric's `last_seen` hasn't changed
-3. **Reset on Update**: If any new data arrives, the count resets to zero
-4. **Same Cooldown**: 30-minute cooldown period applies after un-zeroing
+To ensure the auto-zero feature works reliably:
+- **Maximum polling interval**: 10 minutes (enforced by the integration)
+- **Recommended interval**: 1-5 minutes for best results
+- **Why it matters**: With a 15-minute threshold, polling every 10 minutes ensures we catch stale data within 5-25 minutes
 
 ## Affected Metrics
 
@@ -54,43 +51,23 @@ The following sensors are affected by this feature when enabled:
 1. Navigate to **Settings** → **Devices & Services** → **AutoPi**
 2. Click **Configure**
 3. Enable **"Auto-zero Metrics (BETA)"**
-4. **⚠️ IMPORTANT: Set "Update Interval" to 1 minute** - The auto-zero feature requires a 1-minute polling interval to function accurately
+4. Set your preferred **"Update Interval"** (1-10 minutes)
 5. Click **Submit**
 
 The feature is **disabled by default** to ensure existing behavior is maintained.
-
-### Polling Interval Requirement
-
-The auto-zero feature relies on detecting trip completion and monitoring metric staleness through consecutive API calls. With the default timing parameters:
-- **6 consecutive calls** are required to confirm trip completion (6 minutes at 1-minute intervals)
-- **30 consecutive calls** are required for the fallback method (30 minutes at 1-minute intervals)
-
-If you set a longer polling interval (e.g., 5 minutes), these detection times multiply accordingly, making the feature much less responsive and potentially missing short stops.
 
 ## Behavior Details
 
 ### When Metrics Are Zeroed
 
-- Vehicle completes a trip and remains stationary for 5+ minutes
-- Metric data hasn't been updated by the vehicle
+- The metric's `last_seen` timestamp is older than 15 minutes
 - The auto-zero feature is enabled
+- The metric is in the affected metrics list
 
 ### When Metrics Return to Normal
 
-- Vehicle starts a new trip
-- Vehicle sends updated data for the metric
+- Fresh data arrives with a `last_seen` timestamp within 15 minutes
 - The auto-zero feature is disabled
-
-### Race Condition Prevention
-
-The implementation includes comprehensive safeguards:
-
-- **Consecutive Validation**: 6 consecutive COMPLETED calls required (prevents API glitches)
-- **5-minute delay** after trip completion prevents premature zeroing during data upload
-- **30-minute cooldown** after un-zeroing prevents rapid cycling
-- **Per-metric evaluation** based on individual `last_seen` times
-- **Immediate response** to trip state changes or new data
-- **Memory cleanup** runs hourly to remove only data older than 24 hours
 
 ### State Persistence
 
@@ -100,14 +77,13 @@ The auto-zero feature includes state persistence to handle Home Assistant restar
 - **Storage of Zeroed Status**: Each zeroed metric's state is saved to disk
 - **Graceful Recovery**: If storage files are corrupted or missing, the system logs a warning and starts fresh
 - **Per-Entity Tracking**: Each metric is tracked individually - one metric's stale data won't affect others
-- **Smart Un-zeroing**: When new data arrives from the API with a recent `last_seen` timestamp, metrics automatically un-zero
 
 This ensures that even if Home Assistant is down for extended periods, sensors won't briefly show stale values before re-zeroing.
 
 ## Limitations
 
-1. **Trip Data Dependency**: The primary method requires trip data to be available and accurate
-2. **API Update Frequency**: Effectiveness depends on how frequently your AutoPi device reports data
+1. **API Update Frequency**: Effectiveness depends on how frequently your AutoPi device reports data
+2. **15-Minute Threshold**: Fixed at 15 minutes - not configurable
 3. **Beta Status**: Edge cases may exist that aren't properly handled
 
 ## Entity Attributes
@@ -122,22 +98,21 @@ All sensors (except device tracker and event entities) now include an `auto_zero
 This attribute appears regardless of whether the auto-zero feature is enabled in the integration configuration. It simply indicates whether the sensor *could* be auto-zeroed if the feature were enabled.
 
 For sensors with `auto_zero_enabled: true` and the feature enabled in configuration, additional attributes will appear:
-- `auto_zero_active` - Whether the sensor is currently showing a zeroed value
-- `auto_zero_last_zeroed` - Timestamp when the sensor was last zeroed (if it has been zeroed)
-- `auto_zero_cooldown_until` - Timestamp when the cooldown period expires (if in cooldown)
+- `is_zeroed` - Whether the sensor is currently showing a zeroed value
+- `zeroed_at` - Timestamp when the sensor was last zeroed (if it has been zeroed)
 
 ## Troubleshooting
 
 ### Metrics Not Zeroing
 
 1. Verify the feature is enabled in configuration
-2. Check that trip data is being received (Trip Count sensor should update)
+2. Check that the metric's `last_seen` is actually older than 15 minutes
 3. Ensure affected sensors have the `last_seen` attribute in their state
 
-### Metrics Zeroing Incorrectly
+### Metrics Zeroing Too Quickly/Slowly
 
-1. Check if the vehicle is actually on a trip
-2. Verify the trip state in the vehicle's attributes
+1. Adjust your polling interval - shorter intervals detect stale data faster
+2. Check if your vehicle is reporting data regularly
 3. Consider disabling the feature if it's not working correctly for your use case
 
 ### Performance Impact
@@ -151,6 +126,6 @@ As this is a BETA feature, we welcome feedback and bug reports. Please include:
 - Vehicle make/model
 - Which metrics are affected
 - Screenshots of sensor states and attributes
-- Any patterns you notice
+- Your polling interval setting
 
 Report issues at: https://github.com/rknightion/autopi-ha/issues

@@ -63,7 +63,7 @@ Access configuration options after initial setup:
 
 | Option | Description | Default | Range |
 |--------|-------------|---------|-------|
-| Update Interval | How often to fetch all data from AutoPi | 1 minute | 1-60 minutes |
+| Update Interval | How often to fetch all data from AutoPi | 1 minute | 1-10 minutes |
 | Auto-zero Metrics (BETA) | Automatically zero stale metrics when vehicle is not on a trip | Disabled | On/Off |
 | Update API Key | Option to update your AutoPi API key | - | - |
 
@@ -73,10 +73,10 @@ Configure how frequently data is fetched from the AutoPi API:
 
 - **Purpose**: All vehicle data including GPS position, speed, sensors, trip data, and events
 - **Default**: 1 minute
-- **Range**: 1-60 minutes
+- **Range**: 1-10 minutes
 - **Impact**: Higher frequency = more up-to-date data, more API calls
 
-!!! warning "Auto-Zero Feature Requirement"
+!!! info "Auto-Zero Feature"
     If you enable the Auto-Zero Metrics feature, the update interval **must be set to 1 minute** for accurate functionality. Longer intervals will make the feature less responsive and may cause it to miss short stops.
 
 ### Configuration Examples
@@ -100,7 +100,7 @@ Update Interval: 5 minutes
 #### Conservative Configuration
 For minimal API usage:
 ```
-Update Interval: 15-30 minutes
+Update Interval: 5-10 minutes
 ```
 - **Pros**: Minimal API calls
 - **Cons**: Significant delays in data updates, Auto-Zero feature not recommended
@@ -238,7 +238,7 @@ logger:
 - Integration restart required
 
 **Solutions**:
-1. Use intervals between 1-60 minutes
+1. Use intervals between 1-10 minutes
 2. Re-validate API token
 3. Restart Home Assistant if needed
 
@@ -258,7 +258,7 @@ logger:
 - Auto-Zero feature will be less responsive
 
 **Minimal Impact**:
-- Update interval: 30-60 minutes
+- Update interval: 5-10 minutes
 - Suitable for occasional checking
 - Minimal API usage
 - Auto-Zero feature not recommended

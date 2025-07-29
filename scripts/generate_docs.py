@@ -45,14 +45,14 @@ def extract_class_info(file_path: Path) -> list[dict[str, Any]]:
                     for arg in item.args.args:
                         if arg.arg not in skip_params:
                             param_info = {"name": arg.arg, "type": None, "default": None}
-                            
+
                             # Try to get type annotation
                             if arg.annotation:
                                 if isinstance(arg.annotation, ast.Name):
                                     param_info["type"] = arg.annotation.id
                                 elif isinstance(arg.annotation, ast.Constant):
                                     param_info["type"] = str(arg.annotation.value)
-                                    
+
                             class_info["init_params"].append(param_info)
 
             # Extract class attributes and their values
@@ -80,20 +80,20 @@ def extract_class_info(file_path: Path) -> list[dict[str, Any]]:
                 elif isinstance(item, ast.FunctionDef):
                     method_docstring = ast.get_docstring(item)
                     is_property = any(isinstance(d, ast.Name) and d.id == "property" for d in item.decorator_list)
-                    
+
                     method_info = {
                         "docstring": method_docstring,
                         "property": is_property,
                         "returns": None
                     }
-                    
+
                     # Try to extract return type from annotation
                     if item.returns:
                         if isinstance(item.returns, ast.Name):
                             method_info["returns"] = item.returns.id
                         elif isinstance(item.returns, ast.Constant):
                             method_info["returns"] = str(item.returns.value)
-                    
+
                     if is_property:
                         class_info["properties"][item.name] = method_info
                     else:
@@ -168,13 +168,13 @@ def get_icon(class_info: dict[str, Any]) -> str | None:
 def extract_field_id_mapping(file_path: Path) -> dict[str, str]:
     """Extract field ID to sensor class mapping from data_field_sensors.py."""
     mapping = {}
-    
+
     try:
         with open(file_path, encoding="utf-8") as f:
             content = f.read()
-        
+
         # Find the FIELD_ID_TO_SENSOR_CLASS dictionary
-        match = re.search(r'FIELD_ID_TO_SENSOR_CLASS[^{]*{([^}]+)}', content, re.DOTALL)
+        match = re.search(r"FIELD_ID_TO_SENSOR_CLASS[^{]*{([^}]+)}", content, re.DOTALL)
         if match:
             dict_content = match.group(1)
             # Extract field_id: ClassName pairs
@@ -183,13 +183,13 @@ def extract_field_id_mapping(file_path: Path) -> dict[str, str]:
                 mapping[class_name] = field_id
     except Exception as e:
         print(f"Failed to extract field ID mapping: {e}")
-    
+
     return mapping
 
 def get_all_attributes(class_info: dict[str, Any], all_classes: list[dict[str, Any]]) -> dict[str, Any]:
     """Get all attributes including inherited ones."""
     attributes = {}
-    
+
     # Get attributes from base classes recursively
     for base_name in class_info.get("base_classes", []):
         for cls in all_classes:
@@ -197,16 +197,16 @@ def get_all_attributes(class_info: dict[str, Any], all_classes: list[dict[str, A
                 base_attrs = get_all_attributes(cls, all_classes)
                 attributes.update(base_attrs)
                 break
-    
+
     # Add this class's attributes (overwrites inherited ones)
     attributes.update(class_info.get("attributes", {}))
-    
+
     return attributes
 
 def get_all_properties(class_info: dict[str, Any], all_classes: list[dict[str, Any]]) -> dict[str, Any]:
     """Get all properties including inherited ones."""
     properties = {}
-    
+
     # Get properties from base classes recursively
     for base_name in class_info.get("base_classes", []):
         for cls in all_classes:
@@ -214,51 +214,51 @@ def get_all_properties(class_info: dict[str, Any], all_classes: list[dict[str, A
                 base_props = get_all_properties(cls, all_classes)
                 properties.update(base_props)
                 break
-    
+
     # Add this class's properties
     properties.update(class_info.get("properties", {}))
-    
+
     return properties
 
 def generate_entity_attributes_table(entities: list[dict[str, Any]], all_classes: list[dict[str, Any]]) -> str:
     """Generate a detailed attributes table for entities."""
     if not entities:
         return ""
-    
+
     # Collect all unique attributes across all entities
     all_attrs = set()
     entity_attrs = {}
-    
+
     for entity in entities:
         attrs = get_all_attributes(entity, all_classes)
         entity_attrs[entity["name"]] = attrs
         all_attrs.update(attrs.keys())
-    
+
     # Filter out private attributes
     public_attrs = [attr for attr in sorted(all_attrs) if not attr.startswith("_")]
-    
+
     if not public_attrs:
         return "No public attributes defined.\n"
-    
+
     # Create table
     table = "| Entity | " + " | ".join(public_attrs) + " |\n"
     table += "|--------|" + "|".join(["--------" for _ in public_attrs]) + "|\n"
-    
+
     for entity in entities:
         attrs = entity_attrs.get(entity["name"], {})
         name = entity["name"].replace("AutoPi", "").replace("Vehicle", "").replace("Sensor", "").replace("Tracker", "")
         if not name:
             name = entity["name"]
-        
+
         row = f"| {name} |"
         for attr in public_attrs:
             value = attrs.get(attr, "-")
             if value and isinstance(value, str) and len(value) > 20:
                 value = value[:17] + "..."
             row += f" {value} |"
-        
+
         table += row + "\n"
-    
+
     return table
 
 def generate_entity_table(entities: list[dict[str, Any]], entity_type: str, include_field_id: bool = False, field_id_mapping: dict[str, str] = None) -> str:
@@ -270,7 +270,7 @@ def generate_entity_table(entities: list[dict[str, Any]], entity_type: str, incl
     headers = ["Entity", "Description", "Category", "Device Class", "Unit", "State Class", "Icon"]
     if include_field_id:
         headers.insert(1, "Field ID")
-    
+
     table = "| " + " | ".join(headers) + " |\n"
     table += "|" + "|".join(["-" * 10 for _ in headers]) + "|\n"
 
@@ -285,7 +285,7 @@ def generate_entity_table(entities: list[dict[str, Any]], entity_type: str, incl
         unit = get_unit_of_measurement(entity) or "-"
         state_class = get_state_class(entity) or "-"
         icon = get_icon(entity) or "-"
-        
+
         # Extract field_id from mapping if available
         field_id = "-"
         if include_field_id and field_id_mapping:
@@ -294,7 +294,7 @@ def generate_entity_table(entities: list[dict[str, Any]], entity_type: str, incl
         row_data = [name, description, category, device_class, unit, state_class, icon]
         if include_field_id:
             row_data.insert(1, field_id)
-            
+
         table += "| " + " | ".join(row_data) + " |\n"
 
     return table
@@ -312,7 +312,7 @@ def main():
     # Process all Python files containing sensor definitions
     all_classes = []  # Keep track of all classes for base class analysis
     base_classes = []  # Specifically track base classes
-    
+
     # Main sensor.py file
     sensor_file = integration_path / "sensor.py"
     if sensor_file.exists():
@@ -515,28 +515,28 @@ The AutoPi integration uses the following base classes for entity implementation
 """
         for base_class in base_classes:
             docs_content += f"### {base_class['name']}\n\n"
-            if base_class.get('docstring'):
+            if base_class.get("docstring"):
                 docs_content += f"{base_class['docstring']}\n\n"
-            
+
             # Show inheritance
-            if base_class.get('base_classes'):
+            if base_class.get("base_classes"):
                 docs_content += f"**Inherits from:** {', '.join(base_class['base_classes'])}\n\n"
-            
+
             # Show important attributes
-            attrs = base_class.get('attributes', {})
-            important_attrs = {k: v for k, v in attrs.items() if k.startswith('_attr_')}
+            attrs = base_class.get("attributes", {})
+            important_attrs = {k: v for k, v in attrs.items() if k.startswith("_attr_")}
             if important_attrs:
                 docs_content += "**Key Attributes:**\n"
                 for attr, value in important_attrs.items():
                     docs_content += f"- `{attr}`: {value}\n"
                 docs_content += "\n"
-            
+
             # Show important properties
-            props = base_class.get('properties', {})
+            props = base_class.get("properties", {})
             if props:
                 docs_content += "**Properties:**\n"
                 for prop, info in props.items():
-                    if info.get('docstring'):
+                    if info.get("docstring"):
                         docs_content += f"- `{prop}`: {info['docstring'].split('\\n')[0]}\n"
                     else:
                         docs_content += f"- `{prop}`\n"

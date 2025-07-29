@@ -1,14 +1,13 @@
 """Auto-zero functionality for AutoPi metrics.
 
-This module manages automatic zeroing of specific vehicle metrics when the vehicle
-is not on an active trip. It includes state persistence across Home Assistant restarts
+This module manages automatic zeroing of specific vehicle metrics when data
+becomes stale. It includes state persistence across Home Assistant restarts
 to ensure zeroed metrics remain zeroed until new data arrives.
 
 Key Features:
-- Trip-based detection with 6 consecutive COMPLETED calls validation
-- 30-minute fallback method using consecutive stale readings
+- Simple time-based detection: zero if last_seen > 15 minutes old
+- Automatic un-zeroing when fresh data arrives
 - State persistence using Home Assistant's storage system
-- Per-metric cooldown periods to prevent rapid cycling
 - Graceful error handling for corrupted/missing storage
 
 Storage Format:
@@ -19,8 +18,7 @@ with the following structure:
         {
             "vehicle_id": "123",
             "field_id": "obd.rpm.value",
-            "zeroed_at": "2025-07-29T10:30:00",
-            "reason": "trip_completed"
+            "zeroed_at": "2025-07-29T10:30:00"
         }
     ]
 }
@@ -29,13 +27,13 @@ with the following structure:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .types import AutoPiTrip, DataFieldValue
+from .types import DataFieldValue
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,20 +51,8 @@ AUTO_ZERO_METRICS = {
     "std.accelerometer_axis_z.value": "Z-Axis Acceleration",
 }
 
-# Time to wait after trip completion before zeroing metrics
-TRIP_COMPLETION_WAIT_MINUTES = 5
-
-# Number of consecutive COMPLETED calls required before zeroing
-REQUIRED_COMPLETED_CALLS = 6
-
-# Cooldown period after un-zeroing a metric before it can be zeroed again
-METRIC_COOLDOWN_MINUTES = 30
-
-# Fallback timeout for zeroing metrics when no trip data available
-FALLBACK_TIMEOUT_MINUTES = 30
-
-# Number of consecutive stale readings required for fallback zeroing
-REQUIRED_STALE_CALLS = 30  # 30 minutes with 1-minute polling
+# Time threshold for considering data stale and zeroing metrics
+STALE_DATA_THRESHOLD_MINUTES = 15
 
 # Storage constants
 STORAGE_VERSION = 1
@@ -79,7 +65,6 @@ class ZeroedMetricData(TypedDict):
     vehicle_id: str
     field_id: str
     zeroed_at: str  # ISO format timestamp
-    reason: str  # "trip_completed" or "stale_data"
 
 
 class AutoZeroStorageData(TypedDict):
@@ -93,29 +78,9 @@ class AutoZeroManager:
 
     def __init__(self) -> None:
         """Initialize the auto-zero manager."""
-        # Track when we first saw each trip as completed
-        # Key: (vehicle_id, trip_id), Value: datetime
-        self._trip_completion_times: dict[tuple[str, str], datetime] = {}
-
-        # Track consecutive COMPLETED calls for each vehicle
-        # Key: vehicle_id, Value: count
-        self._completed_call_counts: dict[str, int] = {}
-
         # Track which metrics are currently zeroed
         # Key: (vehicle_id, metric_id), Value: last_seen time when zeroed
         self._zeroed_metrics: dict[tuple[str, str], datetime] = {}
-
-        # Track metric cooldowns after un-zeroing
-        # Key: (vehicle_id, metric_id), Value: cooldown expiry time
-        self._metric_cooldowns: dict[tuple[str, str], datetime] = {}
-
-        # Track last known trip state for each vehicle
-        # Key: vehicle_id, Value: (trip_id, state)
-        self._last_trip_state: dict[str, tuple[str, str]] = {}
-
-        # Track consecutive stale readings for fallback method
-        # Key: (vehicle_id, metric_id), Value: (count, last_seen_time)
-        self._stale_call_counts: dict[tuple[str, str], tuple[int, datetime]] = {}
 
         # Storage for persistence
         self._hass: HomeAssistant | None = None
@@ -190,19 +155,11 @@ class AutoZeroManager:
             zeroed_metrics: list[ZeroedMetricData] = []
 
             for (vehicle_id, field_id), zeroed_at in self._zeroed_metrics.items():
-                # Determine reason based on current state
-                reason = "trip_completed"  # Default
-                if (vehicle_id, field_id) in self._stale_call_counts:
-                    count, _ = self._stale_call_counts[(vehicle_id, field_id)]
-                    if count >= REQUIRED_STALE_CALLS:
-                        reason = "stale_data"
-
                 zeroed_metrics.append(
                     {
                         "vehicle_id": vehicle_id,
                         "field_id": field_id,
                         "zeroed_at": zeroed_at.isoformat(),
-                        "reason": reason,
                     }
                 )
 
@@ -232,7 +189,6 @@ class AutoZeroManager:
         vehicle_id: str,
         metric_id: str,
         field_data: DataFieldValue | None,
-        last_trip: AutoPiTrip | None,
         auto_zero_enabled: bool = False,
     ) -> bool:
         """Determine if a metric should be zeroed.
@@ -241,7 +197,6 @@ class AutoZeroManager:
             vehicle_id: Vehicle ID
             metric_id: Metric field ID
             field_data: Current field data
-            last_trip: Last trip information
             auto_zero_enabled: Whether auto-zero is enabled
 
         Returns:
@@ -249,13 +204,6 @@ class AutoZeroManager:
         """
         try:
             metric_name = AUTO_ZERO_METRICS.get(metric_id, metric_id)
-            _LOGGER.debug(
-                "Evaluating auto-zero for %s on vehicle %s (enabled: %s, has_trip: %s)",
-                metric_name,
-                vehicle_id,
-                auto_zero_enabled,
-                last_trip is not None,
-            )
 
             # Feature must be enabled
             if not auto_zero_enabled:
@@ -275,7 +223,8 @@ class AutoZeroManager:
                 return False
 
             metric_key = (vehicle_id, metric_id)
-            now = datetime.now()
+            # Use timezone-aware datetime to match field_data.last_seen
+            now = datetime.now(field_data.last_seen.tzinfo)
 
             _LOGGER.debug(
                 "Processing %s for vehicle %s - last_seen: %s, age: %.1f minutes",
@@ -285,219 +234,46 @@ class AutoZeroManager:
                 (now - field_data.last_seen).total_seconds() / 60,
             )
 
-            # Check if metric is in cooldown period
-            if metric_key in self._metric_cooldowns:
-                if now < self._metric_cooldowns[metric_key]:
-                    remaining = (
-                        self._metric_cooldowns[metric_key] - now
-                    ).total_seconds() / 60
-                    _LOGGER.debug(
-                        "Metric %s for vehicle %s is in cooldown (%.1f minutes remaining)",
-                        metric_name,
-                        vehicle_id,
-                        remaining,
-                    )
-                    return False
-                else:
-                    # Cooldown expired, remove it
-                    _LOGGER.debug(
-                        "Cooldown expired for %s on vehicle %s",
-                        metric_name,
-                        vehicle_id,
-                    )
-                    del self._metric_cooldowns[metric_key]
-
-            # Check if metric was previously zeroed
+            # Calculate time since last update
+            time_since_update = now - field_data.last_seen
             was_zeroed = metric_key in self._zeroed_metrics
 
-            # If last_seen has updated, stop zeroing
-            if was_zeroed:
-                previous_last_seen = self._zeroed_metrics[metric_key]
-                if field_data.last_seen > previous_last_seen:
+            _LOGGER.debug(
+                "Evaluating auto-zero for %s on vehicle %s: last_seen %.1f min ago, threshold %d min, currently zeroed: %s",
+                metric_name,
+                vehicle_id,
+                time_since_update.total_seconds() / 60,
+                STALE_DATA_THRESHOLD_MINUTES,
+                was_zeroed,
+            )
+
+            # Check if data is stale (greater than threshold)
+            if time_since_update > timedelta(minutes=STALE_DATA_THRESHOLD_MINUTES):
+                if not was_zeroed:
                     _LOGGER.info(
-                        "Metric %s for vehicle %s has new data, stopping auto-zero",
+                        "Auto-zeroing %s for vehicle %s - data is %.1f minutes old (threshold: %d min)",
                         metric_name,
                         vehicle_id,
+                        time_since_update.total_seconds() / 60,
+                        STALE_DATA_THRESHOLD_MINUTES,
                     )
-                    del self._zeroed_metrics[metric_key]
-                    # Add cooldown to prevent immediate re-zeroing
-                    self._metric_cooldowns[metric_key] = now + timedelta(
-                        minutes=METRIC_COOLDOWN_MINUTES
-                    )
+                    self._zeroed_metrics[metric_key] = field_data.last_seen
                     # Schedule save
                     self._schedule_save()
-                    return False
-
-            # Primary method: Use trip data
-            if last_trip:
-                trip_key = (vehicle_id, last_trip.trip_id)
-
-                # Check if trip state changed
-                current_state = (last_trip.trip_id, last_trip.state)
-                previous_state = self._last_trip_state.get(vehicle_id)
-
-                if previous_state != current_state:
-                    _LOGGER.debug(
-                        "Trip state changed for vehicle %s: %s -> %s (trip: %s)",
-                        vehicle_id,
-                        previous_state[1] if previous_state else "None",
-                        last_trip.state,
-                        last_trip.trip_id[:8],  # First 8 chars of trip ID
-                    )
-                    self._last_trip_state[vehicle_id] = current_state
-
-                    # Reset completed call count on any state change
-                    if last_trip.state != "COMPLETED":
-                        self._completed_call_counts[vehicle_id] = 0
-                        _LOGGER.debug(
-                            "Reset completed call count for vehicle %s due to state change to %s",
-                            vehicle_id,
-                            last_trip.state,
-                        )
-
-                    # If trip just completed, record the time
-                    if last_trip.state == "COMPLETED":
-                        if trip_key not in self._trip_completion_times:
-                            self._trip_completion_times[trip_key] = now
-                            _LOGGER.info(
-                                "Trip completed for vehicle %s, starting auto-zero timer",
-                                vehicle_id,
-                            )
-
-                # Track consecutive COMPLETED calls
-                if last_trip.state == "COMPLETED":
-                    self._completed_call_counts[vehicle_id] = (
-                        self._completed_call_counts.get(vehicle_id, 0) + 1
-                    )
-                    _LOGGER.debug(
-                        "Vehicle %s has %d/%d consecutive COMPLETED calls",
-                        vehicle_id,
-                        self._completed_call_counts[vehicle_id],
-                        REQUIRED_COMPLETED_CALLS,
-                    )
-                else:
-                    # Reset count if not COMPLETED
-                    self._completed_call_counts[vehicle_id] = 0
-                    # Clean up any zeroed state
-                    if metric_key in self._zeroed_metrics:
-                        _LOGGER.info(
-                            "Removing auto-zero for %s on vehicle %s due to trip state %s",
-                            metric_name,
-                            vehicle_id,
-                            last_trip.state,
-                        )
-                        del self._zeroed_metrics[metric_key]
-                        _LOGGER.debug(
-                            "Scheduling save after removing auto-zero for %s on vehicle %s",
-                            metric_name,
-                            vehicle_id,
-                        )
-                        # Schedule save
-                        self._schedule_save()
-                    return False
-
-                # Require minimum consecutive COMPLETED calls
-                if (
-                    self._completed_call_counts.get(vehicle_id, 0)
-                    < REQUIRED_COMPLETED_CALLS
-                ):
-                    _LOGGER.debug(
-                        "Vehicle %s needs %d more COMPLETED calls before zeroing",
-                        vehicle_id,
-                        REQUIRED_COMPLETED_CALLS
-                        - self._completed_call_counts.get(vehicle_id, 0),
-                    )
-                    return False
-
-                # Check if enough time has passed since trip completion
-                completion_time = self._trip_completion_times.get(trip_key)
-                if completion_time:
-                    time_since_completion = now - completion_time
-
-                    _LOGGER.debug(
-                        "Trip %s for vehicle %s completed %.1f minutes ago",
-                        last_trip.trip_id[:8],
-                        vehicle_id,
-                        time_since_completion.total_seconds() / 60,
-                    )
-
-                    if time_since_completion >= timedelta(
-                        minutes=TRIP_COMPLETION_WAIT_MINUTES
-                    ):
-                        # Check if metric is stale
-                        time_since_update = now - field_data.last_seen
-
-                        if time_since_update >= timedelta(
-                            minutes=TRIP_COMPLETION_WAIT_MINUTES
-                        ):
-                            if not was_zeroed:
-                                _LOGGER.info(
-                                    "Auto-zeroing %s for vehicle %s (trip method)",
-                                    metric_name,
-                                    vehicle_id,
-                                )
-                                self._zeroed_metrics[metric_key] = field_data.last_seen
-                                # Schedule save
-                                self._schedule_save()
-                            return True
-                        else:
-                            _LOGGER.debug(
-                                "Metric %s for vehicle %s is not stale enough (%.1f minutes old, need %d)",
-                                metric_name,
-                                vehicle_id,
-                                time_since_update.total_seconds() / 60,
-                                TRIP_COMPLETION_WAIT_MINUTES,
-                            )
-
-            # Fallback method: Use consecutive stale readings
+                return True
             else:
-                # Track consecutive stale readings
-                current_count, previous_last_seen = self._stale_call_counts.get(
-                    metric_key, (0, field_data.last_seen)
-                )
-
-                # If last_seen changed, reset count
-                if field_data.last_seen != previous_last_seen:
-                    self._stale_call_counts[metric_key] = (0, field_data.last_seen)
-                    _LOGGER.debug(
-                        "Reset stale count for %s on vehicle %s due to data update",
+                # Data is fresh - remove from zeroed metrics if it was zeroed
+                if was_zeroed:
+                    _LOGGER.info(
+                        "Un-zeroing %s for vehicle %s - fresh data received (%.1f minutes old)",
                         metric_name,
                         vehicle_id,
+                        time_since_update.total_seconds() / 60,
                     )
-                    return False
-
-                # Increment stale count
-                time_since_update = now - field_data.last_seen
-                if time_since_update >= timedelta(minutes=1):  # At least 1 minute old
-                    current_count += 1
-                    self._stale_call_counts[metric_key] = (
-                        current_count,
-                        field_data.last_seen,
-                    )
-
-                    _LOGGER.debug(
-                        "Metric %s for vehicle %s has %d/%d consecutive stale readings",
-                        metric_name,
-                        vehicle_id,
-                        current_count,
-                        REQUIRED_STALE_CALLS,
-                    )
-
-                    # Require minimum consecutive stale calls
-                    if current_count >= REQUIRED_STALE_CALLS:
-                        if not was_zeroed:
-                            _LOGGER.info(
-                                "Auto-zeroing %s for vehicle %s (fallback method)",
-                                metric_name,
-                                vehicle_id,
-                            )
-                            self._zeroed_metrics[metric_key] = field_data.last_seen
-                            # Schedule save
-                            self._schedule_save()
-                        return True
-
-            # Don't zero
-            return False
+                    del self._zeroed_metrics[metric_key]
+                    # Schedule save
+                    self._schedule_save()
+                return False
 
         except Exception as e:
             _LOGGER.error(
@@ -510,64 +286,31 @@ class AutoZeroManager:
             # On error, fail safe - don't zero
             return False
 
-    def cleanup_old_trips(self, keep_hours: int = 24) -> None:
-        """Clean up old trip completion times to prevent memory growth.
+    def cleanup_old_data(self, keep_hours: int = 24) -> None:
+        """Clean up old zeroed metrics to prevent memory growth.
 
         Args:
-            keep_hours: Number of hours to keep trip data
+            keep_hours: Number of hours to keep zeroed metric data
         """
         try:
-            now = datetime.now()
+            # Use UTC for internal timestamps
+            now = datetime.now(UTC)
             cutoff = now - timedelta(hours=keep_hours)
 
-            # Remove old trip completion times (only those older than cutoff)
-            old_trip_keys = [
+            # Remove old zeroed metrics that haven't been updated recently
+            old_metrics = [
                 key
-                for key, time in self._trip_completion_times.items()
-                if time < cutoff
+                for key, time in self._zeroed_metrics.items()
+                if now - time > timedelta(hours=keep_hours)
             ]
 
-            for key in old_trip_keys:
-                del self._trip_completion_times[key]
+            for key in old_metrics:
+                del self._zeroed_metrics[key]
 
-            # Remove old cooldowns that have expired
-            expired_cooldowns = [
-                key for key, expiry in self._metric_cooldowns.items() if expiry < now
-            ]
-
-            for key in expired_cooldowns:
-                del self._metric_cooldowns[key]
-
-            # Clean up stale call counts for metrics that haven't been seen recently
-            old_stale_keys = []
-            for key, (_count, last_seen) in self._stale_call_counts.items():
-                if now - last_seen > timedelta(hours=keep_hours):
-                    old_stale_keys.append(key)
-
-            for key in old_stale_keys:
-                del self._stale_call_counts[key]
-
-            # Clean up completed call counts for vehicles with no recent activity
-            old_vehicles = []
-            for vehicle_id in list(self._completed_call_counts.keys()):
-                # Check if vehicle has any recent trip times
-                has_recent = any(
-                    k[0] == vehicle_id and time >= cutoff
-                    for k, time in self._trip_completion_times.items()
-                )
-                if not has_recent and vehicle_id not in self._last_trip_state:
-                    old_vehicles.append(vehicle_id)
-
-            for vehicle_id in old_vehicles:
-                del self._completed_call_counts[vehicle_id]
-
-            if old_trip_keys or expired_cooldowns or old_stale_keys or old_vehicles:
+            if old_metrics:
                 _LOGGER.debug(
-                    "Cleanup complete: removed %d old trips, %d expired cooldowns, %d old stale counts, %d old vehicle counts",
-                    len(old_trip_keys),
-                    len(expired_cooldowns),
-                    len(old_stale_keys),
-                    len(old_vehicles),
+                    "Cleanup complete: removed %d old zeroed metrics",
+                    len(old_metrics),
                 )
 
         except Exception as e:
@@ -597,10 +340,7 @@ class AutoZeroManager:
         if metric_key in self._zeroed_metrics:
             status["zeroed_at"] = self._zeroed_metrics[metric_key].isoformat()
 
-        if metric_key in self._metric_cooldowns:
-            cooldown_expiry = self._metric_cooldowns[metric_key]
-            if datetime.now() < cooldown_expiry:
-                status["cooldown_until"] = cooldown_expiry.isoformat()
+        # No more cooldown tracking
 
         return status
 

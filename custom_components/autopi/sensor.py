@@ -333,6 +333,7 @@ class AutoPiAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:api"
     _attr_has_entity_name = True
+    _attr_should_poll = False
 
     def __init__(
         self,
@@ -352,6 +353,14 @@ class AutoPiAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Restore state when entity is added."""
         await super().async_added_to_hass()
+
+        # Add listeners to all coordinators
+        for coord_name, coord in self._coordinators.items():
+            if coord != self.coordinator:  # Already listening to primary coordinator
+                self.async_on_remove(
+                    coord.async_add_listener(self._handle_coordinator_update)
+                )
+
         if restored := await self.async_get_last_state():
             if restored.state not in (None, "unknown", "unavailable"):
                 try:
@@ -363,6 +372,14 @@ class AutoPiAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
     def native_value(self) -> int:
         """Return the total number of API calls from all coordinators."""
         total = sum(coord.api_call_count for coord in self._coordinators.values())
+
+        # Debug logging
+        _LOGGER.debug(
+            "API calls sensor update - total: %d, breakdown: %s",
+            total,
+            {ring: coord.api_call_count for ring, coord in self._coordinators.items()},
+        )
+
         # Handle restoration - if the new total is less than restored, use restored
         if self._last_value is not None and total < self._last_value:
             total = self._last_value
@@ -402,6 +419,7 @@ class AutoPiFailedAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:alert-circle"
     _attr_has_entity_name = True
+    _attr_should_poll = False
 
     def __init__(
         self,
@@ -420,6 +438,14 @@ class AutoPiFailedAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Restore state when entity is added."""
         await super().async_added_to_hass()
+
+        # Add listeners to all coordinators
+        for coord_name, coord in self._coordinators.items():
+            if coord != self.coordinator:  # Already listening to primary coordinator
+                self.async_on_remove(
+                    coord.async_add_listener(self._handle_coordinator_update)
+                )
+
         if restored := await self.async_get_last_state():
             if restored.state not in (None, "unknown", "unavailable"):
                 try:
@@ -474,6 +500,7 @@ class AutoPiSuccessRateSensor(AutoPiEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:percent"
     _attr_has_entity_name = True
+    _attr_should_poll = False
 
     def __init__(
         self,
@@ -487,6 +514,17 @@ class AutoPiSuccessRateSensor(AutoPiEntity, SensorEntity):
         self._config_entry_id = first_coordinator.config_entry.entry_id
         self._attr_unique_id = f"{self._config_entry_id}_api_success_rate"
         self._attr_name = "API Success Rate"
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity being added to Home Assistant."""
+        await super().async_added_to_hass()
+
+        # Add listeners to all coordinators
+        for coord_name, coord in self._coordinators.items():
+            if coord != self.coordinator:  # Already listening to primary coordinator
+                self.async_on_remove(
+                    coord.async_add_listener(self._handle_coordinator_update)
+                )
 
     @property
     def native_value(self) -> float:
@@ -535,6 +573,7 @@ class AutoPiUpdateDurationSensor(AutoPiEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:timer"
     _attr_has_entity_name = True
+    _attr_should_poll = False
 
     def __init__(
         self,
@@ -548,6 +587,17 @@ class AutoPiUpdateDurationSensor(AutoPiEntity, SensorEntity):
         self._config_entry_id = first_coordinator.config_entry.entry_id
         self._attr_unique_id = f"{self._config_entry_id}_update_duration"
         self._attr_name = "Update Duration"
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity being added to Home Assistant."""
+        await super().async_added_to_hass()
+
+        # Add listeners to all coordinators
+        for coord_name, coord in self._coordinators.items():
+            if coord != self.coordinator:  # Already listening to primary coordinator
+                self.async_on_remove(
+                    coord.async_add_listener(self._handle_coordinator_update)
+                )
 
     @property
     def native_value(self) -> float | None:

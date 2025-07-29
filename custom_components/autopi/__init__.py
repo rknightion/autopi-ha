@@ -116,10 +116,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Trip fetch failures are not critical
         _LOGGER.warning("Failed to fetch initial trip data: %s", err)
 
+    # Log coordinator status
+    _LOGGER.info("Coordinator setup complete")
+    for coord_name, coord in coordinators.items():
+        if coord:
+            _LOGGER.debug(
+                "Coordinator %s: interval=%s, last_update_success=%s",
+                coord_name,
+                coord.update_interval,
+                coord.last_update_success,
+            )
+
     # Initialize auto-zero manager with storage
     _LOGGER.debug("Initializing auto-zero manager")
     auto_zero_manager = get_auto_zero_manager()
     await auto_zero_manager.async_initialize(hass)
+
+    # Log current options for debugging
+    _LOGGER.info(
+        "AutoPi integration options: %s",
+        entry.options,
+    )
 
     # Store coordinators
     hass.data.setdefault(DOMAIN, {})
@@ -147,6 +164,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info(
         "AutoPi integration setup completed successfully for entry %s", entry.entry_id
     )
+
+    # Schedule first update for all coordinators after setup is complete
+    # This ensures the update cycle continues after the initial refresh
+    for coord_name, coord in coordinators.items():
+        if coord and coord.update_interval:
+            _LOGGER.debug(
+                "Requesting refresh for %s coordinator to ensure update cycle continues",
+                coord_name,
+            )
+            await coord.async_request_refresh()
 
     return True
 

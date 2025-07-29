@@ -88,35 +88,14 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
                     auto_zero_enabled = self.coordinator.config_entry.options.get(
                         CONF_AUTO_ZERO_ENABLED, False
                     )
-
-                    # Get trip data if available
-                    last_trip = None
-                    try:
-                        from .const import DOMAIN
-
-                        domain_data = self.coordinator.hass.data.get(DOMAIN, {})
-                        entry_data = domain_data.get(
-                            self.coordinator.config_entry.entry_id, {}
-                        )
-                        trip_coordinator = entry_data.get("trip_coordinator")
-
-                        if (
-                            trip_coordinator
-                            and trip_coordinator.data
-                            and self._vehicle_id in trip_coordinator.data
-                        ):
-                            trip_vehicle = trip_coordinator.data[self._vehicle_id]
-                            last_trip = trip_vehicle.last_trip
-                            _LOGGER.debug(
-                                "Found trip data for vehicle %s: state=%s",
-                                self._vehicle_id,
-                                last_trip.state if last_trip else "None",
-                            )
-                    except Exception as e:
-                        _LOGGER.warning(
-                            "Failed to get trip data for auto-zero evaluation: %s",
-                            str(e),
-                        )
+                    _LOGGER.debug(
+                        "Auto-zero check for %s on vehicle %s: enabled=%s, field_id=%s, options=%s",
+                        self._attr_name,
+                        self._vehicle_id,
+                        auto_zero_enabled,
+                        self._field_id,
+                        self.coordinator.config_entry.options,
+                    )
 
                     # Check if we should zero the metric
                     auto_zero_manager = get_auto_zero_manager()
@@ -124,7 +103,6 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
                         self._vehicle_id,
                         self._field_id,
                         field_data,
-                        last_trip,
                         auto_zero_enabled,
                     ):
                         _LOGGER.debug(
@@ -335,8 +313,11 @@ class AutoPiAutoZeroDataFieldSensor(AutoPiDataFieldSensorBase, RestoreEntity):
     def native_value(self) -> Any:
         """Return the sensor value."""
         try:
-            # If we have a restored value and no new data yet, use it
-            if self._restored_value is not None and not self._last_known_value:
+            # Get the value from parent implementation (which handles auto-zero)
+            value = super().native_value
+
+            # If parent returned None and we have a restored value, use it
+            if value is None and self._restored_value is not None:
                 _LOGGER.debug(
                     "Using restored value %s for sensor %s on vehicle %s",
                     self._restored_value,
@@ -345,8 +326,7 @@ class AutoPiAutoZeroDataFieldSensor(AutoPiDataFieldSensorBase, RestoreEntity):
                 )
                 return self._restored_value
 
-            # Call parent implementation
-            return super().native_value
+            return value
 
         except Exception as e:
             _LOGGER.error(

@@ -105,10 +105,8 @@ After adding the integration, you can configure update intervals:
    - Find **AutoPi** integration
    - Click **Configure**
 
-2. **Set Update Intervals**:
-   - **Fast Updates** (1-60 min): Position data, default 1 minute
-   - **Medium Updates** (1-60 min): Vehicle status, default 5 minutes
-   - **Slow Updates** (1-60 min): Reserved for future use, default 15 minutes
+2. **Set Update Interval**:
+   - **Update Interval** (1-10 min): All vehicle data including position, status, and metrics, default 1 minute
 
 3. **Save Configuration**:
    - Click **Submit**

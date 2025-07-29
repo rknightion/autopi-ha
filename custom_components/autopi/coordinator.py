@@ -103,7 +103,13 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             UpdateFailed: If data fetching fails
         """
         start_time = self.hass.loop.time()
-        self._total_api_calls += 1
+        self._update_count += 1
+
+        _LOGGER.info(
+            "Base coordinator update #%d starting (interval: %s)",
+            self._update_count,
+            self.update_interval,
+        )
 
         try:
             # Create client if not exists
@@ -116,6 +122,8 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                         CONF_BASE_URL, DEFAULT_BASE_URL
                     ),
                 )
+
+            self._total_api_calls += 1
 
             _LOGGER.debug(
                 "Starting API update %d (total calls: %d, failed: %d)",
@@ -234,6 +242,13 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             # Track successful update
             self._last_update_duration = self.hass.loop.time() - start_time
             self._last_api_call_time = self.hass.loop.time()
+
+            _LOGGER.info(
+                "Base coordinator update #%d completed successfully in %.2fs (next update in %s)",
+                self._update_count,
+                self._last_update_duration,
+                self.update_interval,
+            )
 
             return data
 
@@ -435,6 +450,12 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
         start_time = self.hass.loop.time()
         self._update_count += 1
 
+        _LOGGER.info(
+            "Position coordinator update #%d starting (interval: %s)",
+            self._update_count,
+            self.update_interval,
+        )
+
         try:
             # Get vehicles from base coordinator
             if not self._base_coordinator.data:
@@ -623,6 +644,12 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                 self.success_rate,
             )
 
+            _LOGGER.info(
+                "Position coordinator update #%d completed successfully (next update in %s)",
+                self._update_count,
+                self.update_interval,
+            )
+
             return data
 
         except Exception as err:
@@ -671,6 +698,12 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
         """
         start_time = self.hass.loop.time()
         self._update_count += 1
+
+        _LOGGER.info(
+            "Trip coordinator update #%d starting (interval: %s)",
+            self._update_count,
+            self.update_interval,
+        )
 
         try:
             # Get vehicles from base coordinator
@@ -786,7 +819,13 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                 from .auto_zero import get_auto_zero_manager
 
                 auto_zero_manager = get_auto_zero_manager()
-                auto_zero_manager.cleanup_old_trips()
+                auto_zero_manager.cleanup_old_data()
+
+            _LOGGER.info(
+                "Trip coordinator update #%d completed successfully (next update in %s)",
+                self._update_count,
+                self.update_interval,
+            )
 
             return data
 

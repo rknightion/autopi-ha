@@ -56,9 +56,9 @@
           "auto_zero_enabled": "Auto-zero Metrics (BETA)"
         },
         "data_description": {
-          "polling_interval": "How often to fetch all data from AutoPi in minutes (1-60)",
+          "polling_interval": "How often to fetch all data from AutoPi in minutes (1-10)",
           "update_api_key": "Check this box to update your AutoPi API key",
-          "auto_zero_enabled": "⚠️ REQUIRES 1-minute polling interval! BETA: Automatically zeros certain metrics when vehicle is not on a trip to prevent stale values."
+          "auto_zero_enabled": "BETA: Automatically zeros certain metrics when data is older than 15 minutes to prevent stale values."
         }
       },
       "api_key": {
