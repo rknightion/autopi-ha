@@ -15,6 +15,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_API_KEY,
+    CONF_AUTO_ZERO_ENABLED,
     CONF_BASE_URL,
     CONF_SCAN_INTERVAL,
     CONF_SELECTED_VEHICLES,
@@ -323,6 +324,8 @@ class AutoPiOptionsFlow(OptionsFlow):
                 options_data[CONF_UPDATE_INTERVAL_SLOW] = user_input[
                     "trip_update_interval"
                 ]
+            if "auto_zero_enabled" in user_input:
+                options_data[CONF_AUTO_ZERO_ENABLED] = user_input["auto_zero_enabled"]
 
             return self.async_create_entry(title="", data=options_data)
 
@@ -332,6 +335,9 @@ class AutoPiOptionsFlow(OptionsFlow):
         )
         current_slow = self.config_entry.options.get(
             CONF_UPDATE_INTERVAL_SLOW, DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
+        )
+        current_auto_zero = self.config_entry.options.get(
+            CONF_AUTO_ZERO_ENABLED, False
         )
 
         return self.async_show_form(
@@ -361,6 +367,10 @@ class AutoPiOptionsFlow(OptionsFlow):
                         )
                     ),
                     vol.Optional("update_api_key", default=False): bool,
+                    vol.Optional(
+                        "auto_zero_enabled",
+                        default=current_auto_zero,
+                    ): bool,
                 }
             ),
             description_placeholders={

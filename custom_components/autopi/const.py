@@ -23,6 +23,9 @@ CONF_UPDATE_INTERVAL_FAST: Final = "update_interval_fast"
 CONF_UPDATE_INTERVAL_MEDIUM: Final = "update_interval_medium"
 CONF_UPDATE_INTERVAL_SLOW: Final = "update_interval_slow"
 
+# Feature configuration
+CONF_AUTO_ZERO_ENABLED: Final = "auto_zero_enabled"
+
 DEFAULT_NAME: Final = "AutoPi"
 DEFAULT_BASE_URL: Final = "https://api.autopi.io"
 DEFAULT_SCAN_INTERVAL: Final = 300  # 5 minutes

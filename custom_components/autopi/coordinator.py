@@ -671,8 +671,8 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             config_entry: Configuration entry for this integration
             base_coordinator: Base coordinator to get vehicle data from
         """
-        # Trip data updates less frequently (slow update ring - 15 min default)
-        super().__init__(hass, config_entry, UPDATE_RING_SLOW)
+        # Trip data updates frequently (fast update ring - 1 min default) for auto-zero functionality
+        super().__init__(hass, config_entry, UPDATE_RING_FAST)
         self._base_coordinator = base_coordinator
         # Store trip history for event detection
         self._last_trip_ids: dict[str, str] = {}
@@ -802,6 +802,12 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                 total_trips,
                 self._last_update_duration,
             )
+
+            # Periodically clean up old trip data from auto-zero manager
+            if self._update_count % 60 == 0:  # Every 60 updates (60 minutes)
+                from .auto_zero import get_auto_zero_manager
+                auto_zero_manager = get_auto_zero_manager()
+                auto_zero_manager.cleanup_old_trips()
 
             return data
 

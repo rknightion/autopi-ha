@@ -23,7 +23,8 @@ from homeassistant.const import (
     UnitOfVolume,
 )
 
-from .const import DATA_FIELD_TIMEOUT_MINUTES
+from .auto_zero import AUTO_ZERO_METRICS, get_auto_zero_manager
+from .const import CONF_AUTO_ZERO_ENABLED, DATA_FIELD_TIMEOUT_MINUTES
 from .coordinator import AutoPiDataUpdateCoordinator
 from .entities.base import AutoPiVehicleEntity
 from .types import DataFieldValue
@@ -69,6 +70,35 @@ class AutoPiDataFieldSensor(AutoPiVehicleEntity, SensorEntity):
             # Update our last known value and time
             self._last_known_value = field_data.last_value
             self._last_update_time = field_data.last_update
+
+            # Check if auto-zero should be applied
+            if self._field_id in AUTO_ZERO_METRICS:
+                auto_zero_enabled = self.coordinator.config_entry.options.get(
+                    CONF_AUTO_ZERO_ENABLED, False
+                )
+
+                # Get trip data if available
+                last_trip = None
+                from .const import DOMAIN
+                domain_data = self.coordinator.hass.data.get(DOMAIN, {})
+                entry_data = domain_data.get(self.coordinator.config_entry.entry_id, {})
+                trip_coordinator = entry_data.get("trip_coordinator")
+
+                if trip_coordinator and trip_coordinator.data and self._vehicle_id in trip_coordinator.data:
+                    trip_vehicle = trip_coordinator.data[self._vehicle_id]
+                    last_trip = trip_vehicle.last_trip
+
+                # Check if we should zero the metric
+                auto_zero_manager = get_auto_zero_manager()
+                if auto_zero_manager.should_zero_metric(
+                    self._vehicle_id,
+                    self._field_id,
+                    field_data,
+                    last_trip,
+                    auto_zero_enabled,
+                ):
+                    return 0
+
             return field_data.last_value
 
         # If we have a last known value and it's within timeout, return it

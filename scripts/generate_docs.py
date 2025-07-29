@@ -374,7 +374,7 @@ Entities use appropriate state classes for statistics and energy tracking:
 
     print(f"Generated entity documentation: {docs_path}")
     print(f"Found {len(sensor_entities)} sensors, {len(device_tracker_entities)} device trackers, {len(binary_sensor_entities)} binary sensors")
-    
+
     # Print detailed breakdown of sensor types
     sensor_files = {}
     for sensor in sensor_entities:
@@ -382,7 +382,7 @@ Entities use appropriate state classes for statistics and energy tracking:
         if file_name not in sensor_files:
             sensor_files[file_name] = 0
         sensor_files[file_name] += 1
-    
+
     print("\nSensor breakdown by file:")
     for file_name, count in sorted(sensor_files.items()):
         print(f"  {file_name}: {count} sensors")
