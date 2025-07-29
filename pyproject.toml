@@ -40,7 +40,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/rknightion/autopi-ha"
-Documentation = "https://rknightion.github.io/autopi-ha"
+Documentation = "https://m7kni.io/autopi-ha"
 Repository = "https://github.com/rknightion/autopi-ha"
 "Bug Tracker" = "https://github.com/rknightion/autopi-ha/issues"
 

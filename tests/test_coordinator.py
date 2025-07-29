@@ -93,7 +93,7 @@ class TestAutoPiDataUpdateCoordinator:
             mock_hass, mock_config_entry
         )
 
-        assert coordinator.name == f"autopi_{mock_config_entry.entry_id}_fast"
+        assert coordinator.name == f"autopi_{mock_config_entry.entry_id}"
         assert coordinator.update_interval == timedelta(seconds=60)
         assert coordinator._client is None  # Client not created yet
         assert coordinator._selected_vehicles == {"123", "456"}
@@ -202,7 +202,7 @@ class TestAutoPiPositionCoordinator:
             mock_hass, mock_config_entry, mock_base_coordinator
         )
 
-        assert coordinator.name == f"autopi_{mock_config_entry.entry_id}_fast"
+        assert coordinator.name == f"autopi_{mock_config_entry.entry_id}"
         assert coordinator.update_interval == timedelta(seconds=60)  # Default 1 minute
 
     @pytest.mark.asyncio

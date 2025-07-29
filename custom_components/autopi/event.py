@@ -65,7 +65,7 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
             "error",
             # Generic fallback
             "unknown",
-            "unkown",  # Typo in API data, but we handle it  # codespell:ignore
+            "unkown",  # Typo in API data, but we handle it
         ]
 
     @property

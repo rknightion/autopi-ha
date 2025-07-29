@@ -54,9 +54,18 @@ The following sensors are affected by this feature when enabled:
 1. Navigate to **Settings** → **Devices & Services** → **AutoPi**
 2. Click **Configure**
 3. Enable **"Auto-zero Metrics (BETA)"**
-4. Click **Submit**
+4. **⚠️ IMPORTANT: Set "Update Interval" to 1 minute** - The auto-zero feature requires a 1-minute polling interval to function accurately
+5. Click **Submit**
 
 The feature is **disabled by default** to ensure existing behavior is maintained.
+
+### Polling Interval Requirement
+
+The auto-zero feature relies on detecting trip completion and monitoring metric staleness through consecutive API calls. With the default timing parameters:
+- **6 consecutive calls** are required to confirm trip completion (6 minutes at 1-minute intervals)
+- **30 consecutive calls** are required for the fallback method (30 minutes at 1-minute intervals)
+
+If you set a longer polling interval (e.g., 5 minutes), these detection times multiply accordingly, making the feature much less responsive and potentially missing short stops.
 
 ## Behavior Details
 
@@ -100,6 +109,22 @@ This ensures that even if Home Assistant is down for extended periods, sensors w
 1. **Trip Data Dependency**: The primary method requires trip data to be available and accurate
 2. **API Update Frequency**: Effectiveness depends on how frequently your AutoPi device reports data
 3. **Beta Status**: Edge cases may exist that aren't properly handled
+
+## Entity Attributes
+
+### Auto Zero Enabled Indicator
+
+All sensors (except device tracker and event entities) now include an `auto_zero_enabled` attribute that indicates whether the auto-zero functionality is available for that specific sensor:
+
+- **`auto_zero_enabled: true`** - The sensor supports auto-zero functionality (appears on sensors listed in "Affected Metrics" above)
+- **`auto_zero_enabled: false`** - The sensor does not support auto-zero functionality
+
+This attribute appears regardless of whether the auto-zero feature is enabled in the integration configuration. It simply indicates whether the sensor *could* be auto-zeroed if the feature were enabled.
+
+For sensors with `auto_zero_enabled: true` and the feature enabled in configuration, additional attributes will appear:
+- `auto_zero_active` - Whether the sensor is currently showing a zeroed value
+- `auto_zero_last_zeroed` - Timestamp when the sensor was last zeroed (if it has been zeroed)
+- `auto_zero_cooldown_until` - Timestamp when the cooldown period expires (if in cooldown)
 
 ## Troubleshooting
 

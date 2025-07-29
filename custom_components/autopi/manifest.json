@@ -4,7 +4,7 @@
   "after_dependencies": ["recorder"],
   "codeowners": ["@rknightion"],
   "config_flow": true,
-  "documentation": "https://rknightion.github.io/autopi-ha/",
+  "documentation": "https://m7kni.io/autopi-ha/",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/rknightion/autopi-ha/issues",

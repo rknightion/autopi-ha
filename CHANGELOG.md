@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Features
+- Add `auto_zero_enabled` attribute to all sensors indicating auto-zero support
+- Add `auto_zero_last_zeroed`, `auto_zero_cooldown_until`, and `auto_zero_active` attributes for auto-zeroed metrics
+- Add warning in configuration that auto-zero feature requires 1-minute polling interval
+
+### 🔧 Changes
+- Simplify update interval configuration to single interval (remove multi-tier system)
+- Update documentation URL from rknightion.github.io to m7kni.io
+- Consolidate all data fetching to use same update interval
+
+### 🐛 Bug Fixes
+- Fix pytest warnings for unawaited coroutines
+- Fix datetime.utcnow() deprecation warnings
+- Fix codespell configuration for intentional API typos
+
+### 📚 Documentation
+- Update configuration docs to reflect single update interval
+- Add auto-zero polling interval requirement to documentation
+- Document new auto-zero entity attributes
+
 
 ## [0.3.2] - 2025-07-28
 

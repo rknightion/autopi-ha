@@ -16,15 +16,9 @@ from .const import (
     CONF_BASE_URL,
     CONF_SELECTED_VEHICLES,
     CONF_UPDATE_INTERVAL_FAST,
-    CONF_UPDATE_INTERVAL_MEDIUM,
-    CONF_UPDATE_INTERVAL_SLOW,
     DEFAULT_BASE_URL,
     DEFAULT_UPDATE_INTERVAL_FAST_MINUTES,
-    DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES,
-    DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES,
     DOMAIN,
-    UPDATE_RING_FAST,
-    UPDATE_RING_SLOW,
 )
 from .exceptions import (
     AutoPiAPIError,
@@ -51,19 +45,16 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self,
         hass: HomeAssistant,
         config_entry: ConfigEntry,
-        update_ring: str = UPDATE_RING_FAST,
     ) -> None:
         """Initialize the coordinator.
 
         Args:
             hass: Home Assistant instance
             config_entry: Configuration entry for this integration
-            update_ring: Update ring type (fast, medium, slow)
         """
         self.config_entry = config_entry
         self._client: AutoPiClient | None = None
         self._selected_vehicles = set(config_entry.data.get(CONF_SELECTED_VEHICLES, []))
-        self._update_ring = update_ring
 
         # Performance tracking
         self._update_count = 0
@@ -81,34 +72,24 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._device_events: dict[str, list[AutoPiEvent]] = {}
         self._last_event_timestamps: dict[str, str] = {}
 
-        # Get configured intervals from options or use defaults
+        # Get configured interval from options or use default
         options = config_entry.options
-        if update_ring == UPDATE_RING_FAST:
-            interval_minutes = options.get(
-                CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
-            )
-        elif update_ring == UPDATE_RING_SLOW:
-            interval_minutes = options.get(
-                CONF_UPDATE_INTERVAL_SLOW, DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
-            )
-        else:
-            interval_minutes = options.get(
-                CONF_UPDATE_INTERVAL_MEDIUM, DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES
-            )
+        interval_minutes = options.get(
+            CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
+        )
 
         update_interval = timedelta(minutes=interval_minutes)
 
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_{config_entry.entry_id}_{update_ring}",
+            name=f"{DOMAIN}_{config_entry.entry_id}",
             update_interval=update_interval,
             config_entry=config_entry,
         )
 
         _LOGGER.debug(
-            "AutoPi %s coordinator initialized with %s update interval",
-            update_ring,
+            "AutoPi coordinator initialized with %s update interval",
             update_interval,
         )
 
@@ -137,8 +118,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 )
 
             _LOGGER.debug(
-                "[%s] Starting API update %d (total calls: %d, failed: %d)",
-                self._update_ring,
+                "Starting API update %d (total calls: %d, failed: %d)",
                 self._update_count,
                 self._total_api_calls,
                 self._failed_api_calls,
@@ -148,8 +128,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             vehicles = await self._client.get_vehicles()
 
             _LOGGER.debug(
-                "[%s] Received %d vehicles from API",
-                self._update_ring,
+                "Received %d vehicles from API",
                 len(vehicles),
             )
 
@@ -157,15 +136,13 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             if self._selected_vehicles:
                 vehicles = [v for v in vehicles if str(v.id) in self._selected_vehicles]
                 _LOGGER.debug(
-                    "[%s] Filtered to %d selected vehicles (from %d total)",
-                    self._update_ring,
+                    "Filtered to %d selected vehicles (from %d total)",
                     len(vehicles),
                     len(self._selected_vehicles),
                 )
             else:
                 _LOGGER.debug(
-                    "[%s] No vehicle filter applied, using all %d vehicles",
-                    self._update_ring,
+                    "No vehicle filter applied, using all %d vehicles",
                     len(vehicles),
                 )
 
@@ -174,86 +151,85 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
             _LOGGER.debug("Successfully updated data for %d vehicles", len(data))
 
-            # Fetch fleet alerts (only for base coordinator in fast ring)
-            if self._update_ring == UPDATE_RING_FAST:
-                try:
-                    self._total_api_calls += 1
-                    total_alerts, alerts = await self._client.get_fleet_alerts()
-                    self._fleet_alerts_total = total_alerts
-                    self._fleet_alerts = alerts
+            # Fetch fleet alerts for base coordinator
+            try:
+                self._total_api_calls += 1
+                total_alerts, alerts = await self._client.get_fleet_alerts()
+                self._fleet_alerts_total = total_alerts
+                self._fleet_alerts = alerts
 
-                    # Check for new alerts
-                    current_alert_ids = {alert.alert_id for alert in alerts}
-                    new_alert_ids = current_alert_ids - self._last_alert_ids
+                # Check for new alerts
+                current_alert_ids = {alert.alert_id for alert in alerts}
+                new_alert_ids = current_alert_ids - self._last_alert_ids
 
-                    if new_alert_ids:
-                        # Fire events for new alerts
-                        for alert in alerts:
-                            if alert.alert_id in new_alert_ids:
-                                self._fire_alert_event(alert)
+                if new_alert_ids:
+                    # Fire events for new alerts
+                    for alert in alerts:
+                        if alert.alert_id in new_alert_ids:
+                            self._fire_alert_event(alert)
 
-                    self._last_alert_ids = current_alert_ids
+                self._last_alert_ids = current_alert_ids
 
-                    _LOGGER.debug("Successfully fetched %d fleet alerts", total_alerts)
-                except Exception as err:
-                    self._failed_api_calls += 1
-                    _LOGGER.warning("Failed to fetch fleet alerts: %s", err)
-                    # Continue even if alerts fail
+                _LOGGER.debug("Successfully fetched %d fleet alerts", total_alerts)
+            except Exception as err:
+                self._failed_api_calls += 1
+                _LOGGER.warning("Failed to fetch fleet alerts: %s", err)
+                # Continue even if alerts fail
 
-                # Fetch events for each device
-                for vehicle in data.values():
-                    for device_id in vehicle.devices:
-                        try:
-                            self._total_api_calls += 1
-                            events = await self._client.get_device_events(device_id)
+            # Fetch events for each device
+            for vehicle in data.values():
+                for device_id in vehicle.devices:
+                    try:
+                        self._total_api_calls += 1
+                        events = await self._client.get_device_events(device_id)
 
-                            # Store all events for this device
-                            self._device_events[device_id] = events
+                        # Store all events for this device
+                        self._device_events[device_id] = events
 
-                            # Check for new events based on timestamp
-                            last_timestamp = self._last_event_timestamps.get(device_id)
-                            new_events = []
+                        # Check for new events based on timestamp
+                        last_timestamp = self._last_event_timestamps.get(device_id)
+                        new_events = []
 
-                            if events:
-                                # Update last timestamp to the most recent event
-                                self._last_event_timestamps[device_id] = events[
-                                    0
-                                ].timestamp.isoformat()
+                        if events:
+                            # Update last timestamp to the most recent event
+                            self._last_event_timestamps[device_id] = events[
+                                0
+                            ].timestamp.isoformat()
 
-                                # Find new events
-                                if last_timestamp:
-                                    for event in events:
-                                        if event.timestamp.isoformat() > last_timestamp:
-                                            new_events.append(event)
-                                else:
-                                    # First time fetching events for this device
-                                    # Don't fire events on startup to avoid old events
-                                    new_events = []
-                                    _LOGGER.info(
-                                        "Initial event fetch for device %s: found %d events, skipping startup events to avoid replaying old events",
-                                        device_id,
-                                        len(events),
-                                    )
-
-                            # Fire events for new events
-                            for event in new_events:
-                                self._fire_device_event(event, str(vehicle.id))
-
-                            if new_events:
+                            # Find new events
+                            if last_timestamp:
+                                for event in events:
+                                    if event.timestamp.isoformat() > last_timestamp:
+                                        new_events.append(event)
+                            else:
+                                # First time fetching events for this device
+                                # Don't fire events on startup to avoid old events
+                                new_events = []
                                 _LOGGER.info(
-                                    "Found %d new events for device %s",
-                                    len(new_events),
+                                    "Initial event fetch for device %s: found %d events, skipping startup events to avoid replaying old events",
                                     device_id,
+                                    len(events),
                                 )
 
-                        except Exception as err:
-                            self._failed_api_calls += 1
-                            _LOGGER.warning(
-                                "Failed to fetch events for device %s: %s",
+                        # Fire events for new events
+                        for event in new_events:
+                            self._fire_device_event(event, str(vehicle.id))
+
+                        if new_events:
+                            _LOGGER.info(
+                                "Found %d new events for device %s",
+                                len(new_events),
                                 device_id,
-                                err,
                             )
-                            # Continue even if events fail for one device
+
+                    except Exception as err:
+                        self._failed_api_calls += 1
+                        _LOGGER.warning(
+                            "Failed to fetch events for device %s: %s",
+                            device_id,
+                            err,
+                        )
+                        # Continue even if events fail for one device
 
             # Track successful update
             self._last_update_duration = self.hass.loop.time() - start_time
@@ -322,11 +298,6 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             AutoPiVehicle object or None if not found
         """
         return self.data.get(vehicle_id) if self.data else None
-
-    @property
-    def update_ring(self) -> str:
-        """Get the update ring type."""
-        return self._update_ring
 
     @property
     def api_call_count(self) -> int:
@@ -449,7 +420,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
             config_entry: Configuration entry for this integration
             base_coordinator: Base coordinator to get vehicle data from
         """
-        super().__init__(hass, config_entry, UPDATE_RING_FAST)
+        super().__init__(hass, config_entry)
         self._base_coordinator = base_coordinator
 
     async def _async_update_data(self) -> CoordinatorData:
@@ -482,8 +453,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                 )
 
             _LOGGER.debug(
-                "[%s] Fetching data fields for all vehicles",
-                self._update_ring,
+                "Fetching data fields for all vehicles",
             )
 
             # Copy vehicle data from base coordinator
@@ -602,28 +572,24 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                                                 ).last_value,
                                             )
                                             _LOGGER.debug(
-                                                "[%s] Extracted position from data fields for vehicle %s",
-                                                self._update_ring,
+                                                "Extracted position from data fields for vehicle %s",
                                                 vehicle.name,
                                             )
                                     except Exception as err:
                                         _LOGGER.warning(
-                                            "[%s] Failed to extract position from data fields: %s",
-                                            self._update_ring,
+                                            "Failed to extract position from data fields: %s",
                                             err,
                                         )
 
                                 _LOGGER.debug(
-                                    "[%s] Got %d data fields for vehicle %s (device %s)",
-                                    self._update_ring,
+                                    "Got %d data fields for vehicle %s (device %s)",
                                     len(fields),
                                     vehicle.name,
                                     device_id,
                                 )
                             else:
                                 _LOGGER.debug(
-                                    "[%s] No data fields for vehicle %s (device %s)",
-                                    self._update_ring,
+                                    "No data fields for vehicle %s (device %s)",
                                     vehicle.name,
                                     device_id,
                                 )
@@ -631,16 +597,14 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                         except Exception as err:
                             self._failed_api_calls += 1
                             _LOGGER.warning(
-                                "[%s] Failed to fetch data fields for device %s: %s",
-                                self._update_ring,
+                                "Failed to fetch data fields for device %s: %s",
                                 device_id,
                                 err,
                             )
                             continue
                 else:
                     _LOGGER.debug(
-                        "[%s] Vehicle %s has no devices",
-                        self._update_ring,
+                        "Vehicle %s has no devices",
                         vehicle.name,
                     )
 
@@ -651,8 +615,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
             self._last_api_call_time = self.hass.loop.time()
 
             _LOGGER.info(
-                "[%s] Successfully updated data with %d fields for %d vehicles in %.2fs (update #%d, %.1f%% success rate)",
-                self._update_ring,
+                "Successfully updated data with %d fields for %d vehicles in %.2fs (update #%d, %.1f%% success rate)",
                 data_field_count,
                 len(data),
                 self._last_update_duration,
@@ -666,8 +629,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
             self._failed_api_calls += 1
             self._last_update_duration = self.hass.loop.time() - start_time
             _LOGGER.error(
-                "[%s] Unexpected error fetching data fields (update #%d, %.1f%% success rate): %s",
-                self._update_ring,
+                "Unexpected error fetching data fields (update #%d, %.1f%% success rate): %s",
                 self._update_count,
                 self.success_rate,
                 err,
@@ -692,8 +654,8 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             config_entry: Configuration entry for this integration
             base_coordinator: Base coordinator to get vehicle data from
         """
-        # Trip data updates frequently (fast update ring - 1 min default) for auto-zero functionality
-        super().__init__(hass, config_entry, UPDATE_RING_FAST)
+        # Trip data updates frequently (1 min default) for auto-zero functionality
+        super().__init__(hass, config_entry)
         self._base_coordinator = base_coordinator
         # Store trip history for event detection
         self._last_trip_ids: dict[str, str] = {}
@@ -728,8 +690,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                 )
 
             _LOGGER.debug(
-                "[%s] Fetching trip data for all vehicles",
-                self._update_ring,
+                "Fetching trip data for all vehicles",
             )
 
             # Copy vehicle data from base coordinator
@@ -784,16 +745,14 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                         self._last_trip_ids[vehicle_id] = trips[0].trip_id
 
                         _LOGGER.debug(
-                            "[%s] Vehicle %s has %d trips, last trip: %s km",
-                            self._update_ring,
+                            "Vehicle %s has %d trips, last trip: %s km",
                             vehicle.name,
                             trip_count,
                             trips[0].distance_km,
                         )
                     else:
                         _LOGGER.debug(
-                            "[%s] Vehicle %s has %d trips but no trip data returned",
-                            self._update_ring,
+                            "Vehicle %s has %d trips but no trip data returned",
                             vehicle.name,
                             trip_count,
                         )
@@ -804,8 +763,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                 except Exception as err:
                     self._failed_api_calls += 1
                     _LOGGER.warning(
-                        "[%s] Failed to fetch trips for vehicle %s: %s",
-                        self._update_ring,
+                        "Failed to fetch trips for vehicle %s: %s",
                         vehicle.name,
                         err,
                     )
@@ -817,8 +775,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             self._last_api_call_time = self.hass.loop.time()
 
             _LOGGER.info(
-                "[%s] Successfully updated trip data for %d vehicles with %d total trips in %.2fs",
-                self._update_ring,
+                "Successfully updated trip data for %d vehicles with %d total trips in %.2fs",
                 len(data),
                 total_trips,
                 self._last_update_duration,
@@ -837,8 +794,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             self._failed_api_calls += 1
             self._last_update_duration = self.hass.loop.time() - start_time
             _LOGGER.error(
-                "[%s] Unexpected error fetching trip data: %s",
-                self._update_ring,
+                "Unexpected error fetching trip data: %s",
                 err,
                 exc_info=True,
             )

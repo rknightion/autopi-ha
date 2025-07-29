@@ -208,7 +208,7 @@ class AutoPiVehicleCountSensor(AutoPiEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         if not self.coordinator.data:
-            return {}
+            return {"auto_zero_enabled": False}
 
         return {
             "vehicles": [
@@ -218,7 +218,8 @@ class AutoPiVehicleCountSensor(AutoPiEntity, SensorEntity):
                     "license_plate": vehicle.license_plate,
                 }
                 for vehicle in self.coordinator.data.values()
-            ]
+            ],
+            "auto_zero_enabled": False,
         }
 
 
@@ -265,6 +266,7 @@ class AutoPiFleetAlertCountSensor(AutoPiEntity, SensorEntity):
             for alert in self.coordinator.fleet_alerts
         ]
 
+        attrs["auto_zero_enabled"] = False
         return attrs
 
     @property
@@ -317,6 +319,7 @@ class AutoPiVehicleSensor(AutoPiVehicleEntity, SensorEntity):
             attrs.update(
                 {
                     "name": vehicle.name,
+                    "auto_zero_enabled": False,
                 }
             )
 
@@ -375,9 +378,11 @@ class AutoPiAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        return {
+        attrs = {
             ring: coord.api_call_count for ring, coord in self._coordinators.items()
         }
+        attrs["auto_zero_enabled"] = False
+        return attrs
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -443,10 +448,12 @@ class AutoPiFailedAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        return {
+        attrs = {
             ring: coord.failed_api_call_count
             for ring, coord in self._coordinators.items()
         }
+        attrs["auto_zero_enabled"] = False
+        return attrs
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -502,10 +509,12 @@ class AutoPiSuccessRateSensor(AutoPiEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        return {
+        attrs = {
             ring: round(coord.success_rate, 1)
             for ring, coord in self._coordinators.items()
         }
+        attrs["auto_zero_enabled"] = False
+        return attrs
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -579,6 +588,7 @@ class AutoPiUpdateDurationSensor(AutoPiEntity, SensorEntity):
         if update_times:
             attrs["last_update"] = max(update_times)
 
+        attrs["auto_zero_enabled"] = False
         return attrs
 
     @property
@@ -632,6 +642,7 @@ class AutoPiTripCountSensor(AutoPiVehicleEntity, SensorEntity):
                     vehicle.last_trip.duration_seconds // 60
                 )
 
+        attrs["auto_zero_enabled"] = False
         return attrs
 
 
@@ -691,4 +702,5 @@ class AutoPiLastTripDistanceSensor(AutoPiVehicleEntity, SensorEntity):
                     }
                 )
 
+        attrs["auto_zero_enabled"] = False
         return attrs

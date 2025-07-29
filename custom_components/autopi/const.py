@@ -20,8 +20,6 @@ CONF_SELECTED_VEHICLES: Final = "selected_vehicles"
 
 # Update interval configuration keys
 CONF_UPDATE_INTERVAL_FAST: Final = "update_interval_fast"
-CONF_UPDATE_INTERVAL_MEDIUM: Final = "update_interval_medium"
-CONF_UPDATE_INTERVAL_SLOW: Final = "update_interval_slow"
 
 # Feature configuration
 CONF_AUTO_ZERO_ENABLED: Final = "auto_zero_enabled"
@@ -33,8 +31,6 @@ DEFAULT_SCAN_INTERVAL_MINUTES: Final = 5
 
 # Default update intervals (in minutes)
 DEFAULT_UPDATE_INTERVAL_FAST_MINUTES: Final = 1
-DEFAULT_UPDATE_INTERVAL_MEDIUM_MINUTES: Final = 5
-DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES: Final = 15
 
 MIN_SCAN_INTERVAL_MINUTES: Final = 1
 MAX_SCAN_INTERVAL_MINUTES: Final = 60
@@ -70,10 +66,6 @@ MANUFACTURER: Final = "AutoPi"
 
 UPDATE_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
 
-# Update ring types
-UPDATE_RING_FAST: Final = "fast"
-UPDATE_RING_MEDIUM: Final = "medium"
-UPDATE_RING_SLOW: Final = "slow"
 
 # Data field timeout - how long to show stale data before marking unavailable
 DATA_FIELD_TIMEOUT_MINUTES: Final = 30

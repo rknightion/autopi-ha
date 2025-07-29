@@ -215,12 +215,30 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
             if time_since_update > timedelta(seconds=0):
                 attrs["data_age_seconds"] = int(time_since_update.total_seconds())
 
-        # Add auto-zero status
+        # Always show auto-zero enabled status
+        attrs["auto_zero_enabled"] = self._field_id in AUTO_ZERO_METRICS
+
+        # Add detailed auto-zero status if enabled
         if self._field_id in AUTO_ZERO_METRICS:
             auto_zero_manager = get_auto_zero_manager()
             auto_zero_status = auto_zero_manager.get_metric_status(
                 self._vehicle_id, self._field_id
             )
+            # Remove the redundant auto_zero_enabled from status since we already added it
+            auto_zero_status.pop("auto_zero_enabled", None)
+
+            # Format timestamps nicely if present
+            if "zeroed_at" in auto_zero_status:
+                attrs["auto_zero_last_zeroed"] = auto_zero_status.pop("zeroed_at")
+            if "cooldown_until" in auto_zero_status:
+                attrs["auto_zero_cooldown_until"] = auto_zero_status.pop(
+                    "cooldown_until"
+                )
+
+            # Add is_zeroed status
+            if "is_zeroed" in auto_zero_status:
+                attrs["auto_zero_active"] = auto_zero_status.pop("is_zeroed")
+
             attrs.update(auto_zero_status)
 
         return attrs

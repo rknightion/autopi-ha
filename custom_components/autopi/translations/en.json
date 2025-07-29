@@ -51,12 +51,14 @@
         "title": "AutoPi Options",
         "description": "Configure AutoPi integration options.",
         "data": {
-          "scan_interval": "Polling Frequency",
-          "update_api_key": "Update API Key"
+          "polling_interval": "Update Interval",
+          "update_api_key": "Update API Key",
+          "auto_zero_enabled": "Auto-zero Metrics (BETA)"
         },
         "data_description": {
-          "scan_interval": "How often to fetch data from AutoPi in minutes (1-60)",
-          "update_api_key": "Check this box to update your AutoPi API key"
+          "polling_interval": "How often to fetch all data from AutoPi in minutes (1-60)",
+          "update_api_key": "Check this box to update your AutoPi API key",
+          "auto_zero_enabled": "⚠️ REQUIRES 1-minute polling interval! BETA: Automatically zeros certain metrics when vehicle is not on a trip to prevent stale values."
         }
       },
       "api_key": {
@@ -84,8 +86,64 @@
       "vehicle_count": {
         "name": "Vehicle Count"
       },
+      "fleet_alert_count": {
+        "name": "Fleet Alert Count"
+      },
       "vehicle": {
         "name": "{vehicle_name}"
+      },
+      "altitude": {
+        "name": "Altitude"
+      },
+      "speed": {
+        "name": "Speed"
+      },
+      "course": {
+        "name": "Course"
+      },
+      "satellites": {
+        "name": "GPS Satellites"
+      },
+      "latitude": {
+        "name": "Latitude"
+      },
+      "longitude": {
+        "name": "Longitude"
+      },
+      "trip_count": {
+        "name": "Trip Count"
+      },
+      "last_trip_distance": {
+        "name": "Last Trip Distance"
+      }
+    },
+    "device_tracker": {
+      "vehicle": {
+        "name": "{vehicle_name}"
+      }
+    },
+    "event": {
+      "vehicle_events": {
+        "name": "Events",
+        "event_types": {
+          "charging": "Charging",
+          "charging_slow": "Charging (Slow)",
+          "discharging": "Discharging",
+          "critical_level": "Battery Critical Level",
+          "start": "Trip Start",
+          "stop": "Trip Stop",
+          "engine_start": "Engine Start",
+          "engine_stop": "Engine Stop",
+          "trip_start": "Trip Start",
+          "trip_end": "Trip End",
+          "standstill": "Vehicle Standstill",
+          "moving": "Vehicle Moving",
+          "alert": "Alert",
+          "warning": "Warning",
+          "error": "Error",
+          "unknown": "Unknown Event",
+          "unkown": "Unknown Event"
+        }
       }
     }
   }

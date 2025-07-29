@@ -130,7 +130,7 @@ repos:
     hooks:
     -   id: codespell
         args:
-        -   --ignore-words-list=hass,homeassistant,coordinator,busses
+        -   --ignore-words-list=hass,homeassistant,coordinator,busses,unkown
         -   --skip="*.json,*.csv,.git,*.lock"
         -   --quiet-level=2
 

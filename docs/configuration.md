@@ -59,59 +59,51 @@ Access configuration options after initial setup:
    - Find **AutoPi** integration
    - Click **Configure**
 
-### Update Intervals
+### Available Options
 
-Configure how frequently different types of data are fetched:
+| Option | Description | Default | Range |
+|--------|-------------|---------|-------|
+| Update Interval | How often to fetch all data from AutoPi | 1 minute | 1-60 minutes |
+| Auto-zero Metrics (BETA) | Automatically zero stale metrics when vehicle is not on a trip | Disabled | On/Off |
+| Update API Key | Option to update your AutoPi API key | - | - |
 
-#### Fast Update Ring (Position Data)
-- **Purpose**: GPS position, speed, altitude, course
+### Update Interval
+
+Configure how frequently data is fetched from the AutoPi API:
+
+- **Purpose**: All vehicle data including GPS position, speed, sensors, trip data, and events
 - **Default**: 1 minute
 - **Range**: 1-60 minutes
-- **Impact**: Higher frequency = more accurate tracking, more API calls
+- **Impact**: Higher frequency = more up-to-date data, more API calls
 
-#### Medium Update Ring (Vehicle Status)
-- **Purpose**: Vehicle profile, connection status
-- **Default**: 5 minutes  
-- **Range**: 1-60 minutes
-- **Impact**: Generally stable data, infrequent updates sufficient
-
-#### Slow Update Ring (Reserved)
-- **Purpose**: Future features (trip history, maintenance data)
-- **Default**: 15 minutes
-- **Range**: 1-60 minutes
-- **Impact**: Currently unused, reserved for future expansion
+!!! warning "Auto-Zero Feature Requirement"
+    If you enable the Auto-Zero Metrics feature, the update interval **must be set to 1 minute** for accurate functionality. Longer intervals will make the feature less responsive and may cause it to miss short stops.
 
 ### Configuration Examples
 
-#### High-Frequency Tracking
-For real-time vehicle monitoring:
+#### Real-Time Monitoring
+For near real-time vehicle tracking:
 ```
-Fast Updates: 1 minute
-Medium Updates: 2 minutes
-Slow Updates: 15 minutes
+Update Interval: 1 minute
 ```
-- **Pros**: Near real-time data
-- **Cons**: Higher API usage
+- **Pros**: Most up-to-date data, required for Auto-Zero feature
+- **Cons**: Maximum API usage
 
 #### Balanced Configuration
 For typical home automation:
 ```
-Fast Updates: 2 minutes
-Medium Updates: 5 minutes
-Slow Updates: 15 minutes
+Update Interval: 5 minutes
 ```
-- **Pros**: Good balance of freshness and efficiency
-- **Cons**: Slight delay in position updates
+- **Pros**: Good balance of freshness and API efficiency
+- **Cons**: 5-minute delay in updates, Auto-Zero feature less effective
 
 #### Conservative Configuration
 For minimal API usage:
 ```
-Fast Updates: 10 minutes
-Medium Updates: 30 minutes
-Slow Updates: 60 minutes
+Update Interval: 15-30 minutes
 ```
 - **Pros**: Minimal API calls
-- **Cons**: Less responsive data
+- **Cons**: Significant delays in data updates, Auto-Zero feature not recommended
 
 ## Advanced Configuration
 
@@ -199,8 +191,7 @@ autopi:
       - "vehicle_id_2"
   options:
     update_interval_fast: 1
-    update_interval_medium: 5
-    update_interval_slow: 15
+    auto_zero_enabled: false
 ```
 
 ### Logger Configuration
@@ -256,19 +247,21 @@ logger:
 #### Optimize for Your Use Case
 
 **Real-time Tracking**:
-- Fast updates: 1-2 minutes
+- Update interval: 1 minute
+- Required for Auto-Zero feature
 - Monitor API usage carefully
 - Consider AutoPi plan limits
 
 **Casual Monitoring**:
-- Fast updates: 5-10 minutes
-- Medium updates: 15-30 minutes
-- Balances freshness with efficiency
+- Update interval: 5-10 minutes
+- Good balance of freshness and efficiency
+- Auto-Zero feature will be less responsive
 
 **Minimal Impact**:
-- Fast updates: 30+ minutes
+- Update interval: 30-60 minutes
 - Suitable for occasional checking
 - Minimal API usage
+- Auto-Zero feature not recommended
 
 #### Monitor Integration Health
 Use diagnostic entities to monitor:

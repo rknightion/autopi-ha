@@ -11,15 +11,9 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .auto_zero import get_auto_zero_manager
 from .const import (
     CONF_UPDATE_INTERVAL_FAST,
-    CONF_UPDATE_INTERVAL_SLOW,
     DEFAULT_UPDATE_INTERVAL_FAST_MINUTES,
-    DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES,
     DOMAIN,
     PLATFORMS,
-    UPDATE_RING_FAST,
-)
-from .const import (
-    UPDATE_RING_SLOW as UPDATE_RING_SLOW,
 )
 from .coordinator import (
     AutoPiDataUpdateCoordinator,
@@ -77,9 +71,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create coordinators dictionary
     coordinators = {}
 
-    # Create the fast update coordinator (all data)
+    # Create the base coordinator for vehicle data
     _LOGGER.info("Creating base vehicle data coordinator")
-    coordinator = AutoPiDataUpdateCoordinator(hass, entry, UPDATE_RING_FAST)
+    coordinator = AutoPiDataUpdateCoordinator(hass, entry)
     coordinators["base"] = coordinator
 
     # Perform initial data fetch
@@ -94,7 +88,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Failed to fetch initial data: %s", err)
         raise ConfigEntryNotReady(f"Unable to connect to AutoPi API: {err}") from err
 
-    # Create position coordinator for fast updates (independent of base coordinator)
+    # Create position coordinator (independent of base coordinator)
     _LOGGER.info("Creating position data coordinator")
     position_coordinator = AutoPiPositionCoordinator(hass, entry, coordinator)
     coordinators["position"] = position_coordinator
@@ -108,7 +102,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Position fetch failures are not critical
         _LOGGER.warning("Failed to fetch initial position data: %s", err)
 
-    # Create trip coordinator for slow updates
+    # Create trip coordinator
     _LOGGER.info("Creating trip data coordinator")
     trip_coordinator = AutoPiTripCoordinator(hass, entry, coordinator)
     coordinators["trip"] = trip_coordinator
@@ -176,41 +170,23 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     new_fast_interval = entry.options.get(
         CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
     )
-    new_slow_interval = entry.options.get(
-        CONF_UPDATE_INTERVAL_SLOW, DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
-    )
 
-    # Check main coordinator (fast interval)
-    coordinator = data.get("coordinator")
-    if coordinator:
-        current_interval_minutes = (
-            coordinator.update_interval.total_seconds() / 60
-            if coordinator.update_interval
-            else DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
-        )
-        if new_fast_interval != current_interval_minutes:
-            intervals_changed = True
-            _LOGGER.info(
-                "Fast update interval changed from %d to %d minutes",
-                current_interval_minutes,
-                new_fast_interval,
+    # Check all coordinators for interval changes
+    for coord_name, coordinator in data.get("coordinators", {}).items():
+        if coordinator:
+            current_interval_minutes = (
+                coordinator.update_interval.total_seconds() / 60
+                if coordinator.update_interval
+                else DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
             )
-
-    # Check trip coordinator (slow interval)
-    trip_coordinator = data.get("trip_coordinator")
-    if trip_coordinator:
-        current_slow_minutes = (
-            trip_coordinator.update_interval.total_seconds() / 60
-            if trip_coordinator.update_interval
-            else DEFAULT_UPDATE_INTERVAL_SLOW_MINUTES
-        )
-        if new_slow_interval != current_slow_minutes:
-            intervals_changed = True
-            _LOGGER.info(
-                "Slow update interval changed from %d to %d minutes",
-                current_slow_minutes,
-                new_slow_interval,
-            )
+            if new_fast_interval != current_interval_minutes:
+                intervals_changed = True
+                _LOGGER.info(
+                    "Update interval for %s changed from %d to %d minutes",
+                    coord_name,
+                    current_interval_minutes,
+                    new_fast_interval,
+                )
 
     if intervals_changed:
         _LOGGER.warning(
