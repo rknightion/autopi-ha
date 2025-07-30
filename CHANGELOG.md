@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.5.0] - 2025-07-30
+
+
+### 🚗 Vehicle Features
+- enhance auto-zero debugging capabilities
+
+### 🐛 Bug Fixes
+- update dependency aiohttp to v3.12.15
+
+### 🧰 Maintenance
+7fe4413 chore: remove broken test
+0f1c7ea refactor(auto-zero): simplify stale data detection mechanism
+c7fb8db refactor: remove event type definitions from string files
+679d588 chore: deps
+dd9be17 chore(deps): update dependency pytest-homeassistant-custom-component to v0.13.264
+f47d240 chore(deps): update dependency homeassistant-stubs to v2025.7.4
+
+### 📋 Other Changes
+- Revert "Merge remote-tracking branch 'origin/renovate/aiohttp-3.x'"
+- Merge remote-tracking branch 'origin/renovate/aiohttp-3.x'
+- Merge remote-tracking branch 'origin/renovate/pytest-homeassistant-custom-component-0.x'
+- Merge remote-tracking branch 'origin/renovate/homeassistant-stubs-2025.x'
+
+
 ## [0.4.0] - 2025-07-29
 
 
