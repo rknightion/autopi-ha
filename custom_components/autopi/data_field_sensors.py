@@ -62,10 +62,42 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
         self._last_known_value: Any = None
         self._last_update_time: datetime | None = None
 
+        # Log sensor creation
+        _LOGGER.debug(
+            "[SENSOR INIT] Created sensor %s for vehicle %s (field_id: %s, auto-zero capable: %s)",
+            name,
+            vehicle_id,
+            field_id,
+            field_id in AUTO_ZERO_METRICS,
+        )
+
     @property
     def native_value(self) -> Any:
         """Return the sensor value."""
         try:
+            # Check if auto-zero is enabled and this metric supports it
+            if self._field_id in AUTO_ZERO_METRICS:
+                auto_zero_enabled = self.coordinator.config_entry.options.get(
+                    CONF_AUTO_ZERO_ENABLED, False
+                )
+
+                if auto_zero_enabled:
+                    auto_zero_manager = get_auto_zero_manager()
+
+                    # Special handling: If metric is already marked as zeroed in storage
+                    # but we haven't fetched data yet, return 0 immediately
+                    if auto_zero_manager.is_metric_zeroed(
+                        self._vehicle_id, self._field_id
+                    ):
+                        field_data = self._get_field_data()
+                        if field_data is None:
+                            _LOGGER.debug(
+                                "Sensor %s for vehicle %s is marked as zeroed and no data available, returning 0",
+                                self._attr_name,
+                                self._vehicle_id,
+                            )
+                            return 0
+
             field_data = self._get_field_data()
 
             if field_data is not None:
@@ -123,15 +155,16 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
                     minutes=DATA_FIELD_TIMEOUT_MINUTES
                 ):
                     _LOGGER.debug(
-                        "Using cached value %s for sensor %s on vehicle %s",
+                        "[SENSOR CACHE] Using cached value %s for sensor %s on vehicle %s (last update: %.1f min ago)",
                         self._last_known_value,
                         self._attr_name,
                         self._vehicle_id,
+                        (datetime.now() - self._last_update_time).total_seconds() / 60,
                     )
                     return self._last_known_value
 
             _LOGGER.debug(
-                "No value available for sensor %s on vehicle %s",
+                "[SENSOR] No value available for sensor %s on vehicle %s (no data, no cache)",
                 self._attr_name,
                 self._vehicle_id,
             )

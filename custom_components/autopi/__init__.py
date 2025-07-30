@@ -128,9 +128,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
     # Initialize auto-zero manager with storage
-    _LOGGER.debug("Initializing auto-zero manager")
+    _LOGGER.info("[AUTO-ZERO INIT] Initializing auto-zero manager")
     auto_zero_manager = get_auto_zero_manager()
     await auto_zero_manager.async_initialize(hass)
+    _LOGGER.info(
+        "[AUTO-ZERO INIT] Auto-zero manager initialized, auto_zero_enabled=%s",
+        entry.options.get("auto_zero_enabled", False),
+    )
 
     # Log current options for debugging
     _LOGGER.info(

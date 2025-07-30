@@ -114,6 +114,11 @@ class AutoZeroManager:
                 )
 
                 # Restore zeroed metrics
+                _LOGGER.debug(
+                    "Processing %d zeroed metrics from storage",
+                    len(data["zeroed_metrics"]),
+                )
+
                 for metric_data in data["zeroed_metrics"]:
                     try:
                         vehicle_id = metric_data["vehicle_id"]
@@ -121,14 +126,36 @@ class AutoZeroManager:
                         zeroed_at = datetime.fromisoformat(metric_data["zeroed_at"])
 
                         metric_key = (vehicle_id, field_id)
-                        self._zeroed_metrics[metric_key] = zeroed_at
+                        # Only restore if the metric should still be zeroed
+                        # (i.e., it was zeroed within the last 24 hours)
+                        now = datetime.now(zeroed_at.tzinfo or UTC)
+                        age_hours = (now - zeroed_at).total_seconds() / 3600
 
-                        _LOGGER.info(
-                            "Restored zeroed state for %s on vehicle %s (zeroed at %s)",
+                        _LOGGER.debug(
+                            "Evaluating stored zero state: %s on vehicle %s, zeroed %.1f hours ago",
                             AUTO_ZERO_METRICS.get(field_id, field_id),
                             vehicle_id,
-                            zeroed_at.isoformat(),
+                            age_hours,
                         )
+
+                        if now - zeroed_at < timedelta(hours=24):
+                            self._zeroed_metrics[metric_key] = zeroed_at
+
+                            _LOGGER.info(
+                                "RESTORED zeroed state for %s on vehicle %s (zeroed %.1f hours ago at %s)",
+                                AUTO_ZERO_METRICS.get(field_id, field_id),
+                                vehicle_id,
+                                age_hours,
+                                zeroed_at.isoformat(),
+                            )
+                        else:
+                            _LOGGER.info(
+                                "SKIPPED restoring zeroed state for %s on vehicle %s - too old (%.1f hours, zeroed at %s)",
+                                AUTO_ZERO_METRICS.get(field_id, field_id),
+                                vehicle_id,
+                                age_hours,
+                                zeroed_at.isoformat(),
+                            )
                     except (KeyError, ValueError) as e:
                         _LOGGER.warning(
                             "Failed to restore zeroed metric: %s",
@@ -167,7 +194,17 @@ class AutoZeroManager:
 
             await self._store.async_save(data)
 
-            _LOGGER.debug("Saved %d zeroed metrics to storage", len(zeroed_metrics))
+            _LOGGER.info(
+                "[AUTO-ZERO SAVE] Saved %d zeroed metrics to storage",
+                len(zeroed_metrics),
+            )
+            for metric in zeroed_metrics:
+                _LOGGER.debug(
+                    "[AUTO-ZERO SAVE] Saved: %s on vehicle %s (zeroed at %s)",
+                    AUTO_ZERO_METRICS.get(metric["field_id"], metric["field_id"]),
+                    metric["vehicle_id"],
+                    metric["zeroed_at"],
+                )
 
         except Exception as e:
             _LOGGER.error(
@@ -179,10 +216,16 @@ class AutoZeroManager:
     def _schedule_save(self) -> None:
         """Schedule a save operation to persist state."""
         if self._hass:
+            _LOGGER.debug(
+                "[AUTO-ZERO SAVE] Scheduling save operation with %d zeroed metrics",
+                len(self._zeroed_metrics),
+            )
             # Use Home Assistant's async_create_task to schedule the save
             self._hass.async_create_task(self._async_save())
         else:
-            _LOGGER.debug("No Home Assistant instance available, cannot schedule save")
+            _LOGGER.debug(
+                "[AUTO-ZERO SAVE] No Home Assistant instance available, cannot schedule save"
+            )
 
     def should_zero_metric(
         self,
@@ -227,7 +270,7 @@ class AutoZeroManager:
             now = datetime.now(field_data.last_seen.tzinfo)
 
             _LOGGER.debug(
-                "Processing %s for vehicle %s - last_seen: %s, age: %.1f minutes",
+                "[AUTO-ZERO] Processing %s for vehicle %s - last_seen: %s, age: %.1f minutes",
                 metric_name,
                 vehicle_id,
                 field_data.last_seen.isoformat(),
@@ -239,7 +282,7 @@ class AutoZeroManager:
             was_zeroed = metric_key in self._zeroed_metrics
 
             _LOGGER.debug(
-                "Evaluating auto-zero for %s on vehicle %s: last_seen %.1f min ago, threshold %d min, currently zeroed: %s",
+                "[AUTO-ZERO EVAL] %s on vehicle %s: last_seen %.1f min ago (threshold %d min), currently zeroed: %s",
                 metric_name,
                 vehicle_id,
                 time_since_update.total_seconds() / 60,
@@ -251,7 +294,7 @@ class AutoZeroManager:
             if time_since_update > timedelta(minutes=STALE_DATA_THRESHOLD_MINUTES):
                 if not was_zeroed:
                     _LOGGER.info(
-                        "Auto-zeroing %s for vehicle %s - data is %.1f minutes old (threshold: %d min)",
+                        "[AUTO-ZERO ACTION] ZEROING %s for vehicle %s - data is %.1f minutes old (threshold: %d min)",
                         metric_name,
                         vehicle_id,
                         time_since_update.total_seconds() / 60,
@@ -260,12 +303,37 @@ class AutoZeroManager:
                     self._zeroed_metrics[metric_key] = field_data.last_seen
                     # Schedule save
                     self._schedule_save()
+                    _LOGGER.debug(
+                        "[AUTO-ZERO] Scheduled save after zeroing %s",
+                        metric_name,
+                    )
+                else:
+                    # Update the stored last_seen time if it's changed
+                    stored_last_seen = self._zeroed_metrics.get(metric_key)
+                    if stored_last_seen != field_data.last_seen:
+                        _LOGGER.debug(
+                            "[AUTO-ZERO UPDATE] Updating stored last_seen for already-zeroed %s on vehicle %s (old: %s, new: %s)",
+                            metric_name,
+                            vehicle_id,
+                            stored_last_seen.isoformat()
+                            if stored_last_seen
+                            else "None",
+                            field_data.last_seen.isoformat(),
+                        )
+                        self._zeroed_metrics[metric_key] = field_data.last_seen
+                        # Schedule save
+                        self._schedule_save()
+                    else:
+                        _LOGGER.debug(
+                            "[AUTO-ZERO] %s already zeroed, no update needed",
+                            metric_name,
+                        )
                 return True
             else:
                 # Data is fresh - remove from zeroed metrics if it was zeroed
                 if was_zeroed:
                     _LOGGER.info(
-                        "Un-zeroing %s for vehicle %s - fresh data received (%.1f minutes old)",
+                        "[AUTO-ZERO ACTION] UN-ZEROING %s for vehicle %s - fresh data received (%.1f minutes old)",
                         metric_name,
                         vehicle_id,
                         time_since_update.total_seconds() / 60,
@@ -273,6 +341,17 @@ class AutoZeroManager:
                     del self._zeroed_metrics[metric_key]
                     # Schedule save
                     self._schedule_save()
+                    _LOGGER.debug(
+                        "[AUTO-ZERO] Scheduled save after un-zeroing %s",
+                        metric_name,
+                    )
+                else:
+                    _LOGGER.debug(
+                        "[AUTO-ZERO] %s on vehicle %s has fresh data (%.1f min old), not zeroed",
+                        metric_name,
+                        vehicle_id,
+                        time_since_update.total_seconds() / 60,
+                    )
                 return False
 
         except Exception as e:
@@ -295,7 +374,6 @@ class AutoZeroManager:
         try:
             # Use UTC for internal timestamps
             now = datetime.now(UTC)
-            cutoff = now - timedelta(hours=keep_hours)
 
             # Remove old zeroed metrics that haven't been updated recently
             old_metrics = [
@@ -319,6 +397,39 @@ class AutoZeroManager:
                 str(e),
                 exc_info=True,
             )
+
+    def is_metric_zeroed(self, vehicle_id: str, metric_id: str) -> bool:
+        """Check if a metric is currently marked as zeroed.
+
+        Args:
+            vehicle_id: Vehicle ID
+            metric_id: Metric field ID
+
+        Returns:
+            True if the metric is currently zeroed, False otherwise
+        """
+        metric_key = (vehicle_id, metric_id)
+        is_zeroed = metric_key in self._zeroed_metrics
+
+        if is_zeroed:
+            zeroed_at = self._zeroed_metrics[metric_key]
+            age_minutes = (
+                datetime.now(zeroed_at.tzinfo or UTC) - zeroed_at
+            ).total_seconds() / 60
+            _LOGGER.debug(
+                "is_metric_zeroed check: %s on vehicle %s IS ZEROED (zeroed %.1f minutes ago)",
+                AUTO_ZERO_METRICS.get(metric_id, metric_id),
+                vehicle_id,
+                age_minutes,
+            )
+        else:
+            _LOGGER.debug(
+                "is_metric_zeroed check: %s on vehicle %s NOT ZEROED",
+                AUTO_ZERO_METRICS.get(metric_id, metric_id),
+                vehicle_id,
+            )
+
+        return is_zeroed
 
     def get_metric_status(self, vehicle_id: str, metric_id: str) -> dict[str, Any]:
         """Get the current status of a metric for entity attributes.

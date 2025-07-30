@@ -14,7 +14,6 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, MANUFACTURER
 from .coordinator import AutoPiDataUpdateCoordinator
@@ -51,9 +50,6 @@ async def async_setup_entry(
 
     # Add diagnostic sensors (these aggregate from all coordinators)
     # Use the fast coordinator for updates
-    entities.append(AutoPiAPICallsSensor(coordinator, all_coordinators))
-    entities.append(AutoPiFailedAPICallsSensor(coordinator, all_coordinators))
-    entities.append(AutoPiSuccessRateSensor(coordinator, all_coordinators))
     entities.append(AutoPiUpdateDurationSensor(coordinator, all_coordinators))
 
     # Add individual vehicle sensors
@@ -326,245 +322,6 @@ class AutoPiVehicleSensor(AutoPiVehicleEntity, SensorEntity):
         return attrs
 
 
-class AutoPiAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
-    """Sensor showing the total number of API calls across all coordinators."""
-
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:api"
-    _attr_has_entity_name = True
-    _attr_should_poll = False
-
-    def __init__(
-        self,
-        coordinator: AutoPiDataUpdateCoordinator,
-        coordinators: dict[str, AutoPiDataUpdateCoordinator],
-    ) -> None:
-        """Initialize the API calls sensor."""
-        super().__init__(coordinator, "api_calls")
-        self._coordinators = coordinators
-        # Use the first coordinator's config entry for the unique ID
-        first_coordinator = next(iter(coordinators.values()))
-        self._config_entry_id = first_coordinator.config_entry.entry_id
-        self._attr_unique_id = f"{self._config_entry_id}_api_calls"
-        self._attr_name = "API Calls"
-        self._last_value: int | None = None
-
-    async def async_added_to_hass(self) -> None:
-        """Restore state when entity is added."""
-        await super().async_added_to_hass()
-
-        # Add listeners to all coordinators
-        for coord_name, coord in self._coordinators.items():
-            if coord != self.coordinator:  # Already listening to primary coordinator
-                self.async_on_remove(
-                    coord.async_add_listener(self._handle_coordinator_update)
-                )
-
-        if restored := await self.async_get_last_state():
-            if restored.state not in (None, "unknown", "unavailable"):
-                try:
-                    self._last_value = int(restored.state)
-                except (ValueError, TypeError):
-                    pass
-
-    @property
-    def native_value(self) -> int:
-        """Return the total number of API calls from all coordinators."""
-        total = sum(coord.api_call_count for coord in self._coordinators.values())
-
-        # Debug logging
-        _LOGGER.debug(
-            "API calls sensor update - total: %d, breakdown: %s",
-            total,
-            {ring: coord.api_call_count for ring, coord in self._coordinators.items()},
-        )
-
-        # Handle restoration - if the new total is less than restored, use restored
-        if self._last_value is not None and total < self._last_value:
-            total = self._last_value
-        else:
-            self._last_value = total
-        return total
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return any(coord.last_update_success for coord in self._coordinators.values())
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        attrs = {
-            ring: coord.api_call_count for ring, coord in self._coordinators.items()
-        }
-        attrs["auto_zero_enabled"] = False
-        return attrs
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._config_entry_id)},
-            name="AutoPi Integration",
-            manufacturer=MANUFACTURER,
-            configuration_url="https://app.autopi.io",
-        )
-
-
-class AutoPiFailedAPICallsSensor(AutoPiEntity, RestoreEntity, SensorEntity):
-    """Sensor showing the number of failed API calls across all coordinators."""
-
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:alert-circle"
-    _attr_has_entity_name = True
-    _attr_should_poll = False
-
-    def __init__(
-        self,
-        coordinator: AutoPiDataUpdateCoordinator,
-        coordinators: dict[str, AutoPiDataUpdateCoordinator],
-    ) -> None:
-        """Initialize the failed API calls sensor."""
-        super().__init__(coordinator, "failed_api_calls")
-        self._coordinators = coordinators
-        first_coordinator = next(iter(coordinators.values()))
-        self._config_entry_id = first_coordinator.config_entry.entry_id
-        self._attr_unique_id = f"{self._config_entry_id}_failed_api_calls"
-        self._attr_name = "Failed API Calls"
-        self._last_value: int | None = None
-
-    async def async_added_to_hass(self) -> None:
-        """Restore state when entity is added."""
-        await super().async_added_to_hass()
-
-        # Add listeners to all coordinators
-        for coord_name, coord in self._coordinators.items():
-            if coord != self.coordinator:  # Already listening to primary coordinator
-                self.async_on_remove(
-                    coord.async_add_listener(self._handle_coordinator_update)
-                )
-
-        if restored := await self.async_get_last_state():
-            if restored.state not in (None, "unknown", "unavailable"):
-                try:
-                    self._last_value = int(restored.state)
-                except (ValueError, TypeError):
-                    pass
-
-    @property
-    def native_value(self) -> int:
-        """Return the total number of failed API calls from all coordinators."""
-        total = sum(
-            coord.failed_api_call_count for coord in self._coordinators.values()
-        )
-        # Handle restoration - if the new total is less than restored, use restored
-        if self._last_value is not None and total < self._last_value:
-            total = self._last_value
-        else:
-            self._last_value = total
-        return total
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return any(coord.last_update_success for coord in self._coordinators.values())
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        attrs = {
-            ring: coord.failed_api_call_count
-            for ring, coord in self._coordinators.items()
-        }
-        attrs["auto_zero_enabled"] = False
-        return attrs
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._config_entry_id)},
-            name="AutoPi Integration",
-            manufacturer=MANUFACTURER,
-            configuration_url="https://app.autopi.io",
-        )
-
-
-class AutoPiSuccessRateSensor(AutoPiEntity, SensorEntity):
-    """Sensor showing the API success rate across all coordinators."""
-
-    _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "%"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:percent"
-    _attr_has_entity_name = True
-    _attr_should_poll = False
-
-    def __init__(
-        self,
-        coordinator: AutoPiDataUpdateCoordinator,
-        coordinators: dict[str, AutoPiDataUpdateCoordinator],
-    ) -> None:
-        """Initialize the success rate sensor."""
-        super().__init__(coordinator, "api_success_rate")
-        self._coordinators = coordinators
-        first_coordinator = next(iter(coordinators.values()))
-        self._config_entry_id = first_coordinator.config_entry.entry_id
-        self._attr_unique_id = f"{self._config_entry_id}_api_success_rate"
-        self._attr_name = "API Success Rate"
-
-    async def async_added_to_hass(self) -> None:
-        """Handle entity being added to Home Assistant."""
-        await super().async_added_to_hass()
-
-        # Add listeners to all coordinators
-        for coord_name, coord in self._coordinators.items():
-            if coord != self.coordinator:  # Already listening to primary coordinator
-                self.async_on_remove(
-                    coord.async_add_listener(self._handle_coordinator_update)
-                )
-
-    @property
-    def native_value(self) -> float:
-        """Return the overall success rate from all coordinators."""
-        total_calls = sum(coord.api_call_count for coord in self._coordinators.values())
-        if total_calls == 0:
-            return 100.0
-
-        total_failed = sum(
-            coord.failed_api_call_count for coord in self._coordinators.values()
-        )
-        success_rate = ((total_calls - total_failed) / total_calls) * 100
-        return round(success_rate, 1)
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return any(coord.last_update_success for coord in self._coordinators.values())
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        attrs = {
-            ring: round(coord.success_rate, 1)
-            for ring, coord in self._coordinators.items()
-        }
-        attrs["auto_zero_enabled"] = False
-        return attrs
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._config_entry_id)},
-            name="AutoPi Integration",
-            manufacturer=MANUFACTURER,
-            configuration_url="https://app.autopi.io",
-        )
-
-
 class AutoPiUpdateDurationSensor(AutoPiEntity, SensorEntity):
     """Sensor showing the average duration of the last updates across all coordinators."""
 
@@ -593,7 +350,7 @@ class AutoPiUpdateDurationSensor(AutoPiEntity, SensorEntity):
         await super().async_added_to_hass()
 
         # Add listeners to all coordinators
-        for coord_name, coord in self._coordinators.items():
+        for _coord_name, coord in self._coordinators.items():
             if coord != self.coordinator:  # Already listening to primary coordinator
                 self.async_on_remove(
                     coord.async_add_listener(self._handle_coordinator_update)
