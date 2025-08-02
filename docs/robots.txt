@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+# Encourage indexing of documentation
+Allow: /getting-started/
+Allow: /config/
+Allow: /deployment-operations/
+Allow: /integration-dashboards/
+Allow: /metrics/
+Allow: /collectors/
+Allow: /extending-collectors/
+Allow: /adr/
+Allow: /patterns/
+
+# Static assets
+Allow: /assets/
+Allow: /stylesheets/
+Allow: /javascripts/
+
+Sitemap: https://m7kni.io/autopi-ha/sitemap.xml
+Sitemap: https://m7kni.io/autopi-ha/sitemap.xml.gz
