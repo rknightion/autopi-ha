@@ -13,9 +13,6 @@ These sensors provide information about the AutoPi integration itself:
 | Entity | Description | Category | Device Class | Unit | State Class | Icon |
 |----------|----------|----------|----------|----------|----------|----------|
 | FleetAlertCount | Sensor showing the total number of fleet alerts. | Diagnostic | - | alerts | Measurement | mdi:alert |
-| APICalls | Sensor showing the total number of API calls across all coordinators. | Diagnostic | - | - | Total_Increasing | mdi:api |
-| FailedAPICalls | Sensor showing the number of failed API calls across all coordinators. | Diagnostic | - | - | Total_Increasing | mdi:alert-circle |
-| SuccessRate | Sensor showing the API success rate across all coordinators. | Diagnostic | - | % | Measurement | mdi:percent |
 | UpdateDuration | Sensor showing the average duration of the last updates across all coordinators. | Diagnostic | - | s | Measurement | mdi:timer |
 | TripCount | Sensor showing the total number of trips for a vehicle. | Diagnostic | - | trips | Total | mdi:map-marker-distance |
 | LastTripDistance | Sensor showing the distance of the last trip. | Primary | - | km | Measurement | mdi:road-variant |
@@ -121,9 +118,6 @@ These sensors provide diagnostic information:
 
 | Entity | Description | Category | Device Class | Unit | State Class | Icon |
 |----------|----------|----------|----------|----------|----------|----------|
-| APICalls | Sensor showing the total number of API calls across all coordinators. | Diagnostic | - | - | Total_Increasing | mdi:api |
-| FailedAPICalls | Sensor showing the number of failed API calls across all coordinators. | Diagnostic | - | - | Total_Increasing | mdi:alert-circle |
-| SuccessRate | Sensor showing the API success rate across all coordinators. | Diagnostic | - | % | Measurement | mdi:percent |
 | UpdateDuration | Sensor showing the average duration of the last updates across all coordinators. | Diagnostic | - | s | Measurement | mdi:timer |
 | GSMSignal | GSM signal strength sensor. | Primary | - | - | - | - |
 | DTCCount | Diagnostic trouble code count sensor. | Primary | - | - | - | - |

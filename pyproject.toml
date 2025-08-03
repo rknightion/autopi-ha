@@ -136,6 +136,14 @@ select = [
     "D",   # pydocstyle
     "N",  # pep8-naming
     "Q",  # flake8-quotes
+    "S",
+    "ANN",
+    "TRY",
+    "PLR",
+    "PLC",
+    "DTZ",
+    "BLE",
+    "ASYNC",
 ]
 ignore = [
     "E501",  # line too long
@@ -143,12 +151,18 @@ ignore = [
     "D203",  # one blank line before class
     "D213",  # multi-line docstring summary should start at the second line
     "C901",  # too complex (we'll allow some complexity for now)
+    "COM812", "COM819",
+    "D100", "D203", "D213", "D300",
+    "E111", "E114", "E117",
+    "ISC001", "ISC002",
+    "Q000", "Q001", "Q002", "Q003",
+    "W191",
 ]
 
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D100", "D101", "D102", "D103", "D104"]
+"tests/*" = ["ALL"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

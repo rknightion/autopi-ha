@@ -17,6 +17,7 @@ from .const import (
     CONF_API_KEY,
     CONF_AUTO_ZERO_ENABLED,
     CONF_BASE_URL,
+    CONF_DISCOVERY_ENABLED,
     CONF_SCAN_INTERVAL,
     CONF_SELECTED_VEHICLES,
     CONF_UPDATE_INTERVAL_FAST,
@@ -233,6 +234,121 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.error("Unexpected error during API test: %s", err)
             raise
 
+    async def async_step_discovery(
+        self, discovery_info: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Handle discovery of new vehicles.
+
+        Args:
+            discovery_info: Information about the discovered vehicle
+
+        Returns:
+            ConfigFlowResult
+        """
+        vehicle_id = discovery_info["vehicle_id"]
+        vehicle_name = discovery_info["vehicle_name"]
+        license_plate = discovery_info.get("license_plate", "")
+
+        # Set unique ID to allow ignoring the discovery
+        await self.async_set_unique_id(f"autopi_vehicle_{vehicle_id}")
+        self._abort_if_unique_id_configured()
+
+        # Store discovery info for later use
+        self._discovered_vehicle = discovery_info
+
+        # Create a user-friendly title
+        if license_plate:
+            title = f"{vehicle_name} ({license_plate})"
+        else:
+            title = vehicle_name
+
+        _LOGGER.info(
+            "Discovered new AutoPi vehicle: %s (ID: %s)",
+            title,
+            vehicle_id
+        )
+
+        # Set up the discovery confirmation
+        self.context["title_placeholders"] = {
+            "name": title,
+        }
+
+        return await self.async_step_discovery_confirm()
+
+    async def async_step_discovery_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm discovery of new vehicle.
+
+        Args:
+            user_input: User input from form
+
+        Returns:
+            ConfigFlowResult
+        """
+        if user_input is not None:
+            # User confirmed - add this vehicle to existing config entry
+            vehicle_id = self._discovered_vehicle["vehicle_id"]
+
+            # Find existing config entry with same API key
+            existing_entry = None
+            for entry in self._async_current_entries():
+                if entry.data.get(CONF_API_KEY) == self._discovered_vehicle["api_key"]:
+                    existing_entry = entry
+                    break
+
+            if existing_entry:
+                # Add vehicle to existing entry's selected vehicles
+                selected_vehicles = list(existing_entry.data.get(CONF_SELECTED_VEHICLES, []))
+                if vehicle_id not in selected_vehicles:
+                    selected_vehicles.append(vehicle_id)
+
+                    # Update config entry
+                    self.hass.config_entries.async_update_entry(
+                        existing_entry,
+                        data={
+                            **existing_entry.data,
+                            CONF_SELECTED_VEHICLES: selected_vehicles,
+                        }
+                    )
+
+                    _LOGGER.info(
+                        "Added vehicle %s to existing AutoPi config entry",
+                        vehicle_id
+                    )
+
+                    # Reload the integration to pick up the new vehicle
+                    await self.hass.config_entries.async_reload(existing_entry.entry_id)
+
+                return self.async_abort(reason="vehicle_added")
+            else:
+                # No existing entry - create new one with just this vehicle
+                return self.async_create_entry(
+                    title=DEFAULT_NAME,
+                    data={
+                        CONF_API_KEY: self._discovered_vehicle["api_key"],
+                        CONF_BASE_URL: self._discovered_vehicle["base_url"],
+                        CONF_SELECTED_VEHICLES: [vehicle_id],
+                        CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL_MINUTES,
+                    },
+                )
+
+        # Show confirmation form
+        vehicle_name = self._discovered_vehicle["vehicle_name"]
+        license_plate = self._discovered_vehicle.get("license_plate", "")
+
+        if license_plate:
+            description = f"{vehicle_name} ({license_plate})"
+        else:
+            description = vehicle_name
+
+        return self.async_show_form(
+            step_id="discovery_confirm",
+            description_placeholders={
+                "vehicle": description,
+            },
+        )
+
     async def async_step_reauth(self, user_input=None):
         """Handle reauthentication flow."""
         return await self.async_step_reauth_confirm()
@@ -320,6 +436,8 @@ class AutoPiOptionsFlow(OptionsFlow):
                 options_data[CONF_UPDATE_INTERVAL_FAST] = user_input["polling_interval"]
             if "auto_zero_enabled" in user_input:
                 options_data[CONF_AUTO_ZERO_ENABLED] = user_input["auto_zero_enabled"]
+            if "discovery_enabled" in user_input:
+                options_data[CONF_DISCOVERY_ENABLED] = user_input["discovery_enabled"]
 
             return self.async_create_entry(title="", data=options_data)
 
@@ -328,6 +446,7 @@ class AutoPiOptionsFlow(OptionsFlow):
             CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
         )
         current_auto_zero = self.config_entry.options.get(CONF_AUTO_ZERO_ENABLED, False)
+        current_discovery = self.config_entry.options.get(CONF_DISCOVERY_ENABLED, True)
 
         return self.async_show_form(
             step_id="init",
@@ -348,6 +467,10 @@ class AutoPiOptionsFlow(OptionsFlow):
                     vol.Optional(
                         "auto_zero_enabled",
                         default=current_auto_zero,
+                    ): bool,
+                    vol.Optional(
+                        "discovery_enabled",
+                        default=current_discovery,
                     ): bool,
                 }
             ),

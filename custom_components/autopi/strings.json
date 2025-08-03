@@ -30,6 +30,10 @@
         "data_description": {
           "api_key": "Your new AutoPi API key from the AutoPi dashboard"
         }
+      },
+      "discovery_confirm": {
+        "title": "New AutoPi Vehicle Discovered",
+        "description": "A new vehicle has been discovered in your AutoPi fleet: {vehicle}. Would you like to add it to Home Assistant?"
       }
     },
     "error": {
@@ -42,7 +46,8 @@
       "already_configured": "AutoPi is already configured",
       "no_vehicles": "No vehicles found in your AutoPi account",
       "reauth_successful": "API key updated successfully",
-      "api_key_updated": "API key updated successfully"
+      "api_key_updated": "API key updated successfully",
+      "vehicle_added": "Vehicle added successfully"
     }
   },
   "options": {
@@ -53,12 +58,14 @@
         "data": {
           "polling_interval": "Update Interval",
           "update_api_key": "Update API Key",
-          "auto_zero_enabled": "Auto-zero Metrics (BETA)"
+          "auto_zero_enabled": "Auto-zero Metrics (BETA)",
+          "discovery_enabled": "Auto-discover New Vehicles"
         },
         "data_description": {
           "polling_interval": "How often to fetch all data from AutoPi in minutes (1-10)",
           "update_api_key": "Check this box to update your AutoPi API key",
-          "auto_zero_enabled": "BETA: Automatically zeros certain metrics when data is older than 15 minutes to prevent stale values."
+          "auto_zero_enabled": "BETA: Automatically zeros certain metrics when data is older than 15 minutes to prevent stale values.",
+          "discovery_enabled": "Automatically discover new vehicles added to your AutoPi fleet and show them on the integrations page"
         }
       },
       "api_key": {

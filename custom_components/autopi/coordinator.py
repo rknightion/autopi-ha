@@ -14,6 +14,7 @@ from .client import AutoPiClient
 from .const import (
     CONF_API_KEY,
     CONF_BASE_URL,
+    CONF_DISCOVERY_ENABLED,
     CONF_SELECTED_VEHICLES,
     CONF_UPDATE_INTERVAL_FAST,
     DEFAULT_BASE_URL,
@@ -71,6 +72,11 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         # Device events tracking
         self._device_events: dict[str, list[AutoPiEvent]] = {}
         self._last_event_timestamps: dict[str, str] = {}
+
+        # Discovery tracking
+        self._all_vehicles: list[AutoPiVehicle] = []
+        # Initialize discovered vehicles with already selected vehicles
+        self._discovered_vehicles: set[str] = set(self._selected_vehicles)
 
         # Get configured interval from options or use default
         options = config_entry.options
@@ -140,22 +146,29 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 len(vehicles),
             )
 
+            # Store all vehicles for discovery
+            self._all_vehicles = vehicles
+
+            # Check for new vehicles not in selected list
+            await self._check_for_new_vehicles(vehicles)
+
             # Filter to selected vehicles if specified
             if self._selected_vehicles:
-                vehicles = [v for v in vehicles if str(v.id) in self._selected_vehicles]
+                filtered_vehicles = [v for v in vehicles if str(v.id) in self._selected_vehicles]
                 _LOGGER.debug(
                     "Filtered to %d selected vehicles (from %d total)",
+                    len(filtered_vehicles),
                     len(vehicles),
-                    len(self._selected_vehicles),
                 )
             else:
+                filtered_vehicles = vehicles
                 _LOGGER.debug(
                     "No vehicle filter applied, using all %d vehicles",
                     len(vehicles),
                 )
 
             # Convert to coordinator data format
-            data: CoordinatorData = {str(vehicle.id): vehicle for vehicle in vehicles}
+            data: CoordinatorData = {str(vehicle.id): vehicle for vehicle in filtered_vehicles}
 
             _LOGGER.debug("Successfully updated data for %d vehicles", len(data))
 
@@ -292,7 +305,20 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             selected_vehicles,
         )
 
+        # Update selected vehicles
+        old_selected = self._selected_vehicles
         self._selected_vehicles = set(selected_vehicles)
+
+        # Remove deselected vehicles from discovered set so they can be re-discovered
+        deselected = old_selected - self._selected_vehicles
+        if deselected:
+            self._discovered_vehicles -= deselected
+            _LOGGER.debug(
+                "Removed %d deselected vehicles from discovered set: %s",
+                len(deselected),
+                deselected
+            )
+
         await self.async_refresh()
 
     def get_vehicle_count(self) -> int:
@@ -417,6 +443,76 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             List of events for the device
         """
         return self._device_events.get(device_id, [])
+
+    async def _check_for_new_vehicles(self, vehicles: list[AutoPiVehicle]) -> None:
+        """Check for new vehicles and initiate discovery flows.
+
+        Args:
+            vehicles: List of all vehicles from the API
+        """
+        # Check if discovery is enabled
+        if not self.config_entry.options.get(CONF_DISCOVERY_ENABLED, True):
+            _LOGGER.debug("Vehicle discovery is disabled")
+            return
+
+        # Get current selected vehicle IDs
+        current_selected = self._selected_vehicles
+
+        # Get all known vehicle IDs (selected + previously discovered)
+        known_vehicles = current_selected | self._discovered_vehicles
+
+        # Find new vehicles
+        all_vehicle_ids = {str(v.id) for v in vehicles}
+        new_vehicle_ids = all_vehicle_ids - known_vehicles
+
+        if new_vehicle_ids:
+            _LOGGER.info(
+                "Found %d new vehicles: %s",
+                len(new_vehicle_ids),
+                new_vehicle_ids
+            )
+
+            # Add to discovered set
+            self._discovered_vehicles.update(new_vehicle_ids)
+
+            # Initiate discovery flow for each new vehicle
+            for vehicle_id in new_vehicle_ids:
+                vehicle = next((v for v in vehicles if str(v.id) == vehicle_id), None)
+                if vehicle:
+                    _LOGGER.debug(
+                        "Initiating discovery flow for vehicle %s (%s)",
+                        vehicle.name,
+                        vehicle.license_plate or "No plate"
+                    )
+
+                    # Create discovery context
+                    discovery_data = {
+                        "vehicle_id": str(vehicle.id),
+                        "vehicle_name": vehicle.name,
+                        "license_plate": vehicle.license_plate,
+                        "vin": vehicle.vin,
+                        "api_key": self.config_entry.data[CONF_API_KEY],
+                        "base_url": self.config_entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
+                    }
+
+                    # Initiate discovery flow
+                    await self.hass.config_entries.flow.async_init(
+                        DOMAIN,
+                        context={"source": "discovery"},
+                        data=discovery_data,
+                    )
+        else:
+            _LOGGER.debug(
+                "No new vehicles found. Total: %d, Selected: %d, Discovered: %d",
+                len(vehicles),
+                len(current_selected),
+                len(self._discovered_vehicles)
+            )
+
+    @property
+    def all_vehicles(self) -> list[AutoPiVehicle]:
+        """Get all vehicles from the API."""
+        return self._all_vehicles
 
 
 class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):

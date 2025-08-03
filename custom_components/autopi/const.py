@@ -23,6 +23,7 @@ CONF_UPDATE_INTERVAL_FAST: Final = "update_interval_fast"
 
 # Feature configuration
 CONF_AUTO_ZERO_ENABLED: Final = "auto_zero_enabled"
+CONF_DISCOVERY_ENABLED: Final = "discovery_enabled"
 
 DEFAULT_NAME: Final = "AutoPi"
 DEFAULT_BASE_URL: Final = "https://api.autopi.io"

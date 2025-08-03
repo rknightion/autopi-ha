@@ -623,7 +623,7 @@ Many entities expose additional properties that can be accessed programmatically
 ### Device Tracker Properties
 
 - `latitude`: Current GPS latitude
-- `longitude`: Current GPS longitude  
+- `longitude`: Current GPS longitude
 - `gps_accuracy`: Position accuracy in meters
 - `battery_level`: Device battery percentage
 
