@@ -17,6 +17,16 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 
+## [0.7.0] - 2025-08-03
+
+
+### 🚗 Vehicle Features
+- add auto-removal of deleted vehicles
+
+### 📋 Other Changes
+- Merge remote-tracking branch 'origin/main'
+
+
 ## [0.6.0] - 2025-08-03
 
 

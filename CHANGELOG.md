@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.7.0] - 2025-08-03
+
+
+### 🚗 Vehicle Features
+- add auto-removal of deleted vehicles
+
+### 📋 Other Changes
+- Merge remote-tracking branch 'origin/main'
+
+
 ## [0.6.0] - 2025-08-03
 
 
