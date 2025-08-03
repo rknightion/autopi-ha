@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -151,6 +152,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
             # Check for new vehicles not in selected list
             await self._check_for_new_vehicles(vehicles)
+
+            # Check for removed vehicles
+            await self._check_for_removed_vehicles(vehicles)
 
             # Filter to selected vehicles if specified
             if self._selected_vehicles:
@@ -513,6 +517,86 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
     def all_vehicles(self) -> list[AutoPiVehicle]:
         """Get all vehicles from the API."""
         return self._all_vehicles
+
+    async def _check_for_removed_vehicles(self, vehicles: list[AutoPiVehicle]) -> None:
+        """Check for vehicles that have been removed from the API.
+
+        Args:
+            vehicles: List of all vehicles from the API
+        """
+        # Get all vehicle IDs from API
+        current_api_vehicle_ids = {str(v.id) for v in vehicles}
+
+        # Find vehicles that are selected but no longer exist in API
+        removed_vehicle_ids = self._selected_vehicles - current_api_vehicle_ids
+
+        if removed_vehicle_ids:
+            _LOGGER.warning(
+                "Found %d vehicles that no longer exist in API: %s",
+                len(removed_vehicle_ids),
+                removed_vehicle_ids
+            )
+
+            # Get device registry
+            device_registry = dr.async_get(self.hass)
+
+            # Get entity registry
+            entity_registry = er.async_get(self.hass)
+
+            for vehicle_id in removed_vehicle_ids:
+                _LOGGER.info(
+                    "Removing vehicle %s from selected vehicles as it no longer exists in API",
+                    vehicle_id
+                )
+
+                # Remove the device and all its entities
+                device_entry = device_registry.async_get_device(
+                    identifiers={(DOMAIN, f"vehicle_{vehicle_id}")}
+                )
+
+                if device_entry:
+                    _LOGGER.info(
+                        "Removing device %s for vehicle %s",
+                        device_entry.name,
+                        vehicle_id
+                    )
+
+                    # Remove all entities associated with this device
+                    entities = entity_registry.entities.get_entries_for_device_id(
+                        device_entry.id,
+                        include_disabled_entities=True
+                    )
+                    for entity in entities:
+                        _LOGGER.debug(
+                            "Removing entity %s for vehicle %s",
+                            entity.entity_id,
+                            vehicle_id
+                        )
+                        entity_registry.async_remove(entity.entity_id)
+
+                    # Remove the device
+                    device_registry.async_remove_device(device_entry.id)
+
+            # Update selected vehicles to remove the deleted ones
+            self._selected_vehicles -= removed_vehicle_ids
+
+            # Also remove from discovered vehicles
+            self._discovered_vehicles -= removed_vehicle_ids
+
+            # Update config entry with new selected vehicles
+            updated_data = {
+                **self.config_entry.data,
+                CONF_SELECTED_VEHICLES: list(self._selected_vehicles)
+            }
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                data=updated_data
+            )
+
+            _LOGGER.info(
+                "Updated config entry to remove %d deleted vehicles",
+                len(removed_vehicle_ids)
+            )
 
 
 class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
