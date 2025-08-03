@@ -17,6 +17,16 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 
+## [0.6.0] - 2025-08-03
+
+
+### 🚗 Vehicle Features
+- implement automatic vehicle discovery
+
+### 📋 Other Changes
+- add robots
+
+
 ## [0.5.0] - 2025-07-30
 
 
