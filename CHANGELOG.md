@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.6.0] - 2025-08-03
+
+
+### 🚗 Vehicle Features
+- implement automatic vehicle discovery
+
+### 📋 Other Changes
+- add robots
+
+
 ## [0.5.0] - 2025-07-30
 
 
