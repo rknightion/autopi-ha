@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
@@ -260,7 +260,7 @@ class DataFieldValue:
     @classmethod
     def from_api_data(cls, data: DataFieldResponse) -> DataFieldValue:
         """Create DataFieldValue from API data."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         return cls(
             field_prefix=data["field_prefix"],
             field_name=data["field_name"],
@@ -320,7 +320,7 @@ class AutoPiTrip:
                 duration_seconds = int(
                     (datetime.now(start_time.tzinfo) - start_time).total_seconds()
                 )
-            except Exception:
+            except (ValueError, TypeError):
                 # If parsing fails, duration remains 0
                 duration_seconds = 0
 
@@ -336,7 +336,7 @@ class AutoPiTrip:
             end_address = end_display.get("address")
 
         # Handle end_time_utc - can be empty string for in-progress trips
-        end_time = datetime.now()  # Default to now for in-progress trips
+        end_time = datetime.now(UTC)  # Default to now for in-progress trips
         end_time_str = data.get("end_time_utc", "")
         if end_time_str and end_time_str.strip():  # Check for non-empty string
             try:

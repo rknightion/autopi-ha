@@ -1,10 +1,11 @@
 """Tests for AutoPi data update coordinators."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from contextlib import contextmanager
 
 from custom_components.autopi.const import DOMAIN
 from custom_components.autopi.coordinator import (
@@ -18,14 +19,43 @@ from custom_components.autopi.exceptions import (
 from custom_components.autopi.types import AutoPiVehicle, DataFieldValue
 
 
+@contextmanager
+def patch_autopi_dependencies(mock_client):
+    """Patch all AutoPi dependencies for testing."""
+    with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
+         patch("custom_components.autopi.coordinator.async_get_clientsession"), \
+         patch("custom_components.autopi.coordinator.dr.async_get") as mock_dr, \
+         patch("custom_components.autopi.coordinator.er.async_get") as mock_er:
+        # Mock device registry
+        mock_device_registry = Mock()
+        mock_device_registry.async_get_device.return_value = None
+        mock_device_registry.async_remove_device = Mock()
+        mock_dr.return_value = mock_device_registry
+        # Mock entity registry
+        mock_entity_registry = Mock()
+        mock_entity_registry.entities = Mock()
+        mock_entity_registry.entities.get_entries_for_device_id.return_value = []
+        mock_entity_registry.async_remove = Mock()
+        mock_er.return_value = mock_entity_registry
+        yield
+
+
 @pytest.fixture
 def mock_hass():
     """Create a mock Home Assistant instance."""
     hass = Mock()
     hass.config_entries = Mock()
     hass.config_entries.async_reload = AsyncMock()
+    hass.config_entries.flow = Mock()
+    hass.config_entries.flow.async_init = AsyncMock()
+    hass.config_entries.async_update_entry = Mock()
     hass.loop = Mock()
     hass.loop.time = Mock(return_value=0)
+    hass.bus = Mock()
+    hass.bus.async_fire = Mock()
+    hass.data = {}
+    # Add helpers for device/entity registry
+    hass.helpers = Mock()
     return hass
 
 
@@ -39,8 +69,9 @@ def mock_config_entry():
         "base_url": "https://api.autopi.io",
         "selected_vehicles": ["123", "456"],
     }
-    entry.options = {}
+    entry.options = {"discovery_enabled": True}
     entry.async_start_reauth = Mock()
+    entry.async_update_entry = Mock()
     return entry
 
 
@@ -50,6 +81,8 @@ def mock_client():
     client = Mock()
     client.get_vehicles = AsyncMock()
     client.get_data_fields = AsyncMock()
+    client.get_fleet_alerts = AsyncMock(return_value=(0, []))
+    client.get_device_events = AsyncMock(return_value=[])
     client.close = AsyncMock()
     return client
 
@@ -101,8 +134,7 @@ class TestAutoPiDataUpdateCoordinator:
     @pytest.mark.asyncio
     async def test_fetch_data_success(self, mock_hass, mock_config_entry, mock_client, mock_vehicle):
         """Test successful data fetching."""
-        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
-             patch("custom_components.autopi.coordinator.async_get_clientsession"):
+        with patch_autopi_dependencies(mock_client):
             mock_client.get_vehicles.return_value = [mock_vehicle]
 
             coordinator = AutoPiDataUpdateCoordinator(
@@ -118,8 +150,7 @@ class TestAutoPiDataUpdateCoordinator:
     @pytest.mark.asyncio
     async def test_fetch_data_filters_vehicles(self, mock_hass, mock_config_entry, mock_client):
         """Test that only selected vehicles are included."""
-        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
-             patch("custom_components.autopi.coordinator.async_get_clientsession"):
+        with patch_autopi_dependencies(mock_client):
             vehicle1 = AutoPiVehicle(
                 id=123, name="Vehicle 1", license_plate="ABC123", vin="123", year=2020,
                 type="ICE", battery_voltage=12, devices=[], make_id=1, model_id=1,
@@ -151,8 +182,7 @@ class TestAutoPiDataUpdateCoordinator:
     @pytest.mark.asyncio
     async def test_fetch_data_auth_error(self, mock_hass, mock_config_entry, mock_client):
         """Test authentication error handling."""
-        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
-             patch("custom_components.autopi.coordinator.async_get_clientsession"):
+        with patch_autopi_dependencies(mock_client):
             mock_client.get_vehicles.side_effect = AutoPiAuthenticationError("Invalid API key")
 
             coordinator = AutoPiDataUpdateCoordinator(
@@ -167,8 +197,7 @@ class TestAutoPiDataUpdateCoordinator:
     @pytest.mark.asyncio
     async def test_fetch_data_connection_error(self, mock_hass, mock_config_entry, mock_client):
         """Test connection error handling."""
-        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
-             patch("custom_components.autopi.coordinator.async_get_clientsession"):
+        with patch_autopi_dependencies(mock_client):
             mock_client.get_vehicles.side_effect = AutoPiConnectionError("Connection failed")
 
             coordinator = AutoPiDataUpdateCoordinator(
@@ -210,8 +239,7 @@ class TestAutoPiPositionCoordinator:
         """Test successful position data fetching."""
         mock_base_coordinator.data = {"123": mock_vehicle}
 
-        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
-             patch("custom_components.autopi.coordinator.async_get_clientsession"):
+        with patch_autopi_dependencies(mock_client):
             # Mock data fields response
             data_fields = {
             "track.pos.loc": DataFieldValue(
@@ -220,10 +248,10 @@ class TestAutoPiPositionCoordinator:
                 frequency=1.0,
                 value_type="dict",
                 title="Location",
-                last_seen=datetime.now(),
+                last_seen=datetime.now(UTC),
                 last_value={"lat": 51.264327, "lon": -1.085937},
                 description="GPS location",
-                last_update=datetime.now(),
+                last_update=datetime.now(UTC),
             ),
             "track.pos.alt": DataFieldValue(
                 field_prefix="track.pos",
@@ -231,10 +259,10 @@ class TestAutoPiPositionCoordinator:
                 frequency=1.0,
                 value_type="int",
                 title="Altitude",
-                last_seen=datetime.now(),
+                last_seen=datetime.now(UTC),
                 last_value=150,
                 description="GPS altitude",
-                last_update=datetime.now(),
+                last_update=datetime.now(UTC),
             ),
             }
             mock_client.get_data_fields.return_value = data_fields
@@ -263,8 +291,7 @@ class TestAutoPiPositionCoordinator:
         """Test handling partial position data fields."""
         mock_base_coordinator.data = {"123": mock_vehicle}
 
-        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
-             patch("custom_components.autopi.coordinator.async_get_clientsession"):
+        with patch_autopi_dependencies(mock_client):
             # Mock hass.data to avoid TypeErrors
             mock_hass.data = {DOMAIN: {}}
 
@@ -276,10 +303,10 @@ class TestAutoPiPositionCoordinator:
                     frequency=1.0,
                     value_type="dict",
                     title="Location",
-                    last_seen=datetime.now(),
+                    last_seen=datetime.now(UTC),
                     last_value={"lat": 51.264327, "lon": -1.085937},
                     description="GPS location",
-                    last_update=datetime.now(),
+                    last_update=datetime.now(UTC),
                 ),
             }
             mock_client.get_data_fields.return_value = data_fields
@@ -315,8 +342,7 @@ class TestAutoPiPositionCoordinator:
 
         mock_base_coordinator.data = {"123": vehicle_no_devices}
 
-        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
-             patch("custom_components.autopi.coordinator.async_get_clientsession"):
+        with patch_autopi_dependencies(mock_client):
             # Mock hass.data to avoid TypeErrors
             mock_hass.data = {DOMAIN: {}}
 
@@ -336,8 +362,7 @@ class TestAutoPiPositionCoordinator:
         """Test handling API errors when fetching data fields."""
         mock_base_coordinator.data = {"123": mock_vehicle}
 
-        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
-             patch("custom_components.autopi.coordinator.async_get_clientsession"):
+        with patch_autopi_dependencies(mock_client):
             mock_client.get_data_fields.side_effect = Exception("API error")
 
             # Mock hass.data to avoid TypeErrors
@@ -347,11 +372,9 @@ class TestAutoPiPositionCoordinator:
                 mock_hass, mock_config_entry, mock_base_coordinator
             )
 
-            data = await coordinator._async_update_data()
-
-            # Should still return vehicle but without data fields
-            assert "123" in data
-            assert data["123"].data_fields == {}
+            # Should raise UpdateFailed on API error
+            with pytest.raises(UpdateFailed, match="Failed to fetch data fields"):
+                await coordinator._async_update_data()
 
     @pytest.mark.asyncio
     async def test_position_update_interval_from_options(self, mock_hass, mock_config_entry, mock_client, mock_base_coordinator):
@@ -369,8 +392,7 @@ class TestAutoPiPositionCoordinator:
         """Test parsing of timestamp from position data."""
         mock_base_coordinator.data = {"123": mock_vehicle}
 
-        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
-             patch("custom_components.autopi.coordinator.async_get_clientsession"):
+        with patch_autopi_dependencies(mock_client):
             data_fields = {
                 "track.pos.loc": DataFieldValue(
                     field_prefix="track.pos",
@@ -378,10 +400,10 @@ class TestAutoPiPositionCoordinator:
                     frequency=1.0,
                     value_type="dict",
                     title="Location",
-                    last_seen=datetime.now(),
+                    last_seen=datetime.now(UTC),
                     last_value={"lat": 51.264327, "lon": -1.085937},
                     description="GPS location",
-                    last_update=datetime.now(),
+                    last_update=datetime.now(UTC),
                 ),
                 "track.pos.alt": DataFieldValue(
                     field_prefix="track.pos",
@@ -389,10 +411,10 @@ class TestAutoPiPositionCoordinator:
                     frequency=1.0,
                     value_type="int",
                     title="Altitude",
-                    last_seen=datetime.now(),
+                    last_seen=datetime.now(UTC),
                     last_value=150,
                     description="GPS altitude",
-                    last_update=datetime.now(),
+                    last_update=datetime.now(UTC),
                 ),
                 "track.pos.utc": DataFieldValue(
                     field_prefix="track.pos",
@@ -400,10 +422,10 @@ class TestAutoPiPositionCoordinator:
                     frequency=1.0,
                     value_type="str",
                     title="UTC Time",
-                    last_seen=datetime.now(),
+                    last_seen=datetime.now(UTC),
                     last_value="2024-01-20T10:30:00.000000+00:00",
                     description="GPS UTC time",
-                    last_update=datetime.now(),
+                    last_update=datetime.now(UTC),
                 ),
             }
             mock_client.get_data_fields.return_value = data_fields
@@ -423,4 +445,4 @@ class TestAutoPiPositionCoordinator:
             # The timestamp should come from loc_field.last_seen which is datetime.now()
             # So we just check that it exists and is recent
             from datetime import timedelta
-            assert abs(vehicle.position.timestamp - datetime.now()) < timedelta(seconds=5)
+            assert abs(vehicle.position.timestamp - datetime.now(UTC)) < timedelta(seconds=5)

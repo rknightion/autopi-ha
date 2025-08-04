@@ -87,12 +87,10 @@ async def async_setup_entry(
                                 len(position_sensors),
                                 vehicle.name,
                             )
-                        except Exception as e:
-                            _LOGGER.error(
-                                "Failed to create position sensors for vehicle %s: %s",
+                        except (AttributeError, ValueError, TypeError):
+                            _LOGGER.exception(
+                                "Failed to create position sensors for vehicle %s",
                                 vehicle.name,
-                                str(e),
-                                exc_info=True,
                             )
 
                         # Create other data field sensors
@@ -106,12 +104,10 @@ async def async_setup_entry(
                                 len(data_field_sensors),
                                 vehicle.name,
                             )
-                        except Exception as e:
-                            _LOGGER.error(
-                                "Failed to create data field sensors for vehicle %s: %s",
+                        except (AttributeError, ValueError, TypeError):
+                            _LOGGER.exception(
+                                "Failed to create data field sensors for vehicle %s",
                                 vehicle.name,
-                                str(e),
-                                exc_info=True,
                             )
                     else:
                         _LOGGER.debug(
@@ -124,12 +120,10 @@ async def async_setup_entry(
                         vehicle.name,
                     )
 
-            except Exception as e:
-                _LOGGER.error(
-                    "Failed to create sensors for vehicle %s: %s",
+            except (AttributeError, ValueError, TypeError):
+                _LOGGER.exception(
+                    "Failed to create sensors for vehicle %s",
                     vehicle.name,
-                    str(e),
-                    exc_info=True,
                 )
 
             # Add trip sensors if trip coordinator is available
@@ -157,12 +151,10 @@ async def async_setup_entry(
                             "No trips found for vehicle %s",
                             vehicle.name,
                         )
-            except Exception as e:
-                _LOGGER.error(
-                    "Failed to create trip sensors for vehicle %s: %s",
+            except (AttributeError, ValueError, TypeError):
+                _LOGGER.exception(
+                    "Failed to create trip sensors for vehicle %s",
                     vehicle.name,
-                    str(e),
-                    exc_info=True,
                 )
 
     _LOGGER.info("Adding %d AutoPi sensor entities", len(entities))

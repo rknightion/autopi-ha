@@ -107,8 +107,8 @@ class AutoPiClient:
 
             return vehicles
 
-        except Exception as err:
-            _LOGGER.error("Failed to fetch vehicles: %s", err)
+        except Exception:
+            _LOGGER.exception("Failed to fetch vehicles")
             raise
 
     async def get_data_fields(
@@ -170,8 +170,8 @@ class AutoPiClient:
             )
             return fields
 
-        except Exception as err:
-            _LOGGER.error("Failed to fetch data fields: %s", err)
+        except Exception:
+            _LOGGER.exception("Failed to fetch data fields")
             raise
 
     async def get_trips(
@@ -237,8 +237,8 @@ class AutoPiClient:
 
             return count, trips
 
-        except Exception as err:
-            _LOGGER.error("Failed to fetch trips: %s", err)
+        except Exception:
+            _LOGGER.exception("Failed to fetch trips")
             raise
 
     async def get_fleet_alerts(self) -> tuple[int, list[FleetAlert]]:
@@ -280,8 +280,8 @@ class AutoPiClient:
 
             return total, alerts
 
-        except Exception as err:
-            _LOGGER.error("Failed to fetch fleet alerts: %s", err)
+        except Exception:
+            _LOGGER.exception("Failed to fetch fleet alerts")
             raise
 
     async def get_device_events(
@@ -335,8 +335,8 @@ class AutoPiClient:
 
             return events
 
-        except Exception as err:
-            _LOGGER.error("Failed to fetch events for device %s: %s", device_id, err)
+        except Exception:
+            _LOGGER.exception("Failed to fetch events for device %s", device_id)
             raise
 
     async def _request(
@@ -445,7 +445,7 @@ class AutoPiClient:
                 try:
                     return await response.json()
                 except Exception as err:
-                    _LOGGER.error("Failed to parse JSON response: %s", response_text)
+                    _LOGGER.exception("Failed to parse JSON response: %s", response_text)
                     raise AutoPiAPIError(
                         "Invalid JSON response from API",
                         data={"response": response_text},
@@ -456,11 +456,11 @@ class AutoPiClient:
             raise
 
         except TimeoutError as err:
-            _LOGGER.error("Request timeout for %s %s", method, url)
+            _LOGGER.exception("Request timeout for %s %s", method, url)
             raise AutoPiTimeoutError(f"Request timeout for {method} {url}") from err
 
         except ClientError as err:
-            _LOGGER.error("Connection error for %s %s: %s", method, url, err)
+            _LOGGER.exception("Connection error for %s %s", method, url)
 
             # Retry on connection errors
             if retry_count < MAX_RETRIES:
@@ -479,5 +479,5 @@ class AutoPiClient:
             ) from err
 
         except Exception as err:
-            _LOGGER.error("Unexpected error during %s %s: %s", method, url, err)
+            _LOGGER.exception("Unexpected error during %s %s", method, url)
             raise AutoPiAPIError(f"Unexpected error: {err}") from err

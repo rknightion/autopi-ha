@@ -1,6 +1,6 @@
 """Tests for AutoPi data field sensors."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -66,7 +66,7 @@ def create_data_field(
 ) -> DataFieldValue:
     """Create a data field value for testing."""
     if last_update is None:
-        last_update = datetime.now()
+        last_update = datetime.now(UTC)
 
     return DataFieldValue(
         field_prefix=field_prefix,
@@ -120,7 +120,7 @@ class TestAutoPiDataFieldSensor:
 
     def test_native_value_with_stale_data(self, mock_coordinator, mock_vehicle):
         """Test native_value returns cached data when within timeout."""
-        old_time = datetime.now() - timedelta(minutes=DATA_FIELD_TIMEOUT_MINUTES - 1)
+        old_time = datetime.now(UTC) - timedelta(minutes=DATA_FIELD_TIMEOUT_MINUTES - 1)
         field = create_data_field("test", "field", 42.0, last_update=old_time)
         mock_vehicle.data_fields = {"test.field": field}
         mock_coordinator.data = {"123": mock_vehicle}
@@ -140,7 +140,7 @@ class TestAutoPiDataFieldSensor:
 
     def test_native_value_with_expired_data(self, mock_coordinator, mock_vehicle):
         """Test native_value returns None when data is expired."""
-        old_time = datetime.now() - timedelta(minutes=DATA_FIELD_TIMEOUT_MINUTES + 1)
+        old_time = datetime.now(UTC) - timedelta(minutes=DATA_FIELD_TIMEOUT_MINUTES + 1)
         field = create_data_field("test", "field", 42.0, last_update=old_time)
         mock_vehicle.data_fields = {"test.field": field}
         mock_coordinator.data = {"123": mock_vehicle}

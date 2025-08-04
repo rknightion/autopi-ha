@@ -7,7 +7,7 @@ from typing import Any
 
 from homeassistant.components.event import EventEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -84,7 +84,7 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
 
         # Listen for device events from our devices
         @callback
-        def _handle_event(event: Any) -> None:
+        def _handle_event(event: Event) -> None:
             """Handle device events."""
             try:
                 event_data = event.data

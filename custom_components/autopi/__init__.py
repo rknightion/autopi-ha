@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.update_coordinator import UpdateFailed
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 
 from .auto_zero import get_auto_zero_manager
 from .const import (
@@ -25,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 # Suppress verbose logging from third-party libraries
-def _setup_logging():
+def _setup_logging() -> None:
     """Configure logging to suppress verbose third-party output."""
     third_party_loggers = [
         "aiohttp",
@@ -84,8 +88,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "Initial data fetch successful, found %d vehicles",
             coordinator.get_vehicle_count(),
         )
-    except Exception as err:
-        _LOGGER.error("Failed to fetch initial data: %s", err)
+    except UpdateFailed as err:
+        _LOGGER.exception("Failed to fetch initial data")
         raise ConfigEntryNotReady(f"Unable to connect to AutoPi API: {err}") from err
 
     # Create position coordinator (independent of base coordinator)
@@ -98,9 +102,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.debug("Performing initial position data fetch")
         await position_coordinator.async_config_entry_first_refresh()
         _LOGGER.info("Initial position data fetch successful")
-    except Exception as err:
+    except UpdateFailed:
         # Position fetch failures are not critical
-        _LOGGER.warning("Failed to fetch initial position data: %s", err)
+        _LOGGER.warning("Failed to fetch initial position data")
 
     # Create trip coordinator
     _LOGGER.info("Creating trip data coordinator")
@@ -112,9 +116,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.debug("Performing initial trip data fetch")
         await trip_coordinator.async_config_entry_first_refresh()
         _LOGGER.info("Initial trip data fetch successful")
-    except Exception as err:
+    except UpdateFailed:
         # Trip fetch failures are not critical
-        _LOGGER.warning("Failed to fetch initial trip data: %s", err)
+        _LOGGER.warning("Failed to fetch initial trip data")
 
     # Log coordinator status
     _LOGGER.info("Coordinator setup complete")

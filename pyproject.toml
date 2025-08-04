@@ -157,12 +157,35 @@ ignore = [
     "ISC001", "ISC002",
     "Q000", "Q001", "Q002", "Q003",
     "W191",
+    # Lower priority style preferences
+    "TRY003",  # Avoid specifying long messages outside exception class
+    "TRY300",  # Consider moving statements to else blocks
+    "TRY002",  # Create custom exceptions
+    "TRY301",  # Abstract raise to an inner function
+    "PLR2004", # Magic value used in comparison
+    "PLR0912", # Too many branches
+    "PLR0915", # Too many statements
+    "PLR0913", # Too many arguments
+    "PLR0911", # Too many return statements
+    "PLC0415", # Import outside top-level (lazy imports)
+    "TD002",   # Missing author in TODO
+    "TD003",   # Missing issue link in TODO
+    "FIX002",  # Line contains TODO
+    "ERA001",  # Commented-out code
+    "ANN401",  # Use of Any (sometimes necessary)
+    # Type checking imports (many false positives)
+    "TC001",   # Move application imports to TYPE_CHECKING
+    "TC002",   # Move third-party imports to TYPE_CHECKING
+    "TC006",   # Quotes in cast expressions
 ]
 
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ALL"]
+"scripts/*" = [
+    "ALL",
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

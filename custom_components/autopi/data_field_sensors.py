@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -151,7 +151,7 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
                 self._last_known_value is not None
                 and self._last_update_time is not None
             ):
-                if datetime.now() - self._last_update_time < timedelta(
+                if datetime.now(UTC) - self._last_update_time < timedelta(
                     minutes=DATA_FIELD_TIMEOUT_MINUTES
                 ):
                     _LOGGER.debug(
@@ -159,7 +159,7 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
                         self._last_known_value,
                         self._attr_name,
                         self._vehicle_id,
-                        (datetime.now() - self._last_update_time).total_seconds() / 60,
+                        (datetime.now(UTC) - self._last_update_time).total_seconds() / 60,
                     )
                     return self._last_known_value
 
@@ -194,7 +194,7 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
 
         # Check if we have stale data within timeout
         if self._last_known_value is not None and self._last_update_time is not None:
-            if datetime.now() - self._last_update_time < timedelta(
+            if datetime.now(UTC) - self._last_update_time < timedelta(
                 minutes=DATA_FIELD_TIMEOUT_MINUTES
             ):
                 return True
@@ -222,7 +222,7 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
 
         # Add stale data indicator if using cached value
         if self._last_update_time is not None:
-            time_since_update = datetime.now() - self._last_update_time
+            time_since_update = datetime.now(UTC) - self._last_update_time
             if time_since_update > timedelta(seconds=0):
                 attrs["data_age_seconds"] = int(time_since_update.total_seconds())
 
@@ -1016,11 +1016,10 @@ def create_data_field_sensors(
                     field_id,
                     vehicle_id,
                 )
-            except Exception as err:
-                _LOGGER.error(
-                    "Failed to create sensor for field %s: %s",
+            except Exception:
+                _LOGGER.exception(
+                    "Failed to create sensor for field %s",
                     field_id,
-                    err,
                 )
 
     return sensors

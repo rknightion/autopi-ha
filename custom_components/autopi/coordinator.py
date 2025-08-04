@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -13,6 +14,10 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .client import AutoPiClient
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 from .const import (
     CONF_API_KEY,
     CONF_BASE_URL,
@@ -27,6 +32,7 @@ from .exceptions import (
     AutoPiAPIError,
     AutoPiAuthenticationError,
     AutoPiConnectionError,
+    AutoPiTimeoutError,
 )
 from .types import (
     AutoPiEvent,
@@ -197,7 +203,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 self._last_alert_ids = current_alert_ids
 
                 _LOGGER.debug("Successfully fetched %d fleet alerts", total_alerts)
-            except Exception as err:
+            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
                 self._failed_api_calls += 1
                 _LOGGER.warning("Failed to fetch fleet alerts: %s", err)
                 # Continue even if alerts fail
@@ -248,7 +254,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                                 device_id,
                             )
 
-                    except Exception as err:
+                    except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
                         self._failed_api_calls += 1
                         _LOGGER.warning(
                             "Failed to fetch events for device %s: %s",
@@ -273,7 +279,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         except AutoPiAuthenticationError as err:
             self._failed_api_calls += 1
             self._last_update_duration = self.hass.loop.time() - start_time
-            _LOGGER.error("Authentication error: %s", err)
+            _LOGGER.exception("Authentication error")
             # Mark config entry for reauth
             self.config_entry.async_start_reauth(self.hass)
             raise UpdateFailed(f"Authentication failed: {err}") from err
@@ -281,13 +287,13 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         except AutoPiConnectionError as err:
             self._failed_api_calls += 1
             self._last_update_duration = self.hass.loop.time() - start_time
-            _LOGGER.error("Connection error: %s", err)
+            _LOGGER.exception("Connection error")
             raise UpdateFailed(f"Failed to connect to AutoPi API: {err}") from err
 
         except AutoPiAPIError as err:
             self._failed_api_calls += 1
             self._last_update_duration = self.hass.loop.time() - start_time
-            _LOGGER.error("API error: %s", err)
+            _LOGGER.exception("API error")
             raise UpdateFailed(f"AutoPi API error: {err}") from err
 
         except Exception as err:
@@ -777,7 +783,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                                                 "Extracted position from data fields for vehicle %s",
                                                 vehicle.name,
                                             )
-                                    except Exception as err:
+                                    except (KeyError, ValueError, TypeError) as err:
                                         _LOGGER.warning(
                                             "Failed to extract position from data fields: %s",
                                             err,
@@ -796,7 +802,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                                     device_id,
                                 )
 
-                        except Exception as err:
+                        except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
                             self._failed_api_calls += 1
                             _LOGGER.warning(
                                 "Failed to fetch data fields for device %s: %s",
@@ -974,7 +980,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                     # TODO: Calculate total distance from all trips (requires paginating through all trips)
                     # For now, we'll track this separately in the sensor
 
-                except Exception as err:
+                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
                     self._failed_api_calls += 1
                     _LOGGER.warning(
                         "Failed to fetch trips for vehicle %s: %s",

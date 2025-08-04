@@ -239,11 +239,10 @@ def create_position_sensors(
                         field_id,
                         vehicle_id,
                     )
-            except Exception as err:
-                _LOGGER.error(
-                    "Failed to create position sensor for field %s: %s",
+            except Exception:
+                _LOGGER.exception(
+                    "Failed to create position sensor for field %s",
                     field_id,
-                    err,
                 )
 
     return sensors

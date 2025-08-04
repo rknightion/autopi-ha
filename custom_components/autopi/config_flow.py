@@ -226,12 +226,12 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return vehicles
 
         except aiohttp.ClientError as err:
-            _LOGGER.error("Connection error: %s", err)
+            _LOGGER.exception("Connection error")
             raise AutoPiConnectionError(
                 f"Failed to connect to AutoPi API: {err}"
             ) from err
-        except Exception as err:
-            _LOGGER.error("Unexpected error during API test: %s", err)
+        except Exception:
+            _LOGGER.exception("Unexpected error during API test")
             raise
 
     async def async_step_discovery(
@@ -349,7 +349,9 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_reauth(self, user_input=None):
+    async def async_step_reauth(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle reauthentication flow."""
         return await self.async_step_reauth_confirm()
 

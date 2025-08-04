@@ -68,7 +68,7 @@ async def fetch_all_events() -> list[dict[str, Any]]:
                 await asyncio.sleep(0.1)
 
             except Exception as e:
-                logger.error(f"Error fetching page {page_num}: {e}")
+                logger.exception(f"Error fetching page {page_num}: {e}")
                 break
 
     return all_events

@@ -164,7 +164,7 @@ class AutoZeroManager:
             else:
                 _LOGGER.debug("No persisted zeroed metrics found")
 
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             _LOGGER.warning(
                 "Failed to load auto-zero state from storage, starting fresh: %s",
                 str(e),

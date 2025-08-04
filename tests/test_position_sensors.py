@@ -1,6 +1,6 @@
 """Tests for AutoPi position sensors."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import Mock
 
@@ -54,7 +54,7 @@ def create_data_field(
     value_type: str = "float",
 ) -> DataFieldValue:
     """Create a data field value for testing."""
-    now = datetime.now()
+    now = datetime.now(UTC)
     return DataFieldValue(
         field_prefix=field_prefix,
         field_name=field_name,
