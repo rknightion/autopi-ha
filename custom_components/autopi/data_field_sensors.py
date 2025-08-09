@@ -608,7 +608,7 @@ class TripOdometerSensor(AutoPiDataFieldSensor):
             "Trip Odometer",
             icon="mdi:map-marker-distance",
             device_class=SensorDeviceClass.DISTANCE,
-            unit_of_measurement=UnitOfLength.METERS,
+            unit_of_measurement=UnitOfLength.KILOMETERS,
             state_class=SensorStateClass.TOTAL_INCREASING,
         )
 
@@ -618,13 +618,8 @@ class TripOdometerSensor(AutoPiDataFieldSensor):
         value = super().native_value
         if value is not None:
             # Convert from meters to kilometers
-            return round(value / 1000.0, 1)
+            return round(value / 1000.0, 2)
         return None
-
-    @property
-    def native_unit_of_measurement(self) -> str:
-        """Return km as the unit."""
-        return UnitOfLength.KILOMETERS
 
 
 class DistanceSinceCodesClearSensor(AutoPiDataFieldSensor):
