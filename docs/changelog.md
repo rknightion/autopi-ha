@@ -17,6 +17,16 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 
+## [0.7.1] - 2025-08-09
+
+
+### 🐛 Bug Fixes
+- units of measturement
+
+### 📋 Other Changes
+- docs
+
+
 ## [0.7.0] - 2025-08-03
 
 
