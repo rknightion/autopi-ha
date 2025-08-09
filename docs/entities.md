@@ -15,7 +15,7 @@ These sensors provide information about the AutoPi integration itself:
 | FleetAlertCount | Sensor showing the total number of fleet alerts. | Diagnostic | - | alerts | Measurement | mdi:alert |
 | UpdateDuration | Sensor showing the average duration of the last updates across all coordinators. | Diagnostic | - | s | Measurement | mdi:timer |
 | TripCount | Sensor showing the total number of trips for a vehicle. | Diagnostic | - | trips | Total | mdi:map-marker-distance |
-| LastTripDistance | Sensor showing the distance of the last trip. | Primary | - | km | Measurement | mdi:road-variant |
+| LastTripDistance | Sensor showing the distance of the last trip. | Primary | Distance | KILOMETERS | Measurement | mdi:road-variant |
 | DistanceSinceCodesClear | Distance since diagnostic codes cleared sensor. | Primary | - | - | - | - |
 
 ### Vehicle Status Sensors
@@ -85,7 +85,7 @@ These sensors provide distance and odometer readings:
 | Entity | Description | Category | Device Class | Unit | State Class | Icon |
 |----------|----------|----------|----------|----------|----------|----------|
 | TripCount | Sensor showing the total number of trips for a vehicle. | Diagnostic | - | trips | Total | mdi:map-marker-distance |
-| LastTripDistance | Sensor showing the distance of the last trip. | Primary | - | km | Measurement | mdi:road-variant |
+| LastTripDistance | Sensor showing the distance of the last trip. | Primary | Distance | KILOMETERS | Measurement | mdi:road-variant |
 | TotalOdometer | Total odometer sensor. | Primary | - | - | - | - |
 | TripOdometer | Trip odometer sensor. | Primary | - | - | - | - |
 | DistanceSinceCodesClear | Distance since diagnostic codes cleared sensor. | Primary | - | - | - | - |
@@ -281,7 +281,7 @@ Many entities expose additional properties that can be accessed programmatically
 ### Device Tracker Properties
 
 - `latitude`: Current GPS latitude
-- `longitude`: Current GPS longitude  
+- `longitude`: Current GPS longitude
 - `gps_accuracy`: Position accuracy in meters
 - `battery_level`: Device battery percentage
 
