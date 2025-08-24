@@ -1,7 +1,10 @@
 name: Dependabot Auto-merge and Labeling
 
-on: pull_request
-
+on: 
+  pull_request:
+    branches: ["**"]
+    
+  workflow_dispatch:
 permissions:
   contents: write
   pull-requests: write
