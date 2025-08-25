@@ -1636,18 +1636,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pbr"
-version = "7.0.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "setuptools" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/8d/23253ab92d4731eb34383a69b39568ca63a1685bec1e9946e91a32fc87ad/pbr-7.0.1.tar.gz", hash = "sha256:3ecbcb11d2b8551588ec816b3756b1eb4394186c3b689b17e04850dfc20f7e57", size = 130086, upload-time = "2025-08-21T09:40:56.015Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/c1/7e588435c2394dfded9197a8307417d1ca3b7f49d9bd5b6227d1f3f03ccd/pbr-7.0.1-py2.py3-none-any.whl", hash = "sha256:32df5156fbeccb6f8a858d1ebc4e465dcf47d6cc7a4895d5df9aa951c712fc35", size = 126091, upload-time = "2025-08-21T09:40:54.614Z" },
-]
-
-[[package]]
 name = "pillow"
 version = "11.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2583,14 +2571,11 @@ wheels = [
 
 [[package]]
 name = "stevedore"
-version = "5.4.1"
+version = "5.5.0"
 source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pbr" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/28/3f/13cacea96900bbd31bb05c6b74135f85d15564fc583802be56976c940470/stevedore-5.4.1.tar.gz", hash = "sha256:3135b5ae50fe12816ef291baff420acb727fcd356106e3e9cbfa9e5985cd6f4b", size = 513858, upload-time = "2025-02-20T14:03:57.285Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/5f/8418daad5c353300b7661dd8ce2574b0410a6316a8be650a189d5c68d938/stevedore-5.5.0.tar.gz", hash = "sha256:d31496a4f4df9825e1a1e4f1f74d19abb0154aff311c3b376fcc89dae8fccd73", size = 513878, upload-time = "2025-08-25T12:54:26.806Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f7/45/8c4ebc0c460e6ec38e62ab245ad3c7fc10b210116cea7c16d61602aa9558/stevedore-5.4.1-py3-none-any.whl", hash = "sha256:d10a31c7b86cba16c1f6e8d15416955fc797052351a56af15e608ad20811fcfe", size = 49533, upload-time = "2025-02-20T14:03:55.849Z" },
+    { url = "https://files.pythonhosted.org/packages/80/c5/0c06759b95747882bb50abda18f5fb48c3e9b0fbfc6ebc0e23550b52415d/stevedore-5.5.0-py3-none-any.whl", hash = "sha256:18363d4d268181e8e8452e71a38cd77630f345b2ef6b4a8d5614dac5ee0d18cf", size = 49518, upload-time = "2025-08-25T12:54:25.445Z" },
 ]
 
 [[package]]
