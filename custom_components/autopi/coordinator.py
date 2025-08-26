@@ -165,7 +165,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
             # Filter to selected vehicles if specified
             if self._selected_vehicles:
-                filtered_vehicles = [v for v in vehicles if str(v.id) in self._selected_vehicles]
+                filtered_vehicles = [
+                    v for v in vehicles if str(v.id) in self._selected_vehicles
+                ]
                 _LOGGER.debug(
                     "Filtered to %d selected vehicles (from %d total)",
                     len(filtered_vehicles),
@@ -179,7 +181,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 )
 
             # Convert to coordinator data format
-            data: CoordinatorData = {str(vehicle.id): vehicle for vehicle in filtered_vehicles}
+            data: CoordinatorData = {
+                str(vehicle.id): vehicle for vehicle in filtered_vehicles
+            }
 
             _LOGGER.debug("Successfully updated data for %d vehicles", len(data))
 
@@ -254,7 +258,11 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                                 device_id,
                             )
 
-                    except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                    except (
+                        AutoPiConnectionError,
+                        AutoPiAPIError,
+                        AutoPiTimeoutError,
+                    ) as err:
                         self._failed_api_calls += 1
                         _LOGGER.warning(
                             "Failed to fetch events for device %s: %s",
@@ -327,7 +335,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             _LOGGER.debug(
                 "Removed %d deselected vehicles from discovered set: %s",
                 len(deselected),
-                deselected
+                deselected,
             )
 
         await self.async_refresh()
@@ -478,9 +486,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
         if new_vehicle_ids:
             _LOGGER.info(
-                "Found %d new vehicles: %s",
-                len(new_vehicle_ids),
-                new_vehicle_ids
+                "Found %d new vehicles: %s", len(new_vehicle_ids), new_vehicle_ids
             )
 
             # Add to discovered set
@@ -493,7 +499,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                     _LOGGER.debug(
                         "Initiating discovery flow for vehicle %s (%s)",
                         vehicle.name,
-                        vehicle.license_plate or "No plate"
+                        vehicle.license_plate or "No plate",
                     )
 
                     # Create discovery context
@@ -503,7 +509,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                         "license_plate": vehicle.license_plate,
                         "vin": vehicle.vin,
                         "api_key": self.config_entry.data[CONF_API_KEY],
-                        "base_url": self.config_entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
+                        "base_url": self.config_entry.data.get(
+                            CONF_BASE_URL, DEFAULT_BASE_URL
+                        ),
                     }
 
                     # Initiate discovery flow
@@ -517,7 +525,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 "No new vehicles found. Total: %d, Selected: %d, Discovered: %d",
                 len(vehicles),
                 len(current_selected),
-                len(self._discovered_vehicles)
+                len(self._discovered_vehicles),
             )
 
     @property
@@ -541,7 +549,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             _LOGGER.warning(
                 "Found %d vehicles that no longer exist in API: %s",
                 len(removed_vehicle_ids),
-                removed_vehicle_ids
+                removed_vehicle_ids,
             )
 
             # Get device registry
@@ -553,7 +561,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             for vehicle_id in removed_vehicle_ids:
                 _LOGGER.info(
                     "Removing vehicle %s from selected vehicles as it no longer exists in API",
-                    vehicle_id
+                    vehicle_id,
                 )
 
                 # Remove the device and all its entities
@@ -565,19 +573,18 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                     _LOGGER.info(
                         "Removing device %s for vehicle %s",
                         device_entry.name,
-                        vehicle_id
+                        vehicle_id,
                     )
 
                     # Remove all entities associated with this device
                     entities = entity_registry.entities.get_entries_for_device_id(
-                        device_entry.id,
-                        include_disabled_entities=True
+                        device_entry.id, include_disabled_entities=True
                     )
                     for entity in entities:
                         _LOGGER.debug(
                             "Removing entity %s for vehicle %s",
                             entity.entity_id,
-                            vehicle_id
+                            vehicle_id,
                         )
                         entity_registry.async_remove(entity.entity_id)
 
@@ -593,16 +600,15 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             # Update config entry with new selected vehicles
             updated_data = {
                 **self.config_entry.data,
-                CONF_SELECTED_VEHICLES: list(self._selected_vehicles)
+                CONF_SELECTED_VEHICLES: list(self._selected_vehicles),
             }
             self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data=updated_data
+                self.config_entry, data=updated_data
             )
 
             _LOGGER.info(
                 "Updated config entry to remove %d deleted vehicles",
-                len(removed_vehicle_ids)
+                len(removed_vehicle_ids),
             )
 
 
@@ -802,7 +808,11 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                                     device_id,
                                 )
 
-                        except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                        except (
+                            AutoPiConnectionError,
+                            AutoPiAPIError,
+                            AutoPiTimeoutError,
+                        ) as err:
                             self._failed_api_calls += 1
                             _LOGGER.warning(
                                 "Failed to fetch data fields for device %s: %s",
@@ -980,7 +990,11 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                     # TODO: Calculate total distance from all trips (requires paginating through all trips)
                     # For now, we'll track this separately in the sensor
 
-                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                except (
+                    AutoPiConnectionError,
+                    AutoPiAPIError,
+                    AutoPiTimeoutError,
+                ) as err:
                     self._failed_api_calls += 1
                     _LOGGER.warning(
                         "Failed to fetch trips for vehicle %s: %s",

@@ -44,11 +44,14 @@ def patch_autopi_dependencies(mock_client):
 def mock_hass():
     """Create a mock Home Assistant instance."""
     hass = Mock()
+    hass.data = {}  # Initialize as empty dict for proper iteration
     hass.config_entries = Mock()
     hass.config_entries.async_reload = AsyncMock()
     hass.config_entries.flow = Mock()
     hass.config_entries.flow.async_init = AsyncMock()
     hass.config_entries.async_update_entry = Mock()
+    hass.bus = Mock()
+    hass.bus.async_fire = Mock()
     hass.loop = Mock()
     hass.loop.time = Mock(return_value=0)
     hass.bus = Mock()
@@ -134,8 +137,20 @@ class TestAutoPiDataUpdateCoordinator:
     @pytest.mark.asyncio
     async def test_fetch_data_success(self, mock_hass, mock_config_entry, mock_client, mock_vehicle):
         """Test successful data fetching."""
-        with patch_autopi_dependencies(mock_client):
+        # Mock device and entity registries
+        mock_device_registry = Mock()
+        mock_device_registry.async_get_device = Mock(return_value=None)
+        mock_entity_registry = Mock()
+        mock_entity_registry.entities = Mock()
+        mock_entity_registry.entities.get_entries_for_device_id = Mock(return_value=[])
+        
+        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
+             patch("custom_components.autopi.coordinator.async_get_clientsession"), \
+             patch("custom_components.autopi.coordinator.dr.async_get", return_value=mock_device_registry), \
+             patch("custom_components.autopi.coordinator.er.async_get", return_value=mock_entity_registry):
             mock_client.get_vehicles.return_value = [mock_vehicle]
+            mock_client.get_fleet_alerts.return_value = (0, [])
+            mock_client.get_device_events.return_value = []
 
             coordinator = AutoPiDataUpdateCoordinator(
                 mock_hass, mock_config_entry
@@ -150,7 +165,17 @@ class TestAutoPiDataUpdateCoordinator:
     @pytest.mark.asyncio
     async def test_fetch_data_filters_vehicles(self, mock_hass, mock_config_entry, mock_client):
         """Test that only selected vehicles are included."""
-        with patch_autopi_dependencies(mock_client):
+        # Mock device and entity registries
+        mock_device_registry = Mock()
+        mock_device_registry.async_get_device = Mock(return_value=None)
+        mock_entity_registry = Mock()
+        mock_entity_registry.entities = Mock()
+        mock_entity_registry.entities.get_entries_for_device_id = Mock(return_value=[])
+        
+        with patch("custom_components.autopi.coordinator.AutoPiClient", return_value=mock_client), \
+             patch("custom_components.autopi.coordinator.async_get_clientsession"), \
+             patch("custom_components.autopi.coordinator.dr.async_get", return_value=mock_device_registry), \
+             patch("custom_components.autopi.coordinator.er.async_get", return_value=mock_entity_registry):
             vehicle1 = AutoPiVehicle(
                 id=123, name="Vehicle 1", license_plate="ABC123", vin="123", year=2020,
                 type="ICE", battery_voltage=12, devices=[], make_id=1, model_id=1,
@@ -168,6 +193,8 @@ class TestAutoPiDataUpdateCoordinator:
             )
 
             mock_client.get_vehicles.return_value = [vehicle1, vehicle2, vehicle3]
+            mock_client.get_fleet_alerts.return_value = (0, [])
+            mock_client.get_device_events.return_value = []
 
             coordinator = AutoPiDataUpdateCoordinator(
                 mock_hass, mock_config_entry

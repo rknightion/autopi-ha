@@ -262,11 +262,7 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         else:
             title = vehicle_name
 
-        _LOGGER.info(
-            "Discovered new AutoPi vehicle: %s (ID: %s)",
-            title,
-            vehicle_id
-        )
+        _LOGGER.info("Discovered new AutoPi vehicle: %s (ID: %s)", title, vehicle_id)
 
         # Set up the discovery confirmation
         self.context["title_placeholders"] = {
@@ -299,7 +295,9 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             if existing_entry:
                 # Add vehicle to existing entry's selected vehicles
-                selected_vehicles = list(existing_entry.data.get(CONF_SELECTED_VEHICLES, []))
+                selected_vehicles = list(
+                    existing_entry.data.get(CONF_SELECTED_VEHICLES, [])
+                )
                 if vehicle_id not in selected_vehicles:
                     selected_vehicles.append(vehicle_id)
 
@@ -309,12 +307,11 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data={
                             **existing_entry.data,
                             CONF_SELECTED_VEHICLES: selected_vehicles,
-                        }
+                        },
                     )
 
                     _LOGGER.info(
-                        "Added vehicle %s to existing AutoPi config entry",
-                        vehicle_id
+                        "Added vehicle %s to existing AutoPi config entry", vehicle_id
                     )
 
                     # Reload the integration to pick up the new vehicle

@@ -62,11 +62,11 @@ exclude = [
 # Home Assistant specific configurations
 [[tool.mypy.overrides]]
 module = "homeassistant.*"
-ignore_missing_imports = true
+ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
 module = "autopi.*"
-ignore_missing_imports = true
+ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
 module = "custom_components.autopi.*"
@@ -137,13 +137,6 @@ select = [
     "N",  # pep8-naming
     "Q",  # flake8-quotes
     "S",
-    "ANN",
-    "TRY",
-    "PLR",
-    "PLC",
-    "DTZ",
-    "BLE",
-    "ASYNC",
 ]
 ignore = [
     "E501",  # line too long
