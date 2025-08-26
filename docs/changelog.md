@@ -17,6 +17,60 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 
+## [0.7.2] - 2025-08-26
+
+
+### 🐛 Bug Fixes
+- update dependency aiohttp to v3.12.15
+
+### 🧰 Maintenance
+92840d9 chore(deps): lock file maintenance
+a0d0040 chore(deps): update actions/ai-inference action to v2.0.1 (#40)
+66745b7 chore(deps): update actions/checkout action to v5
+605c1ac chore(deps): update actions/ai-inference action to v2
+c4275a1 chore(deps): update dependency mypy to v1.17.1
+beed3a5 chore(deps): pin dependencies
+fdfbf62 chore(deps): update codecov/codecov-action action to v5.5.0
+28f77f0 chore(deps): update astral-sh/setup-uv action to v6.6.0
+819c19b chore(deps): update zizmorcore/zizmor-action action to v0.1.2
+1777970 chore(deps): update actions/dependency-review-action action to v4.7.2
+36ebbef chore(deps): update actions/ai-inference action to v1.2.8
+f317284 chore(deps): update home-assistant/actions digest to 72e1db9
+f1691a9 chore(deps): update hacs/action digest to 885037d
+9309664 chore(deps): update actions/checkout action to v4.3.0
+a49bd8d chore(deps): update github/codeql-action action to v3.29.11
+38686ec chore(deps): update dependency ruff to v0.12.10
+51d3302 chore(deps): lock file maintenance
+e5e65a0 chore(deps): update dependency homeassistant-stubs to v2025.8.3
+40c237d chore(deps): update dependency pytest-homeassistant-custom-component to v0.13.272
+7269409 refactor: improve error handling and logging practices
+
+### 📋 Other Changes
+- Merge pull request #39 from rknightion/renovate/lock-file-maintenance
+- Merge pull request #36 from rknightion/renovate/actions-ai-inference-2.x
+- Merge pull request #19 from rknightion/renovate/actions-checkout-5.x
+- Merge pull request #9 from rknightion/renovate/mypy-1.x
+- Merge pull request #38 from rknightion/renovate/lock-file-maintenance
+- Merge pull request #37 from rknightion/renovate/pin-dependencies
+- Merge pull request #35 from rknightion/renovate/codecov-codecov-action-5.x
+- Merge pull request #31 from rknightion/renovate/astral-sh-setup-uv-6.x
+- Merge pull request #30 from rknightion/renovate/zizmorcore-zizmor-action-0.x
+- Merge pull request #28 from rknightion/renovate/actions-dependency-review-action-4.x
+- Merge pull request #27 from rknightion/renovate/home-assistant-actions-digest
+- Merge pull request #21 from rknightion/renovate/hacs-action-digest
+- Merge pull request #18 from rknightion/renovate/actions-checkout-4.x
+- Merge pull request #13 from rknightion/renovate/actions-ai-inference-1.x
+- Merge pull request #8 from rknightion/renovate/aiohttp-3.x
+- Merge pull request #7 from rknightion/renovate/github-codeql-action-3.x
+- Merge pull request #6 from rknightion/renovate/ruff-0.x
+- Merge pull request #10 from rknightion/renovate/pytest-homeassistant-custom-component-0.x
+- Merge pull request #16 from rknightion/renovate/homeassistant-stubs-2025.x
+- migrate fully to renovate
+- update pr automerge
+- Merge remote-tracking branch 'origin/main'
+- prepare for hacs submission
+
+
 ## [0.7.1] - 2025-08-09
 
 
