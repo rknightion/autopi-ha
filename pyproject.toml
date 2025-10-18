@@ -17,7 +17,7 @@ classifiers = [
     "Topic :: Home Automation",
 ]
 dependencies = [
-    "aiohttp==3.12.15",
+    "aiohttp==3.13.1",
 ]
 
 [dependency-groups]
