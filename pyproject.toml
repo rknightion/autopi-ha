@@ -27,7 +27,7 @@ dev = [
     "mypy==1.18.2",
     "bandit==1.8.6",
     "safety",
-    "pytest-homeassistant-custom-component==0.13.272",
+    "pytest-homeassistant-custom-component==0.13.288",
     "mkdocs-git-authors-plugin>=0.10.0",
     "mkdocs-git-committers-plugin-2>=2.5.0",
     "mkdocs-git-revision-date-localized-plugin>=1.4.7",
