@@ -1,0 +1,43 @@
+{
+  "count": 3,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": "trip-123",
+      "vehicle": 123,
+      "start_time_utc": "2025-10-19T09:00:00Z",
+      "end_time_utc": "2025-10-19T09:30:00Z",
+      "duration": 1800.0,
+      "distance": 15.5,
+      "start_address": "123 Start St, City",
+      "end_address": "456 End Ave, City",
+      "start_position": [-1.085937, 51.264327],
+      "end_position": [-1.090000, 51.270000]
+    },
+    {
+      "id": "trip-124",
+      "vehicle": 123,
+      "start_time_utc": "2025-10-19T14:00:00Z",
+      "end_time_utc": "2025-10-19T14:45:00Z",
+      "duration": 2700.0,
+      "distance": 22.3,
+      "start_address": "456 End Ave, City",
+      "end_address": "789 Return Rd, City",
+      "start_position": [-1.090000, 51.270000],
+      "end_position": [-1.085937, 51.264327]
+    },
+    {
+      "id": "trip-456",
+      "vehicle": 456,
+      "start_time_utc": "2025-10-19T08:00:00Z",
+      "end_time_utc": "2025-10-19T08:20:00Z",
+      "duration": 1200.0,
+      "distance": 8.7,
+      "start_address": "Home",
+      "end_address": "Office",
+      "start_position": [-0.118092, 51.509865],
+      "end_position": [-0.120000, 51.512000]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 123,
+      "callName": "Test Vehicle",
+      "licensePlate": "ABC123",
+      "vin": "1234567890ABCDEF",
+      "year": 2020,
+      "type": "ICE",
+      "battery_nominal_voltage": 12,
+      "devices": ["device-123"],
+      "make": 1,
+      "model": 1
+    },
+    {
+      "id": 456,
+      "callName": "Second Vehicle",
+      "licensePlate": "XYZ789",
+      "vin": "FEDCBA0987654321",
+      "year": 2021,
+      "type": "EV",
+      "battery_nominal_voltage": 48,
+      "devices": ["device-456"],
+      "make": 2,
+      "model": 2
+    }
+  ]
+}

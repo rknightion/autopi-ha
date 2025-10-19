@@ -1,0 +1,26 @@
+{
+  "123": {
+    "utc_position_timestamp": "2025-10-19T10:00:00Z",
+    "track.pos.loc": [-1.085937, 51.264327],
+    "track.pos.alt": 125.5,
+    "track.pos.sog": 16.67,
+    "track.pos.cog": 45.0,
+    "track.pos.nsat": 12,
+    "obd.rpm.value": 2500.0,
+    "obd.speed.value": 60.0,
+    "obd.coolant_temp.value": 90.0,
+    "obd.engine_load.value": 45.5
+  },
+  "456": {
+    "utc_position_timestamp": "2025-10-19T10:05:00Z",
+    "track.pos.loc": [-0.118092, 51.509865],
+    "track.pos.alt": 15.2,
+    "track.pos.sog": 8.33,
+    "track.pos.cog": 90.0,
+    "track.pos.nsat": 10,
+    "obd.rpm.value": 1800.0,
+    "obd.speed.value": 30.0,
+    "obd.coolant_temp.value": 85.0,
+    "obd.engine_load.value": 30.2
+  }
+}

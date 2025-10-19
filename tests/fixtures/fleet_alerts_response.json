@@ -1,0 +1,29 @@
+{
+  "total": 3,
+  "alerts": [
+    {
+      "id": "alert-1",
+      "severity": "high",
+      "message": "Battery voltage low",
+      "vehicle_id": 123,
+      "timestamp": "2025-10-19T10:00:00Z",
+      "acknowledged": false
+    },
+    {
+      "id": "alert-2",
+      "severity": "medium",
+      "message": "Service due soon",
+      "vehicle_id": 456,
+      "timestamp": "2025-10-19T09:30:00Z",
+      "acknowledged": false
+    },
+    {
+      "id": "alert-3",
+      "severity": "low",
+      "message": "Tire pressure check recommended",
+      "vehicle_id": 123,
+      "timestamp": "2025-10-19T08:00:00Z",
+      "acknowledged": true
+    }
+  ]
+}
