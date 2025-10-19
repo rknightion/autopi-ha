@@ -14,14 +14,14 @@ repos:
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     # Check for the latest ruff version
-    rev: v0.12.10
+    rev: v0.14.1
     hooks:
     -   id: ruff-check
         args: [--fix]
     -   id: ruff-format
 
 -   repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.12.1
+    rev: v1.15.2
     hooks:
     -   id: zizmor
         args: [--fix=all]
@@ -106,13 +106,13 @@ repos:
     -   id: trailing-whitespace
 
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.20.0
+    rev: v3.21.0
     hooks:
     -   id: pyupgrade
-    
+
   # Python static type checking
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.1 # Keep updated
+    rev: v1.18.2 # Keep updated
     hooks:
     -   id: mypy
         additional_dependencies:
@@ -139,7 +139,7 @@ repos:
 
   # Validate GitHub Actions workflow files
 -   repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.33.3 # Keep updated
+    rev: 0.34.1 # Keep updated
     hooks:
     -   id: check-github-workflows
 

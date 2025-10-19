@@ -159,7 +159,8 @@ class AutoPiDataFieldSensorBase(AutoPiVehicleEntity, SensorEntity):
                         self._last_known_value,
                         self._attr_name,
                         self._vehicle_id,
-                        (datetime.now(UTC) - self._last_update_time).total_seconds() / 60,
+                        (datetime.now(UTC) - self._last_update_time).total_seconds()
+                        / 60,
                     )
                     return self._last_known_value
 

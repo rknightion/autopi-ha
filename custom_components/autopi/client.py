@@ -445,7 +445,9 @@ class AutoPiClient:
                 try:
                     return await response.json()
                 except Exception as err:
-                    _LOGGER.exception("Failed to parse JSON response: %s", response_text)
+                    _LOGGER.exception(
+                        "Failed to parse JSON response: %s", response_text
+                    )
                     raise AutoPiAPIError(
                         "Invalid JSON response from API",
                         data={"response": response_text},
