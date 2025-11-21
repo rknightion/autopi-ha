@@ -76,7 +76,7 @@ jobs:
           persist-credentials: false
 
       - name: Run hassfest
-        uses: home-assistant/actions/hassfest@8ca6e134c077479b26138bd33520707e8d94ef59 # master
+        uses: home-assistant/actions/hassfest@01a62fa0b7ab4a0ac894184f48a82477812dca4b # master
 
   # Validate HACS compliance
   hacs:
