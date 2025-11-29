@@ -4,7 +4,7 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-echo "Setting up Meraki Dashboard Home Assistant Integration development environment..."
+echo "Setting up AutoPI Home Assistant Integration development environment..."
 
 # Check if uv is installed
 pip3 install uv
