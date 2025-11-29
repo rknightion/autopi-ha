@@ -22,11 +22,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "homeassistant-stubs==2025.10.3",
+    "homeassistant-stubs==2025.11.3",
     "ruff==0.14.7",
-    "mypy==1.19.0",
+    "mypy",
     "bandit==1.9.2",
-    "pytest-homeassistant-custom-component==0.13.288",
+    "pytest-homeassistant-custom-component==0.13.297",
     "mkdocs-git-authors-plugin>=0.10.0",
     "mkdocs-git-committers-plugin-2>=2.5.0",
     "mkdocs-git-revision-date-localized-plugin>=1.4.7",
