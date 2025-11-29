@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "Setting up Meraki Dashboard Home Assistant Integration development environment..."
+
+# Check if uv is installed
+pip3 install uv
+
+# Install dependencies and pre-commit hooks using Makefile
+echo "Installing dependencies and pre-commit hooks..."
+make install
+
+echo ""
+echo "Setup complete! 🎉"
+echo ""
+echo "Next steps:"
+echo "  - Run 'make test' to run tests"
+echo "  - Run 'make lint' to check code quality"
+echo "  - Run 'scripts/develop' to start local Home Assistant instance"
+echo "  - See 'make help' for all available commands"
+echo ""

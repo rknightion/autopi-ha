@@ -12,6 +12,11 @@
   "platformAutomerge": true,
   "packageRules": [
     {
+      "description": "Never automerge release-please PRs - manual review required",
+      "matchPaths": [".release-please-*.json"],
+      "automerge": false
+    },
+    {
       "description": "Automerge GitHub Actions",
       "matchManagers": ["github-actions"],
       "labels": ["dep:gha"],

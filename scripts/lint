@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "Running code quality checks..."
+echo ""
+
+# Format code first
+echo "📝 Formatting code with Ruff..."
+make format
+
+echo ""
+echo "🔍 Running linters (Ruff, MyPy, Bandit)..."
+make lint
+
+echo ""
+echo "✅ All code quality checks passed!"
