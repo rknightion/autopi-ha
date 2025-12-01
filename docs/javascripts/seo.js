@@ -17,7 +17,7 @@ function addStructuredData() {
     "applicationCategory": "Vehicle Monitoring Software",
     "operatingSystem": "Home Assistant",
     "description": "A comprehensive Home Assistant custom integration for monitoring AutoPi vehicle tracking devices with real-time OBD-II diagnostics and GPS data",
-    "url": "https://rknightion.github.io/autopi-ha/",
+    "url": "https://m7kni.io/autopi-ha/",
     "downloadUrl": "https://github.com/rknightion/autopi-ha",
     "softwareVersion": "latest",
     "programmingLanguage": "Python",
@@ -52,7 +52,7 @@ function addStructuredData() {
       "price": "0",
       "priceCurrency": "USD"
     },
-    "screenshot": "https://rknightion.github.io/autopi-ha/assets/dashboard-preview.png",
+    "screenshot": "https://m7kni.io/autopi-ha/assets/social-card.png",
     "featureList": [
       "Real-time vehicle diagnostics",
       "GPS tracking and location data",
@@ -80,7 +80,7 @@ function addStructuredData() {
     "publisher": {
       "@type": "Organization",
       "name": "AutoPi Home Assistant Integration",
-      "url": "https://rknightion.github.io/autopi-ha/"
+      "url": "https://m7kni.io/autopi-ha/"
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
@@ -153,7 +153,7 @@ function addOpenGraphTags() {
   addMetaTag('property', 'og:description', description);
   addMetaTag('property', 'og:url', url);
   addMetaTag('property', 'og:locale', 'en_US');
-  addMetaTag('property', 'og:image', 'https://rknightion.github.io/autopi-ha/assets/og-image.png');
+  addMetaTag('property', 'og:image', 'https://m7kni.io/autopi-ha/assets/social-card.png');
   addMetaTag('property', 'og:image:width', '1200');
   addMetaTag('property', 'og:image:height', '630');
   addMetaTag('property', 'og:image:alt', 'AutoPi Home Assistant Integration - Vehicle monitoring for Home Assistant');
@@ -168,7 +168,7 @@ function addTwitterCardTags() {
   addMetaTag('name', 'twitter:card', 'summary_large_image');
   addMetaTag('name', 'twitter:title', title);
   addMetaTag('name', 'twitter:description', description);
-  addMetaTag('name', 'twitter:image', 'https://rknightion.github.io/autopi-ha/assets/twitter-card.png');
+  addMetaTag('name', 'twitter:image', 'https://m7kni.io/autopi-ha/assets/social-card.png');
   addMetaTag('name', 'twitter:creator', '@rknightion');
   addMetaTag('name', 'twitter:site', '@rknightion');
 }

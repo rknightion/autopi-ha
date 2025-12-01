@@ -1,6 +1,7 @@
 ---
 title: AutoPi Home Assistant Integration
 description: Monitor and track your vehicles with AutoPi cloud platform integration for Home Assistant
+image: assets/social-card.png
 ---
 
 # AutoPi Home Assistant Integration

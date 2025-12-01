@@ -1,6 +1,7 @@
 site_name: AutoPi Home Assistant Integration
 site_description: A comprehensive Home Assistant custom integration for monitoring AutoPi vehicle tracking devices with real-time OBD-II diagnostics and GPS data
 site_url: https://m7kni.io/autopi-ha/
+site_author: Rob Knighton
 repo_name: rknightion/autopi-ha
 repo_url: https://github.com/rknightion/autopi-ha
 edit_uri: edit/main/docs/
@@ -8,6 +9,7 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   language: en
+  custom_dir: docs/overrides
   palette:
     - media: "(prefers-color-scheme)"
       toggle:
@@ -69,6 +71,9 @@ plugins:
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
       lang: en
+  - sitemap:
+      changefreq: weekly
+      priority: 0.7
   - meta:
       meta_file: '**/.meta.yml'
   - tags
@@ -190,6 +195,18 @@ nav:
     - FAQ: faq.md
 
 extra:
+  social_image: assets/social-card.png
+  social_image_alt: AutoPi Home Assistant Integration social preview card
+  twitter_site: "@rknightion"
+  twitter_creator: "@rknightion"
+  theme_color: "#3f51b5"
+  keywords:
+    - autopi
+    - home assistant
+    - vehicle tracking
+    - obd diagnostics
+    - gps telemetry
+    - custom integration
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/rknightion/autopi-ha
