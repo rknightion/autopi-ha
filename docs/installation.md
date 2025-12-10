@@ -42,31 +42,22 @@ If you don't have HACS installed:
    - Follow the [official HACS installation guide](https://hacs.xyz/docs/setup/prerequisites)
    - Restart Home Assistant after installation
 
-#### Step 2: Add AutoPi Repository
+#### Step 2: Install from the HACS Default Repository
 
 1. **Open HACS**:
    - Navigate to **HACS** in your Home Assistant sidebar
    - Click on **Integrations**
 
-2. **Add Custom Repository**:
-   - Click the **⋮** (three dots) menu
-   - Select **Custom repositories**
-   - Add repository URL: `https://github.com/rknightion/autopi-ha`
-   - Select category: **Integration**
-   - Click **Add**
+2. **Find AutoPi**:
+   - Search for **AutoPi** in the default HACS integrations list
+   - Open the AutoPi integration page
 
-#### Step 3: Install Integration
-
-1. **Search for AutoPi**:
-   - In HACS Integrations, search for "AutoPi"
-   - Click on **AutoPi** in the results
-
-2. **Install**:
+3. **Install**:
    - Click **Install**
    - Select the version (latest recommended)
    - Wait for download to complete
 
-3. **Restart Home Assistant**:
+4. **Restart Home Assistant**:
    - Go to **Settings** → **System** → **Restart**
    - Wait for restart to complete
 

@@ -1,6 +1,6 @@
 # AutoPi Integration for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=flat-square)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/release/rknightion/autopi-ha.svg?style=flat-square)](https://github.com/rknightion/autopi-ha/releases)
 [![License](https://img.shields.io/github/license/rknightion/autopi-ha.svg?style=flat-square)](LICENSE)
 [![Tests](https://github.com/rknightion/autopi-ha/workflows/Tests/badge.svg)](https://github.com/rknightion/autopi-ha/actions/workflows/tests.yml)
@@ -58,18 +58,15 @@ This integration follows Home Assistant best practices:
 
 ## Installation
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=rknightion&repository=autopi-ha)
+[![Open your Home Assistant instance and install AutoPi from the default HACS store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=rknightion&repository=autopi-ha&category=integration)
 
 ### HACS Installation (Recommended)
 
 1. Open HACS in your Home Assistant instance
-2. Click on "Integrations"
-3. Click the three dots in the top right corner and select "Custom repositories"
-4. Add `https://github.com/rknightion/autopi-ha` as a custom repository
-5. Select "Integration" as the category
-6. Click "Add"
-7. Search for "AutoPi" and install it
-8. Restart Home Assistant
+2. Click on **Integrations**
+3. Search for **AutoPi** in the default HACS integrations list
+4. Install the integration
+5. Restart Home Assistant
 
 ### Manual Installation
 

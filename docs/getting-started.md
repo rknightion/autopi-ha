@@ -49,16 +49,10 @@ Choose your preferred installation method:
    - Visit [HACS installation guide](https://hacs.xyz/docs/setup/prerequisites)
    - Follow the installation instructions
 
-2. **Add Custom Repository**:
-   ```
-   Repository: rknightion/autopi-ha
-   Category: Integration
-   ```
-
-3. **Install Integration**:
-   - Search for "AutoPi" in HACS
-   - Click **Install**
-   - Restart Home Assistant
+2. **Install Integration**:
+   - Open **HACS** → **Integrations**
+   - Search for **AutoPi** in the default HACS list
+   - Click **Install** and restart Home Assistant
 
 ### Option B: Manual Installation
 

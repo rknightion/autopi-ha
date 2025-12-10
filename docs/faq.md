@@ -14,9 +14,9 @@ This page answers common questions about the AutoPi Home Assistant integration.
 **A:** The integration can be installed via HACS (recommended) or manually:
 
 1. **HACS Installation**:
-   - Add `https://github.com/rknightion/autopi-ha` as a custom repository
-   - Search for "AutoPi" in HACS integrations
-   - Install and restart Home Assistant
+   - Open HACS → Integrations (AutoPi is in the default store)
+   - Search for "AutoPi" and install
+   - Restart Home Assistant
 
 2. **Manual Installation**:
    - Download the latest release from GitHub
