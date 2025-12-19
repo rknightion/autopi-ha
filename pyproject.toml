@@ -24,7 +24,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "homeassistant-stubs==2025.12.2",
-    "ruff==0.14.9",
+    "ruff==0.14.10",
     "mypy",
     "bandit==1.9.2",
     "pytest-homeassistant-custom-component==0.13.300",
