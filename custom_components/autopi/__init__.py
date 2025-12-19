@@ -11,10 +11,17 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+    from .types import AutoPiVehicle
 
 from .auto_zero import get_auto_zero_manager
 from .const import (
+    CONF_AUTO_ZERO_ENABLED,
+    CONF_BASE_URL,
+    CONF_DISCOVERY_ENABLED,
+    CONF_SCAN_INTERVAL,
+    CONF_SELECTED_VEHICLES,
     CONF_UPDATE_INTERVAL_FAST,
+    DEFAULT_BASE_URL,
     DEFAULT_UPDATE_INTERVAL_FAST_MINUTES,
     DOMAIN,
     PLATFORMS,
@@ -48,6 +55,90 @@ def _setup_logging() -> None:
 
 # Initialize logging configuration
 _setup_logging()
+
+
+def _format_vehicle_summary(
+    vehicles: list["AutoPiVehicle"], limit: int = 10
+) -> str:
+    """Format vehicle summaries for concise logging."""
+    if not vehicles:
+        return "none"
+
+    entries = []
+    for vehicle in vehicles[:limit]:
+        name = vehicle.name or "Unknown"
+        entries.append(f"{name} (id={vehicle.id})")
+
+    summary = ", ".join(entries)
+    remaining = len(vehicles) - limit
+    if remaining > 0:
+        summary = f"{summary}, and {remaining} more"
+
+    return summary
+
+
+def _format_selected_vehicle_summary(
+    selected_vehicle_ids: list[str], limit: int = 10
+) -> str:
+    """Format selected vehicle IDs for concise logging."""
+    if not selected_vehicle_ids:
+        return "all"
+
+    normalized_ids = [str(vehicle_id) for vehicle_id in selected_vehicle_ids]
+    summary = ", ".join(normalized_ids[:limit])
+    remaining = len(normalized_ids) - limit
+    if remaining > 0:
+        summary = f"{summary}, and {remaining} more"
+
+    return f"{len(normalized_ids)} ({summary})"
+
+
+def _log_startup_summary(
+    entry: "ConfigEntry", coordinator: AutoPiDataUpdateCoordinator
+) -> None:
+    """Log a one-time startup summary at info level."""
+    options = entry.options
+    data = entry.data
+
+    update_interval = options.get(
+        CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
+    )
+    discovery_enabled = options.get(CONF_DISCOVERY_ENABLED, True)
+    auto_zero_enabled = options.get(CONF_AUTO_ZERO_ENABLED, False)
+    base_url = data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
+    scan_interval = data.get(CONF_SCAN_INTERVAL)
+    selected_summary = _format_selected_vehicle_summary(
+        list(data.get(CONF_SELECTED_VEHICLES, []))
+    )
+    platforms = ", ".join(platform.value for platform in PLATFORMS)
+
+    scan_interval_info = (
+        f"{scan_interval} min" if scan_interval is not None else "default"
+    )
+
+    _LOGGER.info(
+        "AutoPi startup: entry_id=%s, base_url=%s, update_interval=%s min, scan_interval=%s, discovery=%s, auto_zero=%s, selected_vehicles=%s, platforms=%s",
+        entry.entry_id,
+        base_url,
+        update_interval,
+        scan_interval_info,
+        discovery_enabled,
+        auto_zero_enabled,
+        selected_summary,
+        platforms,
+    )
+
+    vehicles = coordinator.all_vehicles or []
+    total_devices = sum(len(vehicle.devices) for vehicle in vehicles)
+    selected_count = coordinator.get_vehicle_count()
+
+    _LOGGER.info(
+        "AutoPi discovery: vehicles=%d (selected=%d), devices=%d, list=%s",
+        len(vehicles),
+        selected_count,
+        total_devices,
+        _format_vehicle_summary(vehicles),
+    )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -92,8 +183,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.exception("Failed to fetch initial data")
         raise ConfigEntryNotReady(f"Unable to connect to AutoPi API: {err}") from err
 
+    _log_startup_summary(entry, coordinator)
+
     # Create position coordinator (independent of base coordinator)
-    _LOGGER.info("Creating position data coordinator")
+    _LOGGER.debug("Creating position data coordinator")
     position_coordinator = AutoPiPositionCoordinator(hass, entry, coordinator)
     coordinators["position"] = position_coordinator
 
