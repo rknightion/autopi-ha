@@ -141,7 +141,7 @@ class AutoZeroManager:
                         if now - zeroed_at < timedelta(hours=24):
                             self._zeroed_metrics[metric_key] = zeroed_at
 
-                            _LOGGER.info(
+                            _LOGGER.debug(
                                 "RESTORED zeroed state for %s on vehicle %s (zeroed %.1f hours ago at %s)",
                                 AUTO_ZERO_METRICS.get(field_id, field_id),
                                 vehicle_id,
@@ -149,7 +149,7 @@ class AutoZeroManager:
                                 zeroed_at.isoformat(),
                             )
                         else:
-                            _LOGGER.info(
+                            _LOGGER.debug(
                                 "SKIPPED restoring zeroed state for %s on vehicle %s - too old (%.1f hours, zeroed at %s)",
                                 AUTO_ZERO_METRICS.get(field_id, field_id),
                                 vehicle_id,
@@ -194,7 +194,7 @@ class AutoZeroManager:
 
             await self._store.async_save(data)
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "[AUTO-ZERO SAVE] Saved %d zeroed metrics to storage",
                 len(zeroed_metrics),
             )
@@ -293,7 +293,7 @@ class AutoZeroManager:
             # Check if data is stale (greater than threshold)
             if time_since_update > timedelta(minutes=STALE_DATA_THRESHOLD_MINUTES):
                 if not was_zeroed:
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "[AUTO-ZERO ACTION] ZEROING %s for vehicle %s - data is %.1f minutes old (threshold: %d min)",
                         metric_name,
                         vehicle_id,
@@ -332,7 +332,7 @@ class AutoZeroManager:
             else:
                 # Data is fresh - remove from zeroed metrics if it was zeroed
                 if was_zeroed:
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "[AUTO-ZERO ACTION] UN-ZEROING %s for vehicle %s - fresh data received (%.1f minutes old)",
                         metric_name,
                         vehicle_id,

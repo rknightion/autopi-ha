@@ -125,7 +125,7 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Create the config entry
             selected_vehicles = user_input.get(CONF_SELECTED_VEHICLES, [])
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Creating AutoPi config entry with %d selected vehicles",
                 len(selected_vehicles),
             )
@@ -262,7 +262,7 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         else:
             title = vehicle_name
 
-        _LOGGER.info("Discovered new AutoPi vehicle: %s (ID: %s)", title, vehicle_id)
+        _LOGGER.debug("Discovered new AutoPi vehicle: %s (ID: %s)", title, vehicle_id)
 
         # Set up the discovery confirmation
         self.context["title_placeholders"] = {
@@ -310,7 +310,7 @@ class AutoPiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         },
                     )
 
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Added vehicle %s to existing AutoPi config entry", vehicle_id
                     )
 

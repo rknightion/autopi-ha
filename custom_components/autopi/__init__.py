@@ -154,7 +154,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     Raises:
         ConfigEntryNotReady: If unable to connect to AutoPi API
     """
-    _LOGGER.info("Setting up AutoPi integration (entry_id: %s)", entry.entry_id)
+    _LOGGER.debug("Setting up AutoPi integration (entry_id: %s)", entry.entry_id)
 
     _LOGGER.debug(
         "Integration setup started - Entry ID: %s, Title: %s, Domain: %s",
@@ -167,7 +167,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinators = {}
 
     # Create the base coordinator for vehicle data
-    _LOGGER.info("Creating base vehicle data coordinator")
+    _LOGGER.debug("Creating base vehicle data coordinator")
     coordinator = AutoPiDataUpdateCoordinator(hass, entry)
     coordinators["base"] = coordinator
 
@@ -175,7 +175,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         _LOGGER.debug("Performing initial data fetch for base vehicle data")
         await coordinator.async_config_entry_first_refresh()
-        _LOGGER.info(
+        _LOGGER.debug(
             "Initial data fetch successful, found %d vehicles",
             coordinator.get_vehicle_count(),
         )
@@ -194,13 +194,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         _LOGGER.debug("Performing initial position data fetch")
         await position_coordinator.async_config_entry_first_refresh()
-        _LOGGER.info("Initial position data fetch successful")
+        _LOGGER.debug("Initial position data fetch successful")
     except UpdateFailed:
         # Position fetch failures are not critical
         _LOGGER.warning("Failed to fetch initial position data")
 
     # Create trip coordinator
-    _LOGGER.info("Creating trip data coordinator")
+    _LOGGER.debug("Creating trip data coordinator")
     trip_coordinator = AutoPiTripCoordinator(hass, entry, coordinator)
     coordinators["trip"] = trip_coordinator
 
@@ -208,13 +208,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         _LOGGER.debug("Performing initial trip data fetch")
         await trip_coordinator.async_config_entry_first_refresh()
-        _LOGGER.info("Initial trip data fetch successful")
+        _LOGGER.debug("Initial trip data fetch successful")
     except UpdateFailed:
         # Trip fetch failures are not critical
         _LOGGER.warning("Failed to fetch initial trip data")
 
     # Log coordinator status
-    _LOGGER.info("Coordinator setup complete")
+    _LOGGER.debug("Coordinator setup complete")
     for coord_name, coord in coordinators.items():
         if coord:
             _LOGGER.debug(
@@ -225,16 +225,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
     # Initialize auto-zero manager with storage
-    _LOGGER.info("[AUTO-ZERO INIT] Initializing auto-zero manager")
+    _LOGGER.debug("[AUTO-ZERO INIT] Initializing auto-zero manager")
     auto_zero_manager = get_auto_zero_manager()
     await auto_zero_manager.async_initialize(hass)
-    _LOGGER.info(
+    _LOGGER.debug(
         "[AUTO-ZERO INIT] Auto-zero manager initialized, auto_zero_enabled=%s",
-        entry.options.get("auto_zero_enabled", False),
+        entry.options.get(CONF_AUTO_ZERO_ENABLED, False),
     )
 
     # Log current options for debugging
-    _LOGGER.info(
+    _LOGGER.debug(
         "AutoPi integration options: %s",
         entry.options,
     )
@@ -249,7 +249,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "trip_coordinator": trip_coordinator,
     }
 
-    _LOGGER.info(
+    _LOGGER.debug(
         "Successfully set up AutoPi integration with update interval: %d min",
         entry.options.get(
             CONF_UPDATE_INTERVAL_FAST, DEFAULT_UPDATE_INTERVAL_FAST_MINUTES
@@ -262,7 +262,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register update listener for options
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    _LOGGER.info(
+    _LOGGER.debug(
         "AutoPi integration setup completed successfully for entry %s", entry.entry_id
     )
 
@@ -309,7 +309,7 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
             )
             if new_fast_interval != current_interval_minutes:
                 intervals_changed = True
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Update interval for %s changed from %d to %d minutes",
                     coord_name,
                     current_interval_minutes,
@@ -338,14 +338,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     Returns:
         bool: True if unload successful
     """
-    _LOGGER.info("Unloading AutoPi integration for entry %s", entry.entry_id)
+    _LOGGER.debug("Unloading AutoPi integration for entry %s", entry.entry_id)
 
     # Unload platforms
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         # Remove coordinators
         hass.data[DOMAIN].pop(entry.entry_id)
 
-        _LOGGER.info(
+        _LOGGER.debug(
             "Successfully unloaded AutoPi integration for entry %s", entry.entry_id
         )
 

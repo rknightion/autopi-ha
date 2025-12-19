@@ -322,7 +322,7 @@ class AutoPiAutoZeroDataFieldSensor(AutoPiDataFieldSensorBase, RestoreEntity):
                     # Restore as zeroed
                     self._was_zeroed = True
                     self._restored_value = 0
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Restored zeroed state for %s on vehicle %s",
                         self._attr_name,
                         self._vehicle_id,

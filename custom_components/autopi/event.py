@@ -131,7 +131,7 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
                     )
                     self.async_write_ha_state()
 
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Triggered %s event for vehicle %s",
                         event_type,
                         self._vehicle_id,
@@ -212,7 +212,7 @@ async def async_setup_entry(
             )
 
     if entities:
-        _LOGGER.info("Adding %d AutoPi event entities", len(entities))
+        _LOGGER.debug("Adding %d AutoPi event entities", len(entities))
         async_add_entities(entities)
     else:
         _LOGGER.warning("No vehicles found for event entities")

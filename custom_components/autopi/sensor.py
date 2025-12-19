@@ -157,7 +157,7 @@ async def async_setup_entry(
                     vehicle.name,
                 )
 
-    _LOGGER.info("Adding %d AutoPi sensor entities", len(entities))
+    _LOGGER.debug("Adding %d AutoPi sensor entities", len(entities))
 
     async_add_entities(entities)
 

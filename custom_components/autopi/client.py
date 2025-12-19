@@ -95,7 +95,7 @@ class AutoPiClient:
             vehicle_count = data.get("count", 0)
             results = data.get("results", [])
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Successfully fetched %d vehicles from AutoPi API",
                 vehicle_count,
             )
@@ -163,7 +163,7 @@ class AutoPiClient:
                     _LOGGER.warning("Failed to parse field data: %s", err)
                     continue
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Successfully fetched %d data fields for device %s",
                 len(fields),
                 device_id,
@@ -216,7 +216,7 @@ class AutoPiClient:
             count = trips_response.get("count", 0)
             results = trips_response.get("results", [])
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Successfully fetched %d of %d trips for vehicle %d",
                 len(results),
                 count,
@@ -264,7 +264,7 @@ class AutoPiClient:
             total = alerts_response.get("total", 0)
             severities = alerts_response.get("severities", [])
 
-            _LOGGER.info("Successfully fetched fleet alerts: %d total alerts", total)
+            _LOGGER.debug("Successfully fetched fleet alerts: %d total alerts", total)
 
             # Convert API data to FleetAlert objects
             alerts = []
@@ -317,7 +317,7 @@ class AutoPiClient:
             events_response = cast(EventsResponse, response)
             results = events_response.get("results", [])
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Successfully fetched %d events for device %s",
                 len(results),
                 device_id,
@@ -414,7 +414,7 @@ class AutoPiClient:
 
                     # Retry on server errors
                     if retry_count < MAX_RETRIES:
-                        _LOGGER.info(
+                        _LOGGER.debug(
                             "Retrying request after server error (attempt %d/%d)",
                             retry_count + 1,
                             MAX_RETRIES,
@@ -466,7 +466,7 @@ class AutoPiClient:
 
             # Retry on connection errors
             if retry_count < MAX_RETRIES:
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Retrying request after connection error (attempt %d/%d)",
                     retry_count + 1,
                     MAX_RETRIES,

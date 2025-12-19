@@ -119,7 +119,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         start_time = self.hass.loop.time()
         self._update_count += 1
 
-        _LOGGER.info(
+        _LOGGER.debug(
             "Base coordinator update #%d starting (interval: %s)",
             self._update_count,
             self.update_interval,
@@ -241,7 +241,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                                 # First time fetching events for this device
                                 # Don't fire events on startup to avoid old events
                                 new_events = []
-                                _LOGGER.info(
+                                _LOGGER.debug(
                                     "Initial event fetch for device %s: found %d events, skipping startup events to avoid replaying old events",
                                     device_id,
                                     len(events),
@@ -252,7 +252,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                             self._fire_device_event(event, str(vehicle.id))
 
                         if new_events:
-                            _LOGGER.info(
+                            _LOGGER.debug(
                                 "Found %d new events for device %s",
                                 len(new_events),
                                 device_id,
@@ -275,7 +275,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             self._last_update_duration = self.hass.loop.time() - start_time
             self._last_api_call_time = self.hass.loop.time()
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Base coordinator update #%d completed successfully in %.2fs (next update in %s)",
                 self._update_count,
                 self._last_update_duration,
@@ -411,7 +411,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             event_data,
         )
 
-        _LOGGER.info(
+        _LOGGER.debug(
             "Fired fleet_alert event: %s (severity: %s, affecting %d vehicles)",
             alert.title,
             alert.severity,
@@ -485,7 +485,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         new_vehicle_ids = all_vehicle_ids - known_vehicles
 
         if new_vehicle_ids:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Found %d new vehicles: %s", len(new_vehicle_ids), new_vehicle_ids
             )
 
@@ -559,7 +559,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             entity_registry = er.async_get(self.hass)
 
             for vehicle_id in removed_vehicle_ids:
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Removing vehicle %s from selected vehicles as it no longer exists in API",
                     vehicle_id,
                 )
@@ -570,7 +570,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 )
 
                 if device_entry:
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Removing device %s for vehicle %s",
                         device_entry.name,
                         vehicle_id,
@@ -606,7 +606,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 self.config_entry, data=updated_data
             )
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Updated config entry to remove %d deleted vehicles",
                 len(removed_vehicle_ids),
             )
@@ -643,7 +643,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
         start_time = self.hass.loop.time()
         self._update_count += 1
 
-        _LOGGER.info(
+        _LOGGER.debug(
             "Position coordinator update #%d starting (interval: %s)",
             self._update_count,
             self.update_interval,
@@ -832,7 +832,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
             self._last_update_duration = self.hass.loop.time() - start_time
             self._last_api_call_time = self.hass.loop.time()
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Successfully updated data with %d fields for %d vehicles in %.2fs (update #%d, %.1f%% success rate)",
                 data_field_count,
                 len(data),
@@ -841,7 +841,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                 self.success_rate,
             )
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Position coordinator update #%d completed successfully (next update in %s)",
                 self._update_count,
                 self.update_interval,
@@ -896,7 +896,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
         start_time = self.hass.loop.time()
         self._update_count += 1
 
-        _LOGGER.info(
+        _LOGGER.debug(
             "Trip coordinator update #%d starting (interval: %s)",
             self._update_count,
             self.update_interval,
@@ -1008,7 +1008,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             self._last_update_duration = self.hass.loop.time() - start_time
             self._last_api_call_time = self.hass.loop.time()
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Successfully updated trip data for %d vehicles with %d total trips in %.2fs",
                 len(data),
                 total_trips,
@@ -1022,7 +1022,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                 auto_zero_manager = get_auto_zero_manager()
                 auto_zero_manager.cleanup_old_data()
 
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Trip coordinator update #%d completed successfully (next update in %s)",
                 self._update_count,
                 self.update_interval,
@@ -1073,7 +1073,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             event_data,
         )
 
-        _LOGGER.info(
+        _LOGGER.debug(
             "Fired trip_completed event for vehicle %s: %.1f km in %d minutes",
             vehicle.name,
             trip.distance_km,
