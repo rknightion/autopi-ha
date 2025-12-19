@@ -18,11 +18,12 @@ classifiers = [
 ]
 dependencies = [
     "aiohttp>=3.12.1",
+    "pycares<5",
 ]
 
 [dependency-groups]
 dev = [
-    "homeassistant-stubs==2025.12.3",
+    "homeassistant-stubs==2025.12.2",
     "ruff==0.14.9",
     "mypy",
     "bandit==1.9.2",
