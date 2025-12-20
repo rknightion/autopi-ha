@@ -13,10 +13,20 @@ These sensors provide information about the AutoPi integration itself:
 | Entity | Description | Category | Device Class | Unit | State Class | Icon |
 |----------|----------|----------|----------|----------|----------|----------|
 | FleetAlertCount | Sensor showing the total number of fleet alerts. | Diagnostic | - | alerts | Measurement | mdi:alert |
+| GeofenceCount | Sensor showing geofence count for a vehicle. | Diagnostic | - | geofences | Measurement | mdi:map-marker |
+| LocationCount | Sensor showing location count for a vehicle. | Diagnostic | - | locations | Measurement | mdi:map-marker-radius |
+| LastCommunication | Sensor showing last communication timestamp. | Diagnostic | Timestamp | - | - | mdi:clock |
+| LastChargeDuration | Sensor showing duration of the last charge session. | Diagnostic | Duration | SECONDS | Measurement | mdi:timer |
+| EventVolume | Sensor showing event volume for a tag and window. | Diagnostic | - | events | Measurement | - |
 | UpdateDuration | Sensor showing the average duration of the last updates across all coordinators. | Diagnostic | - | s | Measurement | mdi:timer |
 | TripCount | Sensor showing the total number of trips for a vehicle. | Diagnostic | - | trips | Total | mdi:map-marker-distance |
 | LastTripDistance | Sensor showing the distance of the last trip. | Primary | Distance | KILOMETERS | Measurement | mdi:road-variant |
+| TripLifetimeDistance | Sensor showing total lifetime trip distance. | Primary | Distance | KILOMETERS | Total_Increasing | mdi:road-variant |
+| TripAverageSpeed | Sensor showing average trip speed. | Primary | Speed | KILOMETERS_PER_HOUR | Measurement | mdi:speedometer |
+| ExternalVoltage | External/aux voltage sensor. | Primary | - | - | - | - |
+| OEMTotalMileage | OEM total mileage sensor. | Primary | - | - | - | - |
 | DistanceSinceCodesClear | Distance since diagnostic codes cleared sensor. | Primary | - | - | - | - |
+| TimezoneOffset | Timezone offset sensor. | Primary | - | - | - | - |
 
 ### Vehicle Status Sensors
 
@@ -26,6 +36,8 @@ These sensors provide general status information for each vehicle:
 |----------|----------|----------|----------|----------|----------|----------|
 | Count | Sensor showing the total number of vehicles. | Diagnostic | - | vehicles | Measurement | mdi:car-multiple |
 | AutoPiVehicleSensor | Sensor representing an individual vehicle. | Primary | - | - | - | mdi:car |
+| AlertCount | Sensor showing open alerts for a vehicle. | Diagnostic | - | alerts | Measurement | mdi:alert |
+| DtcCount | Sensor showing DTC count for a vehicle. | Diagnostic | - | codes | Measurement | mdi:alert-circle |
 
 ### GPS/Position Sensors
 
@@ -37,6 +49,7 @@ These sensors provide GPS and position data for each vehicle:
 | GPSSpeed | GPS speed sensor. | Primary | - | - | - | - |
 | GPSCourse | GPS course/heading sensor. | Primary | - | - | - | - |
 | GPSSatellites | GPS satellites sensor. | Primary | - | - | - | - |
+| GPSPrecision | GPS precision/position quality sensor. | Primary | - | - | - | - |
 | GPSLatitude | GPS latitude sensor. | Primary | - | - | - | - |
 | GPSLongitude | GPS longitude sensor. | Primary | - | - | - | - |
 | FuelUsedGPS | Fuel used GPS sensor. | Primary | - | - | - | - |
@@ -50,9 +63,11 @@ These sensors provide battery information for vehicles and devices:
 |----------|----------|----------|----------|----------|----------|----------|
 | BatteryChargeLevel | Battery charge level sensor. | Primary | - | - | - | - |
 | BatteryVoltage | Battery voltage sensor. | Primary | - | - | - | - |
+| BatteryChargingState | Battery charging state sensor. | Primary | - | - | - | - |
 | BatteryCurrent | Battery current sensor. | Primary | - | - | - | - |
 | BatteryLevel | Tracker battery level sensor. | Primary | - | - | - | - |
 | BatteryVoltage | Vehicle system battery voltage sensor. | Primary | - | - | - | - |
+| ExternalVoltage | External/aux voltage sensor. | Primary | - | - | - | - |
 
 ### Engine & Performance Sensors
 
@@ -75,6 +90,7 @@ These sensors provide fuel consumption and level data:
 |----------|----------|----------|----------|----------|----------|----------|
 | FuelUsedGPS | Fuel used GPS sensor. | Primary | - | - | - | - |
 | FuelRateGPS | Fuel rate GPS sensor. | Primary | - | - | - | - |
+| FuelRateECU | Instantaneous fuel rate sensor from ECU. | Primary | - | - | - | - |
 | FuelLevel | Fuel level sensor. | Primary | - | - | - | - |
 | OEMFuelLevel | OEM fuel level sensor. | Primary | - | - | - | - |
 
@@ -86,6 +102,8 @@ These sensors provide distance and odometer readings:
 |----------|----------|----------|----------|----------|----------|----------|
 | TripCount | Sensor showing the total number of trips for a vehicle. | Diagnostic | - | trips | Total | mdi:map-marker-distance |
 | LastTripDistance | Sensor showing the distance of the last trip. | Primary | Distance | KILOMETERS | Measurement | mdi:road-variant |
+| TripLifetimeDistance | Sensor showing total lifetime trip distance. | Primary | Distance | KILOMETERS | Total_Increasing | mdi:road-variant |
+| TripAverageSpeed | Sensor showing average trip speed. | Primary | Speed | KILOMETERS_PER_HOUR | Measurement | mdi:speedometer |
 | TotalOdometer | Total odometer sensor. | Primary | - | - | - | - |
 | TripOdometer | Trip odometer sensor. | Primary | - | - | - | - |
 | DistanceSinceCodesClear | Distance since diagnostic codes cleared sensor. | Primary | - | - | - | - |
@@ -118,6 +136,7 @@ These sensors provide diagnostic information:
 
 | Entity | Description | Category | Device Class | Unit | State Class | Icon |
 |----------|----------|----------|----------|----------|----------|----------|
+| LastChargeDuration | Sensor showing duration of the last charge session. | Diagnostic | Duration | SECONDS | Measurement | mdi:timer |
 | UpdateDuration | Sensor showing the average duration of the last updates across all coordinators. | Diagnostic | - | s | Measurement | mdi:timer |
 | GSMSignal | GSM signal strength sensor. | Primary | - | - | - | - |
 | DTCCount | Diagnostic trouble code count sensor. | Primary | - | - | - | - |
@@ -130,17 +149,21 @@ This table shows all data field sensors with their corresponding AutoPi field ID
 |----------|----------|----------|----------|----------|----------|----------|----------|
 | BatteryChargeLevel | obd.bat.level | Battery charge level sensor. | Primary | - | - | - | - |
 | BatteryVoltage | obd.bat.voltage | Battery voltage sensor. | Primary | - | - | - | - |
+| BatteryChargingState | obd.bat.state | Battery charging state sensor. | Primary | - | - | - | - |
 | BatteryCurrent | std.battery_current.value | Battery current sensor. | Primary | - | - | - | - |
 | BatteryLevel | std.battery_level.value | Tracker battery level sensor. | Primary | - | - | - | - |
 | BatteryVoltage | std.battery_voltage.value | Vehicle system battery voltage sensor. | Primary | - | - | - | - |
+| ExternalVoltage | std.external_voltage.value | External/aux voltage sensor. | Primary | - | - | - | - |
 | AccelerometerX | std.accelerometer_axis_x.value | X-axis accelerometer sensor. | Primary | - | - | - | - |
 | AccelerometerY | std.accelerometer_axis_y.value | Y-axis accelerometer sensor. | Primary | - | - | - | - |
 | AccelerometerZ | std.accelerometer_axis_z.value | Z-axis accelerometer sensor. | Primary | - | - | - | - |
 | TotalOdometer | std.total_odometer.value | Total odometer sensor. | Primary | - | - | - | - |
+| OEMTotalMileage | obd.obd_oem_total_mileage.value | OEM total mileage sensor. | Primary | - | - | - | - |
 | TripOdometer | std.trip_odometer.value | Trip odometer sensor. | Primary | - | - | - | - |
 | DistanceSinceCodesClear | obd.distance_since_codes_clear.value | Distance since diagnostic codes cleared sensor. | Primary | - | - | - | - |
 | FuelUsedGPS | std.fuel_used_gps.value | Fuel used GPS sensor. | Primary | - | - | - | - |
 | FuelRateGPS | std.fuel_rate_gps.value | Fuel rate GPS sensor. | Primary | - | - | - | - |
+| FuelRateECU | obd.fuel_rate.value | Instantaneous fuel rate sensor from ECU. | Primary | - | - | - | - |
 | FuelLevel | obd.fuel_level.value | Fuel level sensor. | Primary | - | - | - | - |
 | OEMFuelLevel | obd.obd_oem_fuel_level.value | OEM fuel level sensor. | Primary | - | - | - | - |
 | IgnitionState | std.ignition.value | Ignition state sensor. | Primary | - | - | - | - |
@@ -154,6 +177,7 @@ This table shows all data field sensors with their corresponding AutoPi field ID
 | IntakeTemperature | obd.intake_temp.value | Intake air temperature sensor. | Primary | - | - | - | - |
 | CoolantTemperature | obd.coolant_temp.value | Engine coolant temperature sensor. | Primary | - | - | - | - |
 | GSMSignal | std.gsm_signal.value | GSM signal strength sensor. | Primary | - | - | - | - |
+| TimezoneOffset | std.tz_offset.value | Timezone offset sensor. | Primary | - | - | - | - |
 | DTCCount | obd.number_of_dtc.value | Diagnostic trouble code count sensor. | Primary | - | - | - | - |
 
 ## Device Trackers
@@ -168,7 +192,14 @@ Device trackers provide GPS-based location tracking for your vehicles:
 
 Binary sensors provide on/off state information:
 
-No binary sensor entities are currently implemented.
+| Entity | Description | Category | Device Class | Unit | State Class | Icon |
+|----------|----------|----------|----------|----------|----------|----------|
+| DataFieldBinary | Base class for data field derived binary sensors. | Primary | - | - | - | - |
+| BatteryChargingStateBinary | Battery charging binary sensor. | Primary | - | - | - | - |
+| IgnitionRunningBinary | Ignition/engine running binary sensor. | Primary | - | - | - | - |
+| MovementBinary | Vehicle movement binary sensor. | Primary | Moving | - | - | - |
+| ChargingInProgressBinary | Charging in progress binary sensor. | Primary | Battery_Charging | - | - | - |
+| OnlineBinary | Tracker online/offline binary sensor. | Primary | Connectivity | - | - | - |
 
 ## Base Classes
 
