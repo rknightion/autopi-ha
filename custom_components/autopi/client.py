@@ -386,7 +386,9 @@ class AutoPiClient:
             )
 
             if not isinstance(response, list):
-                _LOGGER.error("Unexpected recent stats response type: %s", type(response))
+                _LOGGER.error(
+                    "Unexpected recent stats response type: %s", type(response)
+                )
                 return []
 
             events: list[RecentStatEvent] = []
@@ -475,7 +477,9 @@ class AutoPiClient:
             return sessions
 
         except Exception:
-            _LOGGER.exception("Failed to fetch charging sessions for vehicle %d", vehicle_id)
+            _LOGGER.exception(
+                "Failed to fetch charging sessions for vehicle %d", vehicle_id
+            )
             raise
 
     async def get_fleet_alerts_summary(self) -> FleetAlertSummary:
@@ -484,7 +488,9 @@ class AutoPiClient:
 
         response = await self._request("GET", FLEET_ALERTS_SUMMARY_ENDPOINT)
         if not isinstance(response, dict):
-            _LOGGER.error("Unexpected fleet alerts summary response: %s", type(response))
+            _LOGGER.error(
+                "Unexpected fleet alerts summary response: %s", type(response)
+            )
             return FleetAlertSummary(open=0, critical=0, high=0, medium=0, low=0)
 
         return FleetAlertSummary.from_api_data(response)
@@ -548,7 +554,11 @@ class AutoPiClient:
         response = await self._request("GET", endpoint)
         if not isinstance(response, dict):
             _LOGGER.error("Unexpected geofence summary response: %s", type(response))
-            return {"count": 0, "results": [], "counts": {"locations": 0, "geofences": 0}}
+            return {
+                "count": 0,
+                "results": [],
+                "counts": {"locations": 0, "geofences": 0},
+            }
         return response
 
     async def get_fleet_vehicle_summary(self) -> FleetVehicleSummary:
@@ -556,7 +566,9 @@ class AutoPiClient:
         _LOGGER.debug("Fetching fleet vehicle summary")
         response = await self._request("GET", FLEET_VEHICLE_SUMMARY_ENDPOINT)
         if not isinstance(response, dict):
-            _LOGGER.error("Unexpected fleet vehicle summary response: %s", type(response))
+            _LOGGER.error(
+                "Unexpected fleet vehicle summary response: %s", type(response)
+            )
             return FleetVehicleSummary(
                 all_vehicles=0,
                 active_now=0,
@@ -564,20 +576,28 @@ class AutoPiClient:
                 on_location=0,
             )
 
+        def _safe_int(value: Any, default: int = 0) -> int:
+            try:
+                if value is None:
+                    return default
+                return int(value)
+            except (TypeError, ValueError):
+                return default
+
         return FleetVehicleSummary(
-            all_vehicles=int(
+            all_vehicles=_safe_int(
                 response.get("all", response.get("all_vehicles", 0))
             ),
-            active_now=int(
+            active_now=_safe_int(
                 response.get("active_now", response.get("active_vehicles_now", 0))
             ),
-            driven_last_30_days=int(
+            driven_last_30_days=_safe_int(
                 response.get(
                     "driven_last_30_days",
                     response.get("driven_vehicles_last_30_days", 0),
                 )
             ),
-            on_location=int(response.get("on_location", 0)),
+            on_location=_safe_int(response.get("on_location", 0)),
         )
 
     async def get_events_histogram(
@@ -800,7 +820,14 @@ class AutoPiClient:
                     )
 
                 if response.status >= 400:
-                    _LOGGER.error("Client error %d: %s", response.status, response_text)
+                    if response.status == 404:
+                        _LOGGER.debug(
+                            "Resource not found (%s): %s", endpoint, response_text
+                        )
+                    else:
+                        _LOGGER.error(
+                            "Client error %d: %s", response.status, response_text
+                        )
                     raise AutoPiAPIError(
                         f"Client error: {response.status}",
                         status_code=response.status,

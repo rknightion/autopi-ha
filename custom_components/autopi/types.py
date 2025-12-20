@@ -566,6 +566,7 @@ class ChargingSession:
     @classmethod
     def from_api_data(cls, data: dict[str, Any]) -> ChargingSession:
         """Create ChargingSession from API data."""
+
         def _parse_dt(value: str | None) -> datetime | None:
             if not value:
                 return None

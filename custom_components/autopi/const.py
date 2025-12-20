@@ -74,7 +74,9 @@ FLEET_ALERTS_SUMMARY_ENDPOINT: Final = "/fleet/alerts/summary/"
 FLEET_ALERTS_ENDPOINT: Final = "/fleet/alerts/"
 DIAGNOSTICS_ENDPOINT: Final = "/logbook/diagnostics/"
 OBD_DTCS_ENDPOINT: Final = "/obd/dtcs/"
-GEOFENCE_SUMMARY_ENDPOINT_TEMPLATE: Final = "/fleet/vehicles/{vehicle_id}/geofence_summary/"
+GEOFENCE_SUMMARY_ENDPOINT_TEMPLATE: Final = (
+    "/fleet/vehicles/{vehicle_id}/geofence_summary/"
+)
 FLEET_VEHICLE_SUMMARY_ENDPOINT: Final = "/logbook/fleet_summary/vehicles/"
 EVENTS_HISTOGRAM_ENDPOINT: Final = "/logbook/events_histogram/"
 SIMPLIFIED_EVENTS_ENDPOINT: Final = "/logbook/simplified_events/"

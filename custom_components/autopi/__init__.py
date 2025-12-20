@@ -58,9 +58,7 @@ def _setup_logging() -> None:
 _setup_logging()
 
 
-def _format_vehicle_summary(
-    vehicles: list[AutoPiVehicle], limit: int = 10
-) -> str:
+def _format_vehicle_summary(vehicles: list[AutoPiVehicle], limit: int = 10) -> str:
     """Format vehicle summaries for concise logging."""
     if not vehicles:
         return "none"

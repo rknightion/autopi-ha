@@ -876,13 +876,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             event_data,
         )
 
-        _LOGGER.debug(
-            "Fired DTC event for vehicle %s: %s", vehicle_id, dtc.code
-        )
+        _LOGGER.debug("Fired DTC event for vehicle %s: %s", vehicle_id, dtc.code)
 
-    def _fire_simplified_event(
-        self, vehicle_id: str, event: SimplifiedEvent
-    ) -> None:
+    def _fire_simplified_event(self, vehicle_id: str, event: SimplifiedEvent) -> None:
         """Fire an event for a simplified event."""
         event_data = {
             "vehicle_id": vehicle_id,
@@ -922,9 +918,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             event.vehicle_id,
         )
 
-    def _process_new_dtc_events(
-        self, vehicle_id: str, dtcs: list[DtcEntry]
-    ) -> None:
+    def _process_new_dtc_events(self, vehicle_id: str, dtcs: list[DtcEntry]) -> None:
         """Process new DTC entries and fire events."""
         if not dtcs:
             return
@@ -1015,7 +1009,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             count = int(bucket.get("count", 0) or 0)
             total_7d += count
 
-            ts_value = bucket.get("ts") or bucket.get("start") or bucket.get("timestamp")
+            ts_value = (
+                bucket.get("ts") or bucket.get("start") or bucket.get("timestamp")
+            )
             if ts_value:
                 try:
                     ts = datetime.fromisoformat(str(ts_value).replace("Z", "+00:00"))
@@ -1685,7 +1681,11 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
 
                 if movement_state is None and vehicle_copy.data_fields:
                     speed_value = None
-                    for field_id in ("track.pos.sog", "std.speed.value", "obd.speed.value"):
+                    for field_id in (
+                        "track.pos.sog",
+                        "std.speed.value",
+                        "obd.speed.value",
+                    ):
                         field_data = vehicle_copy.data_fields.get(field_id)
                         if field_data and field_data.last_value is not None:
                             try:
