@@ -6,6 +6,118 @@ import re
 from pathlib import Path
 from typing import Any
 
+SUPER_INIT_ATTR_MAP = {
+    "device_class": "_attr_device_class",
+    "unit_of_measurement": "_attr_native_unit_of_measurement",
+    "state_class": "_attr_state_class",
+    "entity_category": "_attr_entity_category",
+    "icon": "_attr_icon",
+}
+
+ACRONYMS = {
+    "Dtc": "DTC",
+    "Ecu": "ECU",
+    "Gps": "GPS",
+    "Gsm": "GSM",
+    "Obd": "OBD",
+    "Rfid": "RFID",
+}
+
+
+def ast_value(node: ast.AST | None) -> Any:
+    """Convert an AST node into a simple Python value or string."""
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        base = ast_value(node.value)
+        return f"{base}.{node.attr}" if base else node.attr
+    if isinstance(node, ast.List):
+        return [ast_value(item) for item in node.elts]
+    if isinstance(node, ast.Tuple):
+        return [ast_value(item) for item in node.elts]
+    if isinstance(node, ast.Dict):
+        return {
+            ast_value(key): ast_value(value)
+            for key, value in zip(node.keys, node.values)
+        }
+    if hasattr(ast, "unparse"):
+        try:
+            return ast.unparse(node)
+        except Exception:
+            pass
+    return str(node)
+
+
+def base_class_name(node: ast.AST) -> str:
+    """Extract a readable base class name."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return ast_value(node)
+    if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
+        return node.value.id
+    return ast_value(node)
+
+
+def extract_simple_return_value(func_node: ast.FunctionDef) -> Any | None:
+    """Extract a simple constant return value from a property."""
+    disallowed = (ast.If, ast.For, ast.While, ast.Try, ast.With, ast.Match)
+    for node in func_node.body:
+        if isinstance(node, disallowed):
+            return None
+
+    returns = [node for node in func_node.body if isinstance(node, ast.Return)]
+    if len(returns) != 1:
+        return None
+
+    return_node = returns[0]
+    if return_node.value is None:
+        return None
+    if isinstance(return_node.value, (ast.Constant, ast.Name, ast.Attribute)):
+        return ast_value(return_node.value)
+    return None
+
+
+def is_super_init_call(node: ast.Call) -> bool:
+    """Return True if this is a super().__init__(...) call."""
+    return (
+        isinstance(node.func, ast.Attribute)
+        and node.func.attr == "__init__"
+        and isinstance(node.func.value, ast.Call)
+        and isinstance(node.func.value.func, ast.Name)
+        and node.func.value.func.id == "super"
+    )
+
+
+def split_camel_case(name: str) -> list[str]:
+    """Split CamelCase words while keeping acronyms intact."""
+    return re.findall(r"[A-Z]+(?=[A-Z][a-z]|[0-9]|$)|[A-Z]?[a-z]+|[0-9]+", name)
+
+
+def humanize_entity_name(class_name: str, entity_type: str) -> str:
+    """Convert class name to a human-readable label."""
+    name = class_name
+    if name.startswith("AutoPi"):
+        name = name[len("AutoPi") :]
+
+    words = [ACRONYMS.get(word, word) for word in split_camel_case(name)]
+
+    if entity_type == "event" and words and words[-1] == "Entity":
+        words = words[:-1]
+
+    if entity_type in {"sensor", "binary_sensor"} and words and words[-1] == "Sensor":
+        if words != ["Vehicle", "Sensor"]:
+            words = words[:-1]
+
+    if entity_type == "binary_sensor" and words and words[-1] == "Binary":
+        words = words[:-1]
+
+    return " ".join(words) if words else class_name
+
 
 def extract_class_info(file_path: Path) -> list[dict[str, Any]]:
     """Extract class information from a Python file."""
@@ -32,14 +144,18 @@ def extract_class_info(file_path: Path) -> list[dict[str, Any]]:
                 "attributes": {},
                 "methods": {},
                 "properties": {},
-                "base_classes": [base.id if hasattr(base, "id") else str(base) for base in node.bases],
+                "base_classes": [base_class_name(base) for base in node.bases],
                 "file": file_path.name,
-                "init_params": []
+                "init_params": [],
+                "super_init_calls": [],
+                "field_id": None,
             }
 
             # Extract __init__ parameters
             for item in node.body:
                 if isinstance(item, ast.FunctionDef) and item.name == "__init__":
+                    param_names = {arg.arg for arg in item.args.args}
+                    class_info["init_param_names"] = param_names
                     # Skip self and common params
                     skip_params = {"self", "coordinator", "vehicle_id"}
                     for arg in item.args.args:
@@ -55,26 +171,71 @@ def extract_class_info(file_path: Path) -> list[dict[str, Any]]:
 
                             class_info["init_params"].append(param_info)
 
+                    init_attributes: dict[str, Any] = {}
+                    for init_node in ast.walk(item):
+                        if isinstance(init_node, ast.Assign):
+                            for target in init_node.targets:
+                                if (
+                                    isinstance(target, ast.Attribute)
+                                    and isinstance(target.value, ast.Name)
+                                    and target.value.id == "self"
+                                ):
+                                    if isinstance(init_node.value, ast.Name):
+                                        if init_node.value.id in param_names:
+                                            continue
+                                        if not init_node.value.id.isupper():
+                                            continue
+                                    init_attributes[target.attr] = ast_value(
+                                        init_node.value
+                                    )
+                        elif isinstance(init_node, ast.AnnAssign):
+                            target = init_node.target
+                            if (
+                                isinstance(target, ast.Attribute)
+                                and isinstance(target.value, ast.Name)
+                                and target.value.id == "self"
+                            ):
+                                if isinstance(init_node.value, ast.Name):
+                                    if init_node.value.id in param_names:
+                                        continue
+                                    if not init_node.value.id.isupper():
+                                        continue
+                                init_attributes[target.attr] = ast_value(
+                                    init_node.value
+                                )
+                        elif isinstance(init_node, ast.Call) and is_super_init_call(
+                            init_node
+                        ):
+                            super_args = [ast_value(arg) for arg in init_node.args]
+                            super_kwargs = {}
+                            for kw in init_node.keywords:
+                                if not kw.arg:
+                                    continue
+                                if isinstance(kw.value, ast.Name) and not kw.value.id.isupper():
+                                    if kw.value.id in param_names:
+                                        continue
+                                    # Skip non-constant names (likely local variables)
+                                    continue
+                                super_kwargs[kw.arg] = ast_value(kw.value)
+                            class_info["super_init_calls"].append(
+                                {"args": super_args, "keywords": super_kwargs}
+                            )
+                            for key, attr_name in SUPER_INIT_ATTR_MAP.items():
+                                if key in super_kwargs and not (
+                                    isinstance(super_kwargs[key], str)
+                                    and super_kwargs[key] in param_names
+                                ):
+                                    init_attributes[attr_name] = super_kwargs[key]
+
+                    class_info["init_attributes"] = init_attributes
+
             # Extract class attributes and their values
             for item in node.body:
                 if isinstance(item, ast.Assign):
                     for target in item.targets:
                         if isinstance(target, ast.Name):
                             attr_name = target.id
-                            attr_value = None
-
-                            # Try to extract the value
-                            if isinstance(item.value, ast.Constant):
-                                attr_value = item.value.value
-                            elif isinstance(item.value, ast.Name):
-                                attr_value = item.value.id
-                            elif isinstance(item.value, ast.Attribute):
-                                # Handle things like SensorDeviceClass.SPEED
-                                attr_value = f"{item.value.value.id}.{item.value.attr}" if hasattr(item.value.value, "id") else str(item.value)
-                            elif isinstance(item.value, ast.Str):
-                                attr_value = item.value.s
-
-                            class_info["attributes"][attr_name] = attr_value
+                            class_info["attributes"][attr_name] = ast_value(item.value)
 
                 # Extract method and property information
                 elif isinstance(item, ast.FunctionDef):
@@ -96,8 +257,19 @@ def extract_class_info(file_path: Path) -> list[dict[str, Any]]:
 
                     if is_property:
                         class_info["properties"][item.name] = method_info
+                        if item.name == "native_unit_of_measurement":
+                            return_value = extract_simple_return_value(item)
+                            if return_value is not None:
+                                class_info.setdefault("property_overrides", {})[
+                                    "_attr_native_unit_of_measurement"
+                                ] = return_value
                     else:
                         class_info["methods"][item.name] = method_info
+
+            if class_info.get("init_attributes"):
+                class_info["attributes"].update(class_info["init_attributes"])
+            if class_info.get("property_overrides"):
+                class_info["attributes"].update(class_info["property_overrides"])
 
             classes.append(class_info)
 
@@ -125,64 +297,194 @@ def get_entity_description(class_info: dict[str, Any]) -> str:
 
     return "AutoPi entity"
 
-def get_entity_category(class_info: dict[str, Any]) -> str:
+
+def get_all_base_classes(
+    class_info: dict[str, Any], all_classes: list[dict[str, Any]]
+) -> set[str]:
+    """Get all base classes including inherited ones."""
+    bases: set[str] = set()
+    for base_name in class_info.get("base_classes", []):
+        bases.add(base_name)
+        for cls in all_classes:
+            if cls["name"] == base_name:
+                bases.update(get_all_base_classes(cls, all_classes))
+                break
+    return bases
+
+
+def class_inherits(
+    class_info: dict[str, Any], base_name: str, all_classes: list[dict[str, Any]]
+) -> bool:
+    """Check if a class inherits from a base class."""
+    return base_name in get_all_base_classes(class_info, all_classes)
+
+
+def format_enum_value(value: str) -> str:
+    """Format enum-like values for display."""
+    formatted = value.split(".")[-1] if "." in value else value
+    return formatted.replace("_", " ").title()
+
+
+def get_entity_category(
+    class_info: dict[str, Any], all_classes: list[dict[str, Any]]
+) -> str:
     """Determine entity category."""
-    entity_category = class_info["attributes"].get("_attr_entity_category")
-    if entity_category == "EntityCategory.DIAGNOSTIC":
+    entity_category = get_all_attributes(class_info, all_classes).get(
+        "_attr_entity_category"
+    )
+    if entity_category and "DIAGNOSTIC" in str(entity_category):
         return "Diagnostic"
     return "Primary"
 
-def get_device_class(class_info: dict[str, Any]) -> str | None:
+
+def get_device_class(
+    class_info: dict[str, Any], all_classes: list[dict[str, Any]]
+) -> str | None:
     """Get device class if specified."""
-    device_class = class_info["attributes"].get("_attr_device_class")
+    device_class = get_all_attributes(class_info, all_classes).get(
+        "_attr_device_class"
+    )
     if device_class:
-        # Clean up the device class name
-        if "." in device_class:
-            return device_class.split(".")[-1].title()
-        return device_class
+        return format_enum_value(str(device_class))
     return None
 
-def get_unit_of_measurement(class_info: dict[str, Any]) -> str | None:
+
+def get_unit_of_measurement(
+    class_info: dict[str, Any], all_classes: list[dict[str, Any]]
+) -> str | None:
     """Get unit of measurement if specified."""
-    unit = class_info["attributes"].get("_attr_native_unit_of_measurement")
+    unit = get_all_attributes(class_info, all_classes).get(
+        "_attr_native_unit_of_measurement"
+    )
     if unit:
         # Clean up unit names
-        if "." in unit:
+        if isinstance(unit, str) and "." in unit:
             return unit.split(".")[-1]
-        return unit
+        return str(unit)
     return None
 
-def get_state_class(class_info: dict[str, Any]) -> str | None:
+
+def get_state_class(
+    class_info: dict[str, Any], all_classes: list[dict[str, Any]]
+) -> str | None:
     """Get state class if specified."""
-    state_class = class_info["attributes"].get("_attr_state_class")
+    state_class = get_all_attributes(class_info, all_classes).get("_attr_state_class")
     if state_class:
-        if "." in state_class:
-            return state_class.split(".")[-1].title()
-        return state_class
+        return format_enum_value(str(state_class))
     return None
 
-def get_icon(class_info: dict[str, Any]) -> str | None:
-    """Get icon if specified."""
-    return class_info["attributes"].get("_attr_icon")
 
-def extract_field_id_mapping(file_path: Path) -> dict[str, str]:
-    """Extract field ID to sensor class mapping from data_field_sensors.py."""
-    mapping = {}
+def get_icon(
+    class_info: dict[str, Any], all_classes: list[dict[str, Any]]
+) -> str | None:
+    """Get icon if specified."""
+    return get_all_attributes(class_info, all_classes).get("_attr_icon")
+
+
+def get_event_types(
+    class_info: dict[str, Any], all_classes: list[dict[str, Any]]
+) -> list[str]:
+    """Get event types if specified."""
+    value = get_all_attributes(class_info, all_classes).get("_attr_event_types")
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, str):
+        return [value]
+    return []
+
+
+def get_entity_platform(
+    class_info: dict[str, Any], all_classes: list[dict[str, Any]]
+) -> str | None:
+    """Return the Home Assistant platform for an entity class."""
+    bases = get_all_base_classes(class_info, all_classes)
+    if "SensorEntity" in bases:
+        return "sensor"
+    if "BinarySensorEntity" in bases:
+        return "binary_sensor"
+    if "TrackerEntity" in bases:
+        return "device_tracker"
+    if "EventEntity" in bases:
+        return "event"
+    return None
+
+
+def categorize_data_field_sensor(class_info: dict[str, Any]) -> str:
+    """Categorize data field sensors based on field IDs and names."""
+    field_id = str(class_info.get("field_id", "")).lower()
+    name = class_info["name"].lower()
+
+    if field_id.startswith("track.pos.") or name.startswith("gps"):
+        return "GPS/Position"
+
+    if any(
+        key in field_id
+        for key in ["obd.bat.", "std.battery", "battery", "external_voltage"]
+    ):
+        return "Battery"
+
+    if "fuel" in field_id or "fuel" in name:
+        return "Fuel"
+
+    if any(key in field_id for key in ["odometer", "mileage", "distance", "trip"]):
+        return "Distance & Odometer"
+
+    if any(
+        key in field_id
+        for key in ["ambient_air_temp", "intake_temp", "coolant_temp", "temp"]
+    ) or "temperature" in name:
+        return "Temperature"
+
+    if any(key in field_id for key in ["accelerometer", "std.speed"]):
+        return "Motion & Tracking"
+
+    if any(
+        key in field_id
+        for key in [
+            "obd.rpm",
+            "engine_load",
+            "run_time",
+            "throttle_pos",
+            "obd.speed",
+            "ignition",
+        ]
+    ):
+        return "Engine & Performance"
+
+    if any(key in field_id for key in ["gsm_signal", "tz_offset", "number_of_dtc"]) or any(
+        key in name for key in ["gsm", "dtc", "timezone"]
+    ):
+        return "Diagnostic"
+
+    return "Other"
+
+def extract_field_id_mapping(file_path: Path, mapping_name: str) -> dict[str, str]:
+    """Extract field ID to class mapping from a mapping dict in a file."""
+    mapping: dict[str, str] = {}
 
     try:
         with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
-        # Find the FIELD_ID_TO_SENSOR_CLASS dictionary
-        match = re.search(r"FIELD_ID_TO_SENSOR_CLASS[^{]*{([^}]+)}", content, re.DOTALL)
-        if match:
-            dict_content = match.group(1)
-            # Extract field_id: ClassName pairs
-            pairs = re.findall(r'"([^"]+)":\s*(\w+)', dict_content)
-            for field_id, class_name in pairs:
-                mapping[class_name] = field_id
+        tree = ast.parse(content)
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == mapping_name:
+                        if isinstance(node.value, ast.Dict):
+                            for key_node, value_node in zip(
+                                node.value.keys, node.value.values
+                            ):
+                                field_id = ast_value(key_node)
+                                if isinstance(value_node, ast.Name):
+                                    mapping[value_node.id] = str(field_id)
+                                elif isinstance(value_node, (ast.Tuple, ast.List)):
+                                    for element in value_node.elts:
+                                        if isinstance(element, ast.Name):
+                                            mapping[element.id] = str(field_id)
+                        return mapping
     except Exception as e:
-        print(f"Failed to extract field ID mapping: {e}")
+        print(f"Failed to extract field ID mapping from {file_path}: {e}")
 
     return mapping
 
@@ -261,7 +563,25 @@ def generate_entity_attributes_table(entities: list[dict[str, Any]], all_classes
 
     return table
 
-def generate_entity_table(entities: list[dict[str, Any]], entity_type: str, include_field_id: bool = False, field_id_mapping: dict[str, str] = None) -> str:
+def get_field_id(
+    class_info: dict[str, Any], field_id_mapping: dict[str, str] | None
+) -> str | None:
+    """Get field ID from class info or mapping."""
+    if class_info.get("field_id"):
+        return str(class_info["field_id"])
+    if field_id_mapping:
+        return field_id_mapping.get(class_info["name"])
+    return None
+
+
+def generate_entity_table(
+    entities: list[dict[str, Any]],
+    entity_type: str,
+    all_classes: list[dict[str, Any]],
+    entity_platform: str,
+    include_field_id: bool = False,
+    field_id_mapping: dict[str, str] | None = None,
+) -> str:
     """Generate a markdown table for entities."""
     if not entities:
         return f"No {entity_type.lower()} entities are currently implemented.\n"
@@ -274,22 +594,22 @@ def generate_entity_table(entities: list[dict[str, Any]], entity_type: str, incl
     table = "| " + " | ".join(headers) + " |\n"
     table += "|" + "|".join(["-" * 10 for _ in headers]) + "|\n"
 
-    for entity in entities:
-        name = entity["name"].replace("AutoPi", "").replace("Vehicle", "").replace("Sensor", "").replace("Tracker", "")
-        if not name:
-            name = entity["name"]
+    for entity in sorted(
+        entities, key=lambda item: humanize_entity_name(item["name"], entity_platform)
+    ):
+        name = humanize_entity_name(entity["name"], entity_platform)
 
         description = get_entity_description(entity)
-        category = get_entity_category(entity)
-        device_class = get_device_class(entity) or "-"
-        unit = get_unit_of_measurement(entity) or "-"
-        state_class = get_state_class(entity) or "-"
-        icon = get_icon(entity) or "-"
+        category = get_entity_category(entity, all_classes)
+        device_class = get_device_class(entity, all_classes) or "-"
+        unit = get_unit_of_measurement(entity, all_classes) or "-"
+        state_class = get_state_class(entity, all_classes) or "-"
+        icon = get_icon(entity, all_classes) or "-"
 
         # Extract field_id from mapping if available
         field_id = "-"
-        if include_field_id and field_id_mapping:
-            field_id = field_id_mapping.get(entity["name"], "-")
+        if include_field_id:
+            field_id = get_field_id(entity, field_id_mapping) or "-"
 
         row_data = [name, description, category, device_class, unit, state_class, icon]
         if include_field_id:
@@ -299,72 +619,165 @@ def generate_entity_table(entities: list[dict[str, Any]], entity_type: str, incl
 
     return table
 
+
+def generate_event_table(
+    entities: list[dict[str, Any]], all_classes: list[dict[str, Any]]
+) -> str:
+    """Generate a markdown table for event entities."""
+    if not entities:
+        return "No event entities are currently implemented.\n"
+
+    headers = ["Entity", "Description", "Category", "Event Types"]
+    table = "| " + " | ".join(headers) + " |\n"
+    table += "|" + "|".join(["-" * 10 for _ in headers]) + "|\n"
+
+    for entity in sorted(
+        entities, key=lambda item: humanize_entity_name(item["name"], "event")
+    ):
+        name = humanize_entity_name(entity["name"], "event")
+        description = get_entity_description(entity)
+        category = get_entity_category(entity, all_classes)
+        event_types = get_event_types(entity, all_classes)
+        event_types_str = ", ".join(event_types) if event_types else "-"
+        table += f"| {name} | {description} | {category} | {event_types_str} |\n"
+
+    return table
+
+
 def main():
     """Generate entity documentation."""
     # Get the integration path
     integration_path = Path(__file__).parent.parent / "custom_components" / "autopi"
 
-    # Extract information from platform files
-    sensor_entities = []
-    device_tracker_entities = []
-    binary_sensor_entities = []
-
-    # Process all Python files containing sensor definitions
-    all_classes = []  # Keep track of all classes for base class analysis
-    base_classes = []  # Specifically track base classes
-
-    # Main sensor.py file
     sensor_file = integration_path / "sensor.py"
-    if sensor_file.exists():
-        classes = extract_class_info(sensor_file)
-        all_classes.extend(classes)
-        sensor_entities.extend([cls for cls in classes if "Sensor" in cls["name"] and cls["name"] != "SensorEntity"])
-
-    # Position sensors
     position_sensor_file = integration_path / "position_sensors.py"
-    if position_sensor_file.exists():
-        classes = extract_class_info(position_sensor_file)
-        all_classes.extend(classes)
-        sensor_entities.extend([cls for cls in classes if "Sensor" in cls["name"] and cls["name"] != "SensorEntity"])
-
-    # Data field sensors
     data_field_sensor_file = integration_path / "data_field_sensors.py"
-    field_id_mapping = {}
-    if data_field_sensor_file.exists():
-        classes = extract_class_info(data_field_sensor_file)
-        all_classes.extend(classes)
-        # Extract field ID mapping
-        field_id_mapping = extract_field_id_mapping(data_field_sensor_file)
-        # Include base classes in documentation
-        for cls in classes:
-            if "Sensor" in cls["name"] and cls["name"] != "SensorEntity":
-                if cls["name"] in ["AutoPiDataFieldSensorBase", "AutoPiDataFieldSensor", "AutoPiAutoZeroDataFieldSensor"]:
-                    base_classes.append(cls)
-                else:
-                    sensor_entities.append(cls)
-
-    # Process device_tracker.py
     tracker_file = integration_path / "device_tracker.py"
-    if tracker_file.exists():
-        classes = extract_class_info(tracker_file)
-        all_classes.extend(classes)
-        device_tracker_entities = [cls for cls in classes if "Tracker" in cls["name"]]
-
-    # Process binary_sensor.py
     binary_sensor_file = integration_path / "binary_sensor.py"
-    if binary_sensor_file.exists():
-        classes = extract_class_info(binary_sensor_file)
-        all_classes.extend(classes)
-        binary_sensor_entities = [cls for cls in classes if "BinarySensor" in cls["name"]]
+    event_file = integration_path / "event.py"
+    base_entity_file = integration_path / "entities" / "base.py"
 
-    # Generate documentation
+    files_to_process = [
+        sensor_file,
+        position_sensor_file,
+        data_field_sensor_file,
+        tracker_file,
+        binary_sensor_file,
+        event_file,
+        base_entity_file,
+    ]
+
+    all_classes: list[dict[str, Any]] = []
+    for file_path in files_to_process:
+        if file_path.exists():
+            all_classes.extend(extract_class_info(file_path))
+
+    field_id_mapping: dict[str, str] = {}
+    if data_field_sensor_file.exists():
+        field_id_mapping.update(
+            extract_field_id_mapping(
+                data_field_sensor_file, "FIELD_ID_TO_SENSOR_CLASS"
+            )
+        )
+    if position_sensor_file.exists():
+        field_id_mapping.update(
+            extract_field_id_mapping(
+                position_sensor_file, "POSITION_FIELD_TO_SENSOR_CLASS"
+            )
+        )
+
+    excluded_entities = {
+        "AutoPiEntity",
+        "AutoPiVehicleEntity",
+        "AutoPiDataFieldSensorBase",
+        "AutoPiDataFieldSensor",
+        "AutoPiAutoZeroDataFieldSensor",
+        "AutoPiDataFieldBinarySensor",
+    }
+
+    for cls in all_classes:
+        if cls.get("field_id"):
+            continue
+        if class_inherits(cls, "AutoPiDataFieldSensorBase", all_classes) or class_inherits(
+            cls, "AutoPiDataFieldBinarySensor", all_classes
+        ):
+            param_names = cls.get("init_param_names", set())
+            for call in cls.get("super_init_calls", []):
+                args = call.get("args", [])
+                if (
+                    len(args) >= 3
+                    and isinstance(args[2], str)
+                    and args[2] not in param_names
+                ):
+                    cls["field_id"] = args[2]
+                    break
+        if not cls.get("field_id"):
+            mapped_field = field_id_mapping.get(cls["name"])
+            if mapped_field:
+                cls["field_id"] = mapped_field
+
+    sensor_entities: list[dict[str, Any]] = []
+    binary_sensor_entities: list[dict[str, Any]] = []
+    device_tracker_entities: list[dict[str, Any]] = []
+    event_entities: list[dict[str, Any]] = []
+
+    for cls in all_classes:
+        if cls["name"] in excluded_entities:
+            continue
+        platform = get_entity_platform(cls, all_classes)
+        if platform == "sensor":
+            sensor_entities.append(cls)
+        elif platform == "binary_sensor":
+            binary_sensor_entities.append(cls)
+        elif platform == "device_tracker":
+            device_tracker_entities.append(cls)
+        elif platform == "event":
+            event_entities.append(cls)
+
+    base_class_order = [
+        "AutoPiEntity",
+        "AutoPiVehicleEntity",
+        "AutoPiDataFieldSensorBase",
+        "AutoPiDataFieldSensor",
+        "AutoPiAutoZeroDataFieldSensor",
+        "AutoPiDataFieldBinarySensor",
+    ]
+    base_classes = [
+        cls for name in base_class_order for cls in all_classes if cls["name"] == name
+    ]
+
+    data_field_sensors = [
+        s
+        for s in sensor_entities
+        if class_inherits(s, "AutoPiDataFieldSensorBase", all_classes)
+    ]
+    data_field_names = {sensor["name"] for sensor in data_field_sensors}
+
+    integration_sensors = [
+        s
+        for s in sensor_entities
+        if not class_inherits(s, "AutoPiVehicleEntity", all_classes)
+    ]
+    vehicle_status_sensors = [
+        s
+        for s in sensor_entities
+        if class_inherits(s, "AutoPiVehicleEntity", all_classes)
+        and s["name"] not in data_field_names
+    ]
+
+    data_field_categories: dict[str, list[dict[str, Any]]] = {}
+    for sensor in data_field_sensors:
+        category = categorize_data_field_sensor(sensor)
+        data_field_categories.setdefault(category, []).append(sensor)
+
     docs_content = """# Entity Reference
 
 This page provides a comprehensive reference of all entities provided by the AutoPi integration.
 
 ## Sensors
 
-The AutoPi integration provides several types of sensors to monitor your vehicles and the integration itself.
+The AutoPi integration provides integration-level sensors and vehicle-level sensors. Data field sensors
+are created dynamically based on the telemetry fields reported by each vehicle.
 
 ### Integration Sensors
 
@@ -372,120 +785,64 @@ These sensors provide information about the AutoPi integration itself:
 
 """
 
-    # Filter integration-level sensors (non-vehicle specific)
-    integration_sensors = [s for s in sensor_entities if "Vehicle" not in s["name"] and not any(x in s["name"] for x in ["GPS", "Battery", "Accelerometer", "Odometer", "Fuel", "Engine", "Throttle", "OBD", "Tracker", "Temperature", "Coolant", "GSM", "DTC", "Ignition"])]
-    docs_content += generate_entity_table(integration_sensors, "Integration")
+    docs_content += generate_entity_table(
+        integration_sensors, "Integration", all_classes, "sensor"
+    )
 
     docs_content += """
-### Vehicle Status Sensors
+### Vehicle Status & Trip Sensors
 
 These sensors provide general status information for each vehicle:
 
 """
 
-    # Filter vehicle status sensors
-    vehicle_status_sensors = [s for s in sensor_entities if "AutoPiVehicleSensor" in s["name"] or ("Vehicle" in s["name"] and "Count" in s["name"])]
-    docs_content += generate_entity_table(vehicle_status_sensors, "Vehicle Status")
+    docs_content += generate_entity_table(
+        vehicle_status_sensors, "Vehicle Status", all_classes, "sensor"
+    )
 
     docs_content += """
-### GPS/Position Sensors
+### Data Field Sensors
 
-These sensors provide GPS and position data for each vehicle:
+These sensors are created when the vehicle reports the corresponding telemetry fields:
 
 """
 
-    # Filter GPS/position sensors
-    gps_sensors = [s for s in sensor_entities if "GPS" in s["name"]]
-    docs_content += generate_entity_table(gps_sensors, "GPS/Position")
+    data_field_category_order = [
+        "GPS/Position",
+        "Battery",
+        "Engine & Performance",
+        "Fuel",
+        "Distance & Odometer",
+        "Temperature",
+        "Motion & Tracking",
+        "Diagnostic",
+        "Other",
+    ]
+    for category in data_field_category_order:
+        sensors = data_field_categories.get(category, [])
+        if not sensors:
+            continue
+        docs_content += f"#### {category} Sensors\n\n"
+        docs_content += generate_entity_table(
+            sensors, category, all_classes, "sensor"
+        )
+        docs_content += "\n"
 
-    docs_content += """
-### Battery Sensors
-
-These sensors provide battery information for vehicles and devices:
-
-"""
-
-    # Filter battery sensors
-    battery_sensors = [s for s in sensor_entities if "Battery" in s["name"] or "Voltage" in s["name"] and "Vehicle" not in s["name"]]
-    docs_content += generate_entity_table(battery_sensors, "Battery")
-
-    docs_content += """
-### Engine & Performance Sensors
-
-These sensors provide engine and performance data:
-
-"""
-
-    # Filter engine/performance sensors
-    engine_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["Engine", "Throttle", "OBD", "Load", "Ignition"])]
-    docs_content += generate_entity_table(engine_sensors, "Engine & Performance")
-
-    docs_content += """
-### Fuel Sensors
-
-These sensors provide fuel consumption and level data:
-
-"""
-
-    # Filter fuel sensors
-    fuel_sensors = [s for s in sensor_entities if "Fuel" in s["name"]]
-    docs_content += generate_entity_table(fuel_sensors, "Fuel")
-
-    docs_content += """
-### Distance & Odometer Sensors
-
-These sensors provide distance and odometer readings:
-
-"""
-
-    # Filter distance/odometer sensors
-    distance_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["Odometer", "Distance", "Trip"]) and "Fuel" not in s["name"]]
-    docs_content += generate_entity_table(distance_sensors, "Distance & Odometer")
-
-    docs_content += """
-### Temperature Sensors
-
-These sensors provide various temperature readings:
-
-"""
-
-    # Filter temperature sensors
-    temp_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["Temperature", "Coolant", "Intake", "Ambient"])]
-    docs_content += generate_entity_table(temp_sensors, "Temperature")
-
-    docs_content += """
-### Motion & Tracking Sensors
-
-These sensors provide motion and tracking data:
-
-"""
-
-    # Filter motion/tracking sensors
-    motion_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["Accelerometer", "TrackerSpeed", "TrackerBattery"])]
-    docs_content += generate_entity_table(motion_sensors, "Motion & Tracking")
-
-    docs_content += """
-### Diagnostic Sensors
-
-These sensors provide diagnostic information:
-
-"""
-
-    # Filter diagnostic sensors
-    diagnostic_sensors = [s for s in sensor_entities if any(x in s["name"] for x in ["GSM", "DTC", "API", "Success", "Duration", "Failed"])]
-    docs_content += generate_entity_table(diagnostic_sensors, "Diagnostic")
-
-    # Add data field sensor reference
-    if field_id_mapping:
+    if data_field_sensors:
         docs_content += """
 ## Data Field Sensor Reference
 
 This table shows all data field sensors with their corresponding AutoPi field IDs:
 
 """
-        # Get all data field sensors
-        data_field_sensors = [s for s in sensor_entities if s["file"] == "data_field_sensors.py"]
-        docs_content += generate_entity_table(data_field_sensors, "Data Field", include_field_id=True, field_id_mapping=field_id_mapping)
+        docs_content += generate_entity_table(
+            data_field_sensors,
+            "Data Field",
+            all_classes,
+            "sensor",
+            include_field_id=True,
+            field_id_mapping=field_id_mapping,
+        )
 
     docs_content += """
 ## Device Trackers
@@ -494,7 +851,9 @@ Device trackers provide GPS-based location tracking for your vehicles:
 
 """
 
-    docs_content += generate_entity_table(device_tracker_entities, "Device Tracker")
+    docs_content += generate_entity_table(
+        device_tracker_entities, "Device Tracker", all_classes, "device_tracker"
+    )
 
     docs_content += """
 ## Binary Sensors
@@ -503,9 +862,24 @@ Binary sensors provide on/off state information:
 
 """
 
-    docs_content += generate_entity_table(binary_sensor_entities, "Binary Sensor")
+    docs_content += generate_entity_table(
+        binary_sensor_entities,
+        "Binary Sensor",
+        all_classes,
+        "binary_sensor",
+        include_field_id=True,
+        field_id_mapping=field_id_mapping,
+    )
 
-    # Add base classes section
+    docs_content += """
+## Events
+
+Event entities emit Home Assistant events for vehicle activity:
+
+"""
+
+    docs_content += generate_event_table(event_entities, all_classes)
+
     if base_classes:
         docs_content += """
 ## Base Classes
@@ -518,20 +892,21 @@ The AutoPi integration uses the following base classes for entity implementation
             if base_class.get("docstring"):
                 docs_content += f"{base_class['docstring']}\n\n"
 
-            # Show inheritance
             if base_class.get("base_classes"):
                 docs_content += f"**Inherits from:** {', '.join(base_class['base_classes'])}\n\n"
 
-            # Show important attributes
             attrs = base_class.get("attributes", {})
-            important_attrs = {k: v for k, v in attrs.items() if k.startswith("_attr_")}
+            important_attrs = {
+                k: v
+                for k, v in attrs.items()
+                if k.startswith("_attr_") and k != "_attr_unique_id"
+            }
             if important_attrs:
                 docs_content += "**Key Attributes:**\n"
                 for attr, value in important_attrs.items():
                     docs_content += f"- `{attr}`: {value}\n"
                 docs_content += "\n"
 
-            # Show important properties
             props = base_class.get("properties", {})
             if props:
                 docs_content += "**Properties:**\n"
@@ -547,9 +922,9 @@ The AutoPi integration uses the following base classes for entity implementation
 
 This section details the attributes available on each entity type.
 
-### Common Attributes
+### Vehicle Entity Attributes
 
-All AutoPi entities inherit these common attributes:
+Vehicle-based entities include these attributes:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
@@ -559,6 +934,8 @@ All AutoPi entities inherit these common attributes:
 | `year` | int | Manufacturing year |
 | `type` | str | Vehicle type (ICE, EV, etc.) |
 | `battery_voltage` | float | Nominal battery voltage |
+| `make_id` | str | AutoPi make identifier |
+| `model_id` | str | AutoPi model identifier |
 | `devices` | list[str] | List of associated AutoPi device IDs |
 
 ### Data Field Sensors
@@ -573,6 +950,7 @@ Data field sensors provide real-time vehicle telemetry with these additional att
 | `data_type` | str | Data value type |
 | `description` | str | Field description (if available) |
 | `data_age_seconds` | int | Time since last update |
+| `auto_zero_enabled` | bool | Whether auto-zero is available for this metric |
 
 #### Auto-Zero Enabled Sensors
 
@@ -580,33 +958,12 @@ Sensors with auto-zero support include these additional attributes:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `auto_zero_enabled` | bool | Whether auto-zero is available for this metric |
 | `auto_zero_active` | bool | Whether the value is currently zeroed |
 | `auto_zero_last_zeroed` | datetime | When the metric was last zeroed |
 | `auto_zero_cooldown_until` | datetime | When auto-zero can trigger again |
 
-### Position Sensors
-
-GPS and position sensors include:
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `latitude` | float | Current latitude |
-| `longitude` | float | Current longitude |
-| `accuracy` | float | Position accuracy in meters |
-| `satellites` | int | Number of GPS satellites |
-| `last_position_update` | datetime | Last position update time |
-
-### Integration Status Sensors
-
-Integration monitoring sensors include:
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `total_calls` | int | Total API calls made |
-| `failed_calls` | int | Number of failed API calls |
-| `success_rate` | float | API success percentage |
-| `average_duration` | float | Average update duration |
+> Note: Some entities add extra attributes specific to their data (alerts, charging, events, etc.).
+> Check the entity state in Home Assistant for the full list of available attributes.
 
 ## Entity Properties
 
@@ -624,8 +981,7 @@ Many entities expose additional properties that can be accessed programmatically
 
 - `latitude`: Current GPS latitude
 - `longitude`: Current GPS longitude
-- `gps_accuracy`: Position accuracy in meters
-- `battery_level`: Device battery percentage
+- `location_accuracy`: Position accuracy in meters
 
 """
 
@@ -649,10 +1005,15 @@ Entities are categorized as follows:
 
 Where applicable, entities use standard Home Assistant device classes for consistent representation and unit conversion:
 
-- **Distance**: For altitude measurements
-- **Speed**: For vehicle speed
-- **Temperature**: For temperature readings (future)
-- **Battery**: For battery-related sensors (future)
+- **Battery**: Battery level or charging state
+- **Current**: Electrical current
+- **Distance**: Distance and altitude measurements
+- **Duration**: Time durations
+- **Speed**: Vehicle speed
+- **Temperature**: Temperature readings
+- **Timestamp**: Time-based sensors
+- **Connectivity**: Tracker connectivity (binary)
+- **Moving**: Vehicle movement (binary)
 
 ## State Classes
 
@@ -672,7 +1033,10 @@ Entities use appropriate state classes for statistics and energy tracking:
         f.write(docs_content)
 
     print(f"Generated entity documentation: {docs_path}")
-    print(f"Found {len(sensor_entities)} sensors, {len(device_tracker_entities)} device trackers, {len(binary_sensor_entities)} binary sensors")
+    print(
+        f"Found {len(sensor_entities)} sensors, {len(device_tracker_entities)} device trackers, "
+        f"{len(binary_sensor_entities)} binary sensors, {len(event_entities)} events"
+    )
 
     # Print detailed breakdown of sensor types
     sensor_files = {}
