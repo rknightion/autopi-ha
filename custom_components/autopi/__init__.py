@@ -94,8 +94,50 @@ def _format_selected_vehicle_summary(
     return f"{len(normalized_ids)} ({summary})"
 
 
+def _format_unsupported_endpoints_summary(
+    coordinators: list[AutoPiDataUpdateCoordinator],
+    vehicles_by_id: dict[str, AutoPiVehicle],
+) -> str | None:
+    """Format unsupported endpoint summary across coordinators."""
+    unsupported_global: set[str] = set()
+    unsupported_per_vehicle: dict[str, set[str]] = {}
+
+    for coordinator in coordinators:
+        if coordinator is None:
+            continue
+        global_endpoints, per_vehicle = coordinator.get_unsupported_endpoints()
+        unsupported_global.update(global_endpoints)
+        for vehicle_id, vehicle_endpoints in per_vehicle.items():
+            unsupported_per_vehicle.setdefault(vehicle_id, set()).update(
+                vehicle_endpoints
+            )
+
+    if not unsupported_global and not unsupported_per_vehicle:
+        return None
+
+    parts: list[str] = []
+    if unsupported_global:
+        parts.append(f"global=[{', '.join(sorted(unsupported_global))}]")
+
+    if unsupported_per_vehicle:
+        vehicle_parts: list[str] = []
+        for vehicle_id in sorted(unsupported_per_vehicle):
+            vehicle = vehicles_by_id.get(vehicle_id)
+            if vehicle:
+                vehicle_label = f"{vehicle.name or 'Unknown'} (id={vehicle.id})"
+            else:
+                vehicle_label = f"id={vehicle_id}"
+            endpoint_list = ", ".join(sorted(unsupported_per_vehicle[vehicle_id]))
+            vehicle_parts.append(f"{vehicle_label}: {endpoint_list}")
+        parts.append(f"per_vehicle=[{'; '.join(vehicle_parts)}]")
+
+    return "; ".join(parts)
+
+
 def _log_startup_summary(
-    entry: ConfigEntry, coordinator: AutoPiDataUpdateCoordinator
+    entry: ConfigEntry,
+    coordinator: AutoPiDataUpdateCoordinator,
+    coordinators: list[AutoPiDataUpdateCoordinator],
 ) -> None:
     """Log a one-time startup summary at info level."""
     options = entry.options
@@ -141,6 +183,16 @@ def _log_startup_summary(
         _format_vehicle_summary(vehicles),
     )
 
+    unsupported_summary = _format_unsupported_endpoints_summary(
+        coordinators,
+        coordinator.data or {},
+    )
+    if unsupported_summary:
+        _LOGGER.info(
+            "AutoPi optional endpoints unavailable (disabled): %s",
+            unsupported_summary,
+        )
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up AutoPi from a config entry.
@@ -184,8 +236,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.exception("Failed to fetch initial data")
         raise ConfigEntryNotReady(f"Unable to connect to AutoPi API: {err}") from err
 
-    _log_startup_summary(entry, coordinator)
-
     # Create position coordinator (independent of base coordinator)
     _LOGGER.debug("Creating position data coordinator")
     position_coordinator = AutoPiPositionCoordinator(hass, entry, coordinator)
@@ -213,6 +263,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except UpdateFailed:
         # Trip fetch failures are not critical
         _LOGGER.warning("Failed to fetch initial trip data")
+
+    _log_startup_summary(
+        entry,
+        coordinator,
+        [coordinator, position_coordinator, trip_coordinator],
+    )
 
     # Log coordinator status
     _LOGGER.debug("Coordinator setup complete")
