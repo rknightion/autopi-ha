@@ -60,6 +60,23 @@ def _format_utc(dt: datetime) -> str:
     return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
+# Optional API endpoint feature keys (used for support tracking)
+ENDPOINT_KEY_CHARGING_SESSIONS = "charging_sessions"
+ENDPOINT_KEY_DIAGNOSTICS = "diagnostics"
+ENDPOINT_KEY_EVENTS_HISTOGRAM = "events_histogram"
+ENDPOINT_KEY_FLEET_ALERTS = "fleet_alerts"
+ENDPOINT_KEY_FLEET_ALERTS_SUMMARY = "fleet_alerts_summary"
+ENDPOINT_KEY_FLEET_VEHICLE_SUMMARY = "fleet_vehicle_summary"
+ENDPOINT_KEY_GEOFENCE_SUMMARY = "geofence_summary"
+ENDPOINT_KEY_MOST_RECENT_POSITIONS = "most_recent_positions"
+ENDPOINT_KEY_OBD_DTCS = "obd_dtcs"
+ENDPOINT_KEY_RECENT_STATS = "recent_stats"
+ENDPOINT_KEY_RFID_EVENTS = "rfid_events"
+ENDPOINT_KEY_SIMPLIFIED_EVENTS = "simplified_events"
+ENDPOINT_KEY_TRIPS = "trips"
+ENDPOINT_KEY_VEHICLE_ALERTS = "vehicle_alerts"
+
+
 class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
     """Class to manage fetching AutoPi data from the API."""
 
