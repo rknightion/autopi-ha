@@ -1042,18 +1042,71 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         """
         return self._device_events.get(device_id, [])
 
+    def is_endpoint_supported(
+        self, endpoint_key: str, vehicle_id: str | None = None
+    ) -> bool:
+        """Return True if optional endpoint is supported."""
+        if endpoint_key in self._unsupported_endpoints:
+            return False
+        if vehicle_id is None:
+            return True
+        return endpoint_key not in self._unsupported_endpoints_per_vehicle.get(
+            vehicle_id, set()
+        )
+
+    def _record_unsupported_endpoint(
+        self, endpoint_key: str, vehicle_id: str | None = None
+    ) -> None:
+        """Record an unsupported endpoint to skip future calls."""
+        if vehicle_id is None:
+            if endpoint_key in self._unsupported_endpoints:
+                return
+            self._unsupported_endpoints.add(endpoint_key)
+            _LOGGER.debug(
+                "Endpoint %s unavailable; skipping future calls", endpoint_key
+            )
+            return
+
+        endpoints = self._unsupported_endpoints_per_vehicle.setdefault(
+            vehicle_id, set()
+        )
+        if endpoint_key in endpoints:
+            return
+        endpoints.add(endpoint_key)
+        _LOGGER.debug(
+            "Endpoint %s unavailable for vehicle %s; skipping future calls",
+            endpoint_key,
+            vehicle_id,
+        )
+
+    def get_unsupported_endpoints(
+        self,
+    ) -> tuple[set[str], dict[str, set[str]]]:
+        """Return unsupported optional endpoints."""
+        per_vehicle = {
+            vid: set(keys)
+            for vid, keys in self._unsupported_endpoints_per_vehicle.items()
+        }
+        return set(self._unsupported_endpoints), per_vehicle
+
     def get_vehicle_alert_summary(self, vehicle_id: str) -> dict[str, Any]:
         """Return alert summary for a vehicle."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_VEHICLE_ALERTS, vehicle_id):
+            return {"count": 0, "severity_counts": {}, "alerts": []}
         return self._vehicle_alerts.get(
             vehicle_id, {"count": 0, "severity_counts": {}, "alerts": []}
         )
 
-    def get_vehicle_alert_count(self, vehicle_id: str) -> int:
+    def get_vehicle_alert_count(self, vehicle_id: str) -> int | None:
         """Return alert count for a vehicle."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_VEHICLE_ALERTS, vehicle_id):
+            return None
         return int(self.get_vehicle_alert_summary(vehicle_id).get("count", 0))
 
     def get_vehicle_charging_state(self, vehicle_id: str) -> bool | None:
         """Return charging state for a vehicle."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_CHARGING_SESSIONS, vehicle_id):
+            return None
         session = self._charging_sessions.get(vehicle_id)
         if session is None:
             return None
@@ -1065,6 +1118,8 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
     def get_vehicle_charging_info(self, vehicle_id: str) -> dict[str, Any]:
         """Return charging info for a vehicle."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_CHARGING_SESSIONS, vehicle_id):
+            return {}
         session = self._charging_sessions.get(vehicle_id)
         if session is None:
             return {}
@@ -1079,10 +1134,17 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
     def get_vehicle_dtc_entries(self, vehicle_id: str) -> list[DtcEntry]:
         """Return DTC entries for a vehicle."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_OBD_DTCS, vehicle_id):
+            return []
         return self._vehicle_dtcs.get(vehicle_id, [])
 
-    def get_vehicle_dtc_count(self, vehicle_id: str) -> int:
+    def get_vehicle_dtc_count(self, vehicle_id: str) -> int | None:
         """Return DTC count for a vehicle."""
+        if not (
+            self.is_endpoint_supported(ENDPOINT_KEY_OBD_DTCS, vehicle_id)
+            or self.is_endpoint_supported(ENDPOINT_KEY_DIAGNOSTICS, vehicle_id)
+        ):
+            return None
         dtcs = self._vehicle_dtcs.get(vehicle_id, [])
         if dtcs:
             return len(dtcs)
@@ -1091,6 +1153,8 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
     def get_vehicle_last_dtc(self, vehicle_id: str) -> DtcEntry | None:
         """Return last DTC entry for a vehicle."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_OBD_DTCS, vehicle_id):
+            return None
         dtcs = self._vehicle_dtcs.get(vehicle_id, [])
         if not dtcs:
             return None
@@ -1101,16 +1165,20 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
     def get_geofence_summary(self, vehicle_id: str) -> GeofenceSummary | None:
         """Return geofence summary for a vehicle."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_GEOFENCE_SUMMARY, vehicle_id):
+            return None
         return self._geofence_summary.get(vehicle_id)
 
     def get_fleet_vehicle_summary(self) -> FleetVehicleSummary | None:
         """Return fleet vehicle summary."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_FLEET_VEHICLE_SUMMARY):
+            return None
         return self._fleet_vehicle_summary
 
-    def get_event_volume(
-        self, vehicle_id: str, tag: str, window: str
-    ) -> int | None:
+    def get_event_volume(self, vehicle_id: str, tag: str, window: str) -> int | None:
         """Return event volume for a tag/window."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_EVENTS_HISTOGRAM, vehicle_id):
+            return None
         vehicle_data = self._event_histogram_counts.get(vehicle_id)
         if not vehicle_data:
             return None
@@ -1121,15 +1189,24 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
     def get_simplified_event(self, vehicle_id: str) -> SimplifiedEvent | None:
         """Return latest simplified event for a vehicle."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_SIMPLIFIED_EVENTS, vehicle_id):
+            return None
         return self._simplified_events.get(vehicle_id)
 
     def get_last_communication(self, vehicle_id: str) -> datetime | None:
         """Return last communication timestamp for a vehicle."""
+        if not self.is_endpoint_supported(ENDPOINT_KEY_MOST_RECENT_POSITIONS):
+            return None
         return self._last_communications.get(vehicle_id)
 
     def get_online_threshold(self) -> timedelta:
         """Return online threshold based on update interval."""
-        return max(self.update_interval * 2, timedelta(minutes=5))
+        interval = (
+            self.update_interval
+            if self.update_interval is not None
+            else timedelta(minutes=DEFAULT_UPDATE_INTERVAL_FAST_MINUTES)
+        )
+        return max(interval * 2, timedelta(minutes=5))
 
     def get_vehicle_movement(self, vehicle_id: str) -> bool | None:
         """Return movement state for a vehicle."""
