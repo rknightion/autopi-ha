@@ -145,6 +145,10 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._movement_state: dict[str, bool] = {}
         self._movement_info: dict[str, dict[str, Any]] = {}
 
+        # Track unsupported optional endpoints (404s)
+        self._unsupported_endpoints: set[str] = set()
+        self._unsupported_endpoints_per_vehicle: dict[str, set[str]] = {}
+
         # Discovery tracking
         self._all_vehicles: list[AutoPiVehicle] = []
         # Initialize discovered vehicles with already selected vehicles
@@ -253,37 +257,59 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             _LOGGER.debug("Successfully updated data for %d vehicles", len(data))
 
             # Fetch fleet alerts for base coordinator
-            try:
-                self._total_api_calls += 1
-                total_alerts, alerts = await self._client.get_fleet_alerts()
-                self._fleet_alerts_total = total_alerts
-                self._fleet_alerts = alerts
+            if self.is_endpoint_supported(ENDPOINT_KEY_FLEET_ALERTS):
+                try:
+                    self._total_api_calls += 1
+                    total_alerts, alerts = await self._client.get_fleet_alerts()
+                    self._fleet_alerts_total = total_alerts
+                    self._fleet_alerts = alerts
 
-                # Check for new alerts
-                current_alert_ids = {alert.alert_id for alert in alerts}
-                new_alert_ids = current_alert_ids - self._last_alert_ids
+                    # Check for new alerts
+                    current_alert_ids = {alert.alert_id for alert in alerts}
+                    new_alert_ids = current_alert_ids - self._last_alert_ids
 
-                if new_alert_ids:
-                    # Fire events for new alerts
-                    for alert in alerts:
-                        if alert.alert_id in new_alert_ids:
-                            self._fire_alert_event(alert)
+                    if new_alert_ids:
+                        # Fire events for new alerts
+                        for alert in alerts:
+                            if alert.alert_id in new_alert_ids:
+                                self._fire_alert_event(alert)
 
-                self._last_alert_ids = current_alert_ids
+                    self._last_alert_ids = current_alert_ids
 
-                _LOGGER.debug("Successfully fetched %d fleet alerts", total_alerts)
-            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
-                self._failed_api_calls += 1
-                _LOGGER.warning("Failed to fetch fleet alerts: %s", err)
-                # Continue even if alerts fail
+                    _LOGGER.debug("Successfully fetched %d fleet alerts", total_alerts)
+                except AutoPiAPIError as err:
+                    self._failed_api_calls += 1
+                    if err.status_code == 404:
+                        self._record_unsupported_endpoint(ENDPOINT_KEY_FLEET_ALERTS)
+                        self._fleet_alerts_total = 0
+                        self._fleet_alerts = []
+                        self._last_alert_ids = set()
+                    else:
+                        _LOGGER.warning("Failed to fetch fleet alerts: %s", err)
+                except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning("Failed to fetch fleet alerts: %s", err)
+                    # Continue even if alerts fail
 
             # Fetch fleet alert summary
-            try:
-                self._total_api_calls += 1
-                self._fleet_alert_summary = await self._client.get_fleet_alerts_summary()
-            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
-                self._failed_api_calls += 1
-                _LOGGER.warning("Failed to fetch fleet alerts summary: %s", err)
+            if self.is_endpoint_supported(ENDPOINT_KEY_FLEET_ALERTS_SUMMARY):
+                try:
+                    self._total_api_calls += 1
+                    self._fleet_alert_summary = (
+                        await self._client.get_fleet_alerts_summary()
+                    )
+                except AutoPiAPIError as err:
+                    self._failed_api_calls += 1
+                    if err.status_code == 404:
+                        self._record_unsupported_endpoint(
+                            ENDPOINT_KEY_FLEET_ALERTS_SUMMARY
+                        )
+                        self._fleet_alert_summary = None
+                    else:
+                        _LOGGER.warning("Failed to fetch fleet alerts summary: %s", err)
+                except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning("Failed to fetch fleet alerts summary: %s", err)
 
             # Fetch events for each device
             for vehicle in data.values():
@@ -345,110 +371,176 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                         # Continue even if events fail for one device
 
             # Fetch fleet vehicle summary
-            try:
-                self._total_api_calls += 1
-                self._fleet_vehicle_summary = (
-                    await self._client.get_fleet_vehicle_summary()
-                )
-            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
-                self._failed_api_calls += 1
-                _LOGGER.warning("Failed to fetch fleet vehicle summary: %s", err)
+            if self.is_endpoint_supported(ENDPOINT_KEY_FLEET_VEHICLE_SUMMARY):
+                try:
+                    self._total_api_calls += 1
+                    self._fleet_vehicle_summary = (
+                        await self._client.get_fleet_vehicle_summary()
+                    )
+                except AutoPiAPIError as err:
+                    self._failed_api_calls += 1
+                    if err.status_code == 404:
+                        self._record_unsupported_endpoint(
+                            ENDPOINT_KEY_FLEET_VEHICLE_SUMMARY
+                        )
+                        self._fleet_vehicle_summary = None
+                    else:
+                        _LOGGER.warning(
+                            "Failed to fetch fleet vehicle summary: %s", err
+                        )
+                except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning("Failed to fetch fleet vehicle summary: %s", err)
 
             # Fetch RFID events (last 7 days or since last event)
-            try:
-                self._total_api_calls += 1
-                rfid_start = self._last_rfid_event_ts or (
-                    now_utc - timedelta(days=7)
-                )
-                rfid_events = await self._client.get_rfid_events(
-                    _format_utc(rfid_start),
-                    _format_utc(now_utc),
-                )
-                self._rfid_events = rfid_events
-                if rfid_events:
-                    newest_ts = rfid_events[0].timestamp
-                    if self._last_rfid_event_ts:
-                        for event in reversed(rfid_events):
-                            if event.timestamp > self._last_rfid_event_ts:
-                                self._fire_rfid_event(event)
-                    self._last_rfid_event_ts = newest_ts
-            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
-                self._failed_api_calls += 1
-                _LOGGER.warning("Failed to fetch RFID events: %s", err)
+            if self.is_endpoint_supported(ENDPOINT_KEY_RFID_EVENTS):
+                try:
+                    self._total_api_calls += 1
+                    rfid_start = self._last_rfid_event_ts or (
+                        now_utc - timedelta(days=7)
+                    )
+                    rfid_events = await self._client.get_rfid_events(
+                        _format_utc(rfid_start),
+                        _format_utc(now_utc),
+                    )
+                    self._rfid_events = rfid_events
+                    if rfid_events:
+                        newest_ts = rfid_events[0].timestamp
+                        if self._last_rfid_event_ts:
+                            for rfid_event in reversed(rfid_events):
+                                if rfid_event.timestamp > self._last_rfid_event_ts:
+                                    self._fire_rfid_event(rfid_event)
+                        self._last_rfid_event_ts = newest_ts
+                except AutoPiAPIError as err:
+                    self._failed_api_calls += 1
+                    if err.status_code == 404:
+                        self._record_unsupported_endpoint(ENDPOINT_KEY_RFID_EVENTS)
+                        self._rfid_events = []
+                        self._last_rfid_event_ts = None
+                    else:
+                        _LOGGER.warning("Failed to fetch RFID events: %s", err)
+                except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning("Failed to fetch RFID events: %s", err)
 
             # Fetch per-vehicle data
             for vehicle_id, vehicle in data.items():
                 # Vehicle alerts
-                try:
-                    self._total_api_calls += 1
-                    alerts_response = await self._client.get_vehicle_alerts(vehicle.id)
-                    count = int(alerts_response.get("count", 0))
-                    results = alerts_response.get("results", [])
-                    severity_counts: dict[str, int] = {}
-                    for alert in results:
-                        if not isinstance(alert, dict):
-                            continue
-                        severity = str(
-                            alert.get("severity")
-                            or alert.get("level")
-                            or alert.get("priority")
-                            or "unknown"
-                        )
-                        severity_counts[severity] = severity_counts.get(severity, 0) + 1
-                    self._vehicle_alerts[vehicle_id] = {
-                        "count": count,
-                        "severity_counts": severity_counts,
-                        "alerts": results,
-                    }
-                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
-                    self._failed_api_calls += 1
-                    _LOGGER.warning(
-                        "Failed to fetch alerts for vehicle %s: %s",
-                        vehicle.name,
-                        err,
-                    )
-
-                # Charging sessions
-                try:
-                    self._total_api_calls += 1
-                    year_start = datetime(
-                        now_utc.year, 1, 1, tzinfo=UTC
-                    )
-                    sessions = await self._client.get_charging_sessions(
-                        vehicle.id,
-                        ["vehicle/battery/charging"],
-                        ["vehicle/battery/discharging"],
-                        _format_utc(year_start),
-                        _format_utc(now_utc),
-                    )
-                    latest_session = None
-                    if sessions:
-                        latest_session = max(
-                            sessions,
-                            key=lambda session: session.start
-                            or datetime.min.replace(tzinfo=UTC),
-                        )
-                    self._charging_sessions[vehicle_id] = latest_session
-                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
-                    self._failed_api_calls += 1
-                    _LOGGER.warning(
-                        "Failed to fetch charging sessions for vehicle %s: %s",
-                        vehicle.name,
-                        err,
-                    )
-
-                # Diagnostics and DTCs
-                device_id = vehicle.devices[0] if vehicle.devices else None
-                if device_id:
+                if self.is_endpoint_supported(ENDPOINT_KEY_VEHICLE_ALERTS, vehicle_id):
                     try:
                         self._total_api_calls += 1
-                        diagnostics = await self._client.get_diagnostics(device_id)
+                        alerts_response = await self._client.get_vehicle_alerts(
+                            vehicle.id
+                        )
+                        count = int(alerts_response.get("count", 0))
+                        results = alerts_response.get("results", [])
+                        severity_counts: dict[str, int] = {}
+                        for alert in results:
+                            if not isinstance(alert, dict):
+                                continue
+                            severity = str(
+                                alert.get("severity")
+                                or alert.get("level")
+                                or alert.get("priority")
+                                or "unknown"
+                            )
+                            severity_counts[severity] = (
+                                severity_counts.get(severity, 0) + 1
+                            )
+                        self._vehicle_alerts[vehicle_id] = {
+                            "count": count,
+                            "severity_counts": severity_counts,
+                            "alerts": results,
+                        }
+                    except AutoPiAPIError as err:
+                        self._failed_api_calls += 1
+                        if err.status_code == 404:
+                            self._record_unsupported_endpoint(
+                                ENDPOINT_KEY_VEHICLE_ALERTS, vehicle_id
+                            )
+                            self._vehicle_alerts.pop(vehicle_id, None)
+                        else:
+                            _LOGGER.warning(
+                                "Failed to fetch alerts for vehicle %s: %s",
+                                vehicle.name,
+                                err,
+                            )
+                    except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                        self._failed_api_calls += 1
+                        _LOGGER.warning(
+                            "Failed to fetch alerts for vehicle %s: %s",
+                            vehicle.name,
+                            err,
+                        )
+
+                # Charging sessions
+                if self.is_endpoint_supported(
+                    ENDPOINT_KEY_CHARGING_SESSIONS, vehicle_id
+                ):
+                    try:
+                        self._total_api_calls += 1
+                        year_start = datetime(now_utc.year, 1, 1, tzinfo=UTC)
+                        sessions = await self._client.get_charging_sessions(
+                            vehicle.id,
+                            ["vehicle/battery/charging"],
+                            ["vehicle/battery/discharging"],
+                            _format_utc(year_start),
+                            _format_utc(now_utc),
+                        )
+                        latest_session = None
+                        if sessions:
+                            latest_session = max(
+                                sessions,
+                                key=lambda session: session.start
+                                or datetime.min.replace(tzinfo=UTC),
+                            )
+                        self._charging_sessions[vehicle_id] = latest_session
+                    except AutoPiAPIError as err:
+                        self._failed_api_calls += 1
+                        if err.status_code == 404:
+                            self._record_unsupported_endpoint(
+                                ENDPOINT_KEY_CHARGING_SESSIONS, vehicle_id
+                            )
+                            self._charging_sessions.pop(vehicle_id, None)
+                        else:
+                            _LOGGER.warning(
+                                "Failed to fetch charging sessions for vehicle %s: %s",
+                                vehicle.name,
+                                err,
+                            )
+                    except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                        self._failed_api_calls += 1
+                        _LOGGER.warning(
+                            "Failed to fetch charging sessions for vehicle %s: %s",
+                            vehicle.name,
+                            err,
+                        )
+
+                # Diagnostics and DTCs
+                primary_device_id = vehicle.devices[0] if vehicle.devices else None
+                if primary_device_id and self.is_endpoint_supported(
+                    ENDPOINT_KEY_DIAGNOSTICS, vehicle_id
+                ):
+                    try:
+                        self._total_api_calls += 1
+                        diagnostics = await self._client.get_diagnostics(
+                            primary_device_id
+                        )
                         self._vehicle_diagnostics[vehicle_id] = diagnostics
-                    except (
-                        AutoPiConnectionError,
-                        AutoPiAPIError,
-                        AutoPiTimeoutError,
-                    ) as err:
+                    except AutoPiAPIError as err:
+                        self._failed_api_calls += 1
+                        if err.status_code == 404:
+                            self._record_unsupported_endpoint(
+                                ENDPOINT_KEY_DIAGNOSTICS, vehicle_id
+                            )
+                            self._vehicle_diagnostics.pop(vehicle_id, None)
+                        else:
+                            _LOGGER.warning(
+                                "Failed to fetch diagnostics for vehicle %s: %s",
+                                vehicle.name,
+                                err,
+                            )
+                    except (AutoPiConnectionError, AutoPiTimeoutError) as err:
                         self._failed_api_calls += 1
                         _LOGGER.warning(
                             "Failed to fetch diagnostics for vehicle %s: %s",
@@ -456,68 +548,111 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                             err,
                         )
 
-                try:
-                    self._total_api_calls += 1
-                    dtcs = await self._client.get_obd_dtcs(vehicle.id)
-                    self._vehicle_dtcs[vehicle_id] = dtcs
-                    self._process_new_dtc_events(vehicle_id, dtcs)
-                except (AutoPiConnectionError, AutoPiTimeoutError) as err:
-                    self._failed_api_calls += 1
-                    _LOGGER.warning(
-                        "Failed to fetch DTCs for vehicle %s: %s",
-                        vehicle.name,
-                        err,
-                    )
-                except AutoPiAPIError as err:
-                    self._failed_api_calls += 1
-                    _LOGGER.debug(
-                        "DTC endpoint unavailable for vehicle %s: %s",
-                        vehicle.name,
-                        err,
-                    )
+                if self.is_endpoint_supported(ENDPOINT_KEY_OBD_DTCS, vehicle_id):
+                    try:
+                        self._total_api_calls += 1
+                        dtcs = await self._client.get_obd_dtcs(vehicle.id)
+                        self._vehicle_dtcs[vehicle_id] = dtcs
+                        self._process_new_dtc_events(vehicle_id, dtcs)
+                    except AutoPiAPIError as err:
+                        self._failed_api_calls += 1
+                        if err.status_code == 404:
+                            self._record_unsupported_endpoint(
+                                ENDPOINT_KEY_OBD_DTCS, vehicle_id
+                            )
+                            self._vehicle_dtcs.pop(vehicle_id, None)
+                            self._last_dtc_ids.pop(vehicle_id, None)
+                        else:
+                            _LOGGER.warning(
+                                "Failed to fetch DTCs for vehicle %s: %s",
+                                vehicle.name,
+                                err,
+                            )
+                    except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                        self._failed_api_calls += 1
+                        _LOGGER.warning(
+                            "Failed to fetch DTCs for vehicle %s: %s",
+                            vehicle.name,
+                            err,
+                        )
 
                 # Geofence summary
-                try:
-                    self._total_api_calls += 1
-                    geofence_response = await self._client.get_geofence_summary(
-                        vehicle.id
-                    )
-                    self._geofence_summary[vehicle_id] = self._parse_geofence_summary(
-                        geofence_response
-                    )
-                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
-                    self._failed_api_calls += 1
-                    _LOGGER.warning(
-                        "Failed to fetch geofence summary for vehicle %s: %s",
-                        vehicle.name,
-                        err,
-                    )
+                if self.is_endpoint_supported(
+                    ENDPOINT_KEY_GEOFENCE_SUMMARY, vehicle_id
+                ):
+                    try:
+                        self._total_api_calls += 1
+                        geofence_response = await self._client.get_geofence_summary(
+                            vehicle.id
+                        )
+                        self._geofence_summary[vehicle_id] = (
+                            self._parse_geofence_summary(geofence_response)
+                        )
+                    except AutoPiAPIError as err:
+                        self._failed_api_calls += 1
+                        if err.status_code == 404:
+                            self._record_unsupported_endpoint(
+                                ENDPOINT_KEY_GEOFENCE_SUMMARY, vehicle_id
+                            )
+                            self._geofence_summary.pop(vehicle_id, None)
+                        else:
+                            _LOGGER.warning(
+                                "Failed to fetch geofence summary for vehicle %s: %s",
+                                vehicle.name,
+                                err,
+                            )
+                    except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                        self._failed_api_calls += 1
+                        _LOGGER.warning(
+                            "Failed to fetch geofence summary for vehicle %s: %s",
+                            vehicle.name,
+                            err,
+                        )
 
                 # Simplified events
-                try:
-                    self._total_api_calls += 1
-                    simplified_events = await self._client.get_simplified_events(
-                        vehicle.id, page_hits=1, ordering="-ts"
-                    )
-                    if simplified_events:
-                        latest = simplified_events[0]
-                        self._simplified_events[vehicle_id] = latest
-                        self._process_new_simplified_event(vehicle_id, latest)
-                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
-                    self._failed_api_calls += 1
-                    _LOGGER.warning(
-                        "Failed to fetch simplified events for vehicle %s: %s",
-                        vehicle.name,
-                        err,
-                    )
+                if self.is_endpoint_supported(
+                    ENDPOINT_KEY_SIMPLIFIED_EVENTS, vehicle_id
+                ):
+                    try:
+                        self._total_api_calls += 1
+                        simplified_events = await self._client.get_simplified_events(
+                            vehicle.id, page_hits=1, ordering="-ts"
+                        )
+                        if simplified_events:
+                            latest = simplified_events[0]
+                            self._simplified_events[vehicle_id] = latest
+                            self._process_new_simplified_event(vehicle_id, latest)
+                    except AutoPiAPIError as err:
+                        self._failed_api_calls += 1
+                        if err.status_code == 404:
+                            self._record_unsupported_endpoint(
+                                ENDPOINT_KEY_SIMPLIFIED_EVENTS, vehicle_id
+                            )
+                            self._simplified_events.pop(vehicle_id, None)
+                            self._last_simplified_event_ids.pop(vehicle_id, None)
+                        else:
+                            _LOGGER.warning(
+                                "Failed to fetch simplified events for vehicle %s: %s",
+                                vehicle.name,
+                                err,
+                            )
+                    except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                        self._failed_api_calls += 1
+                        _LOGGER.warning(
+                            "Failed to fetch simplified events for vehicle %s: %s",
+                            vehicle.name,
+                            err,
+                        )
 
                 # Event histogram counts
-                if device_id:
+                if primary_device_id and self.is_endpoint_supported(
+                    ENDPOINT_KEY_EVENTS_HISTOGRAM, vehicle_id
+                ):
                     for tag in ("harsh", "speeding"):
                         try:
                             self._total_api_calls += 1
                             buckets = await self._client.get_events_histogram(
-                                device_id,
+                                primary_device_id,
                                 _format_utc(now_utc - timedelta(days=7)),
                                 _format_utc(now_utc),
                                 "1h",
@@ -530,11 +665,20 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                             self._event_histogram_counts.setdefault(vehicle_id, {})[
                                 tag
                             ] = {"24h": count_24h, "7d": count_7d}
-                        except (
-                            AutoPiConnectionError,
-                            AutoPiAPIError,
-                            AutoPiTimeoutError,
-                        ) as err:
+                        except AutoPiAPIError as err:
+                            self._failed_api_calls += 1
+                            if err.status_code == 404:
+                                self._record_unsupported_endpoint(
+                                    ENDPOINT_KEY_EVENTS_HISTOGRAM, vehicle_id
+                                )
+                                self._event_histogram_counts.pop(vehicle_id, None)
+                                break
+                            _LOGGER.warning(
+                                "Failed to fetch event histogram for vehicle %s: %s",
+                                vehicle.name,
+                                err,
+                            )
+                        except (AutoPiConnectionError, AutoPiTimeoutError) as err:
                             self._failed_api_calls += 1
                             _LOGGER.warning(
                                 "Failed to fetch event histogram for vehicle %s: %s",
@@ -1202,30 +1346,49 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
             # Fetch most recent positions for last communication/fallback location
             recent_position_map: dict[str, VehiclePosition] = {}
             last_comm_map: dict[str, datetime] = {}
-            try:
-                self._total_api_calls += 1
-                positions = await self._client.get_most_recent_positions()
-                device_to_vehicle: dict[str, str] = {}
-                for vehicle_id, vehicle in self._base_coordinator.data.items():
-                    for device_id in vehicle.devices:
-                        device_to_vehicle[device_id] = vehicle_id
+            if self.is_endpoint_supported(ENDPOINT_KEY_MOST_RECENT_POSITIONS):
+                try:
+                    self._total_api_calls += 1
+                    positions = await self._client.get_most_recent_positions()
+                    device_to_vehicle: dict[str, str] = {}
+                    for vehicle_id, vehicle in self._base_coordinator.data.items():
+                        for device_id in vehicle.devices:
+                            device_to_vehicle[device_id] = vehicle_id
 
-                for entry in positions:
-                    vehicle_id = device_to_vehicle.get(entry.device_id)
-                    if not vehicle_id:
-                        continue
-                    if entry.last_communication:
-                        current_last = last_comm_map.get(vehicle_id)
-                        if current_last is None or entry.last_communication > current_last:
-                            last_comm_map[vehicle_id] = entry.last_communication
-                            if entry.position:
-                                recent_position_map[vehicle_id] = entry.position
+                    for entry in positions:
+                        mapped_vehicle_id = device_to_vehicle.get(entry.device_id)
+                        if not mapped_vehicle_id:
+                            continue
+                        if entry.last_communication:
+                            current_last = last_comm_map.get(mapped_vehicle_id)
+                            if (
+                                current_last is None
+                                or entry.last_communication > current_last
+                            ):
+                                last_comm_map[mapped_vehicle_id] = (
+                                    entry.last_communication
+                                )
+                                if entry.position:
+                                    recent_position_map[mapped_vehicle_id] = (
+                                        entry.position
+                                    )
 
-                if last_comm_map:
-                    self._last_communications = last_comm_map
-            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
-                self._failed_api_calls += 1
-                _LOGGER.warning("Failed to fetch most recent positions: %s", err)
+                    if last_comm_map:
+                        self._last_communications = last_comm_map
+                except AutoPiAPIError as err:
+                    self._failed_api_calls += 1
+                    if err.status_code == 404:
+                        self._record_unsupported_endpoint(
+                            ENDPOINT_KEY_MOST_RECENT_POSITIONS
+                        )
+                        self._last_communications = {}
+                    else:
+                        _LOGGER.warning(
+                            "Failed to fetch most recent positions: %s", err
+                        )
+                except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning("Failed to fetch most recent positions: %s", err)
 
             _LOGGER.debug(
                 "Fetching data fields for all vehicles",
@@ -1389,7 +1552,9 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
 
                 # Fetch recent stats for movement detection
                 latest_event: RecentStatEvent | None = None
-                if vehicle.devices:
+                if vehicle.devices and self.is_endpoint_supported(
+                    ENDPOINT_KEY_RECENT_STATS, vehicle_id
+                ):
                     from_timestamp = _format_utc(now_utc - timedelta(days=1))
                     for device_id in vehicle.devices:
                         try:
@@ -1405,11 +1570,19 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                                     or events[0].timestamp > latest_event.timestamp
                                 ):
                                     latest_event = events[0]
-                        except (
-                            AutoPiConnectionError,
-                            AutoPiAPIError,
-                            AutoPiTimeoutError,
-                        ) as err:
+                        except AutoPiAPIError as err:
+                            self._failed_api_calls += 1
+                            if err.status_code == 404:
+                                self._record_unsupported_endpoint(
+                                    ENDPOINT_KEY_RECENT_STATS, vehicle_id
+                                )
+                                break
+                            _LOGGER.warning(
+                                "Failed to fetch recent stats for device %s: %s",
+                                device_id,
+                                err,
+                            )
+                        except (AutoPiConnectionError, AutoPiTimeoutError) as err:
                             self._failed_api_calls += 1
                             _LOGGER.warning(
                                 "Failed to fetch recent stats for device %s: %s",
@@ -1562,6 +1735,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             # Copy vehicle data from base coordinator
             data: CoordinatorData = {}
             total_trips = 0
+            trips_supported = self.is_endpoint_supported(ENDPOINT_KEY_TRIPS)
 
             for vehicle_id, vehicle in self._base_coordinator.data.items():
                 # Create a copy of the vehicle data
@@ -1587,94 +1761,108 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                 )
 
                 # Fetch trip data
-                try:
-                    self._total_api_calls += 1
+                if trips_supported:
+                    try:
+                        self._total_api_calls += 1
 
-                    # Use the first device if available for better filtering
-                    device_id = vehicle.devices[0] if vehicle.devices else None
+                        # Use the first device if available for better filtering
+                        device_id = vehicle.devices[0] if vehicle.devices else None
 
-                    # Get last trip and total count
-                    trip_count, trips = await self._client.get_trips(
-                        vehicle.id, device_id, page_size=1
-                    )
-
-                    vehicle_copy.trip_count = trip_count
-                    total_trips += trip_count
-
-                    if trips:
-                        vehicle_copy.last_trip = trips[0]
-
-                        # Check if this is a new trip
-                        last_trip_id = self._last_trip_ids.get(vehicle_id)
-                        if last_trip_id and last_trip_id != trips[0].trip_id:
-                            # Fire event for new trip
-                            self._fire_trip_event(vehicle_copy, trips[0])
-
-                        # Update last trip ID
-                        self._last_trip_ids[vehicle_id] = trips[0].trip_id
-
-                        _LOGGER.debug(
-                            "Vehicle %s has %d trips, last trip: %s km",
-                            vehicle.name,
-                            trip_count,
-                            trips[0].distance_km,
-                        )
-                    else:
-                        _LOGGER.debug(
-                            "Vehicle %s has %d trips but no trip data returned",
-                            vehicle.name,
-                            trip_count,
+                        # Get last trip and total count
+                        trip_count, trips = await self._client.get_trips(
+                            vehicle.id, device_id, page_size=1
                         )
 
-                    # Calculate total distance and duration from all trips (paginated)
-                    last_fetch = self._trip_totals_last_fetch.get(vehicle_id)
-                    should_refresh = (
-                        vehicle_id not in self._trip_totals_cache
-                        or (
-                            vehicle_copy.last_trip
-                            and self._trip_totals_last_trip_id.get(vehicle_id)
-                            != vehicle_copy.last_trip.trip_id
-                        )
-                        or (
-                            last_fetch is not None
-                            and now_utc - last_fetch > timedelta(hours=6)
-                        )
-                    )
+                        vehicle_copy.trip_count = trip_count
+                        total_trips += trip_count
 
-                    if should_refresh:
-                        total_distance, total_duration, avg_speed = (
-                            await self._calculate_trip_totals(vehicle, device_id)
-                        )
-                        self._trip_totals_cache[vehicle_id] = (
-                            total_distance,
-                            total_duration,
-                            avg_speed,
-                        )
-                        self._trip_totals_last_fetch[vehicle_id] = now_utc
-                        if vehicle_copy.last_trip:
-                            self._trip_totals_last_trip_id[vehicle_id] = (
-                                vehicle_copy.last_trip.trip_id
+                        if trips:
+                            vehicle_copy.last_trip = trips[0]
+
+                            # Check if this is a new trip
+                            last_trip_id = self._last_trip_ids.get(vehicle_id)
+                            if last_trip_id and last_trip_id != trips[0].trip_id:
+                                # Fire event for new trip
+                                self._fire_trip_event(vehicle_copy, trips[0])
+
+                            # Update last trip ID
+                            self._last_trip_ids[vehicle_id] = trips[0].trip_id
+
+                            _LOGGER.debug(
+                                "Vehicle %s has %d trips, last trip: %s km",
+                                vehicle.name,
+                                trip_count,
+                                trips[0].distance_km,
                             )
-                    else:
-                        total_distance, total_duration, avg_speed = (
-                            self._trip_totals_cache.get(vehicle_id, (0.0, 0, None))
+                        else:
+                            _LOGGER.debug(
+                                "Vehicle %s has %d trips but no trip data returned",
+                                vehicle.name,
+                                trip_count,
+                            )
+
+                        # Calculate total distance and duration from all trips (paginated)
+                        last_fetch = self._trip_totals_last_fetch.get(vehicle_id)
+                        should_refresh = (
+                            vehicle_id not in self._trip_totals_cache
+                            or (
+                                vehicle_copy.last_trip
+                                and self._trip_totals_last_trip_id.get(vehicle_id)
+                                != vehicle_copy.last_trip.trip_id
+                            )
+                            or (
+                                last_fetch is not None
+                                and now_utc - last_fetch > timedelta(hours=6)
+                            )
                         )
 
-                    vehicle_copy.total_distance_km = total_distance
-                    vehicle_copy.total_duration_seconds = total_duration
-                    vehicle_copy.average_speed_kmh = avg_speed
+                        if should_refresh:
+                            (
+                                total_distance,
+                                total_duration,
+                                avg_speed,
+                            ) = await self._calculate_trip_totals(vehicle, device_id)
+                            self._trip_totals_cache[vehicle_id] = (
+                                total_distance,
+                                total_duration,
+                                avg_speed,
+                            )
+                            self._trip_totals_last_fetch[vehicle_id] = now_utc
+                            if vehicle_copy.last_trip:
+                                self._trip_totals_last_trip_id[vehicle_id] = (
+                                    vehicle_copy.last_trip.trip_id
+                                )
+                        else:
+                            total_distance, total_duration, avg_speed = (
+                                self._trip_totals_cache.get(vehicle_id, (0.0, 0, None))
+                            )
 
-                except (
-                    AutoPiConnectionError,
-                    AutoPiAPIError,
-                    AutoPiTimeoutError,
-                ) as err:
-                    self._failed_api_calls += 1
-                    _LOGGER.warning(
-                        "Failed to fetch trips for vehicle %s: %s",
-                        vehicle.name,
-                        err,
-                    )
+                        vehicle_copy.total_distance_km = total_distance
+                        vehicle_copy.total_duration_seconds = total_duration
+                        vehicle_copy.average_speed_kmh = avg_speed
+
+                    except AutoPiAPIError as err:
+                        self._failed_api_calls += 1
+                        if err.status_code == 404:
+                            self._record_unsupported_endpoint(ENDPOINT_KEY_TRIPS)
+                            trips_supported = False
+                            self._last_trip_ids.clear()
+                            self._trip_totals_cache.clear()
+                            self._trip_totals_last_fetch.clear()
+                            self._trip_totals_last_trip_id.clear()
+                        else:
+                            _LOGGER.warning(
+                                "Failed to fetch trips for vehicle %s: %s",
+                                vehicle.name,
+                                err,
+                            )
+                    except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                        self._failed_api_calls += 1
+                        _LOGGER.warning(
+                            "Failed to fetch trips for vehicle %s: %s",
+                            vehicle.name,
+                            err,
+                        )
 
                 data[vehicle_id] = vehicle_copy
 
