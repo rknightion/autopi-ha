@@ -12,7 +12,12 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
-from .coordinator import AutoPiDataUpdateCoordinator
+from .coordinator import (
+    ENDPOINT_KEY_OBD_DTCS,
+    ENDPOINT_KEY_RFID_EVENTS,
+    ENDPOINT_KEY_SIMPLIFIED_EVENTS,
+    AutoPiDataUpdateCoordinator,
+)
 from .entities.base import AutoPiVehicleEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -347,7 +352,7 @@ async def async_setup_entry(
     ]
 
     # Create event entities for each vehicle
-    entities = []
+    entities: list[EventEntity] = []
     if coordinator.data:
         for vehicle_id in coordinator.data:
             _LOGGER.debug("Creating event entity for vehicle %s", vehicle_id)
@@ -357,24 +362,29 @@ async def async_setup_entry(
                     vehicle_id=vehicle_id,
                 )
             )
-            entities.append(
-                AutoPiSimplifiedEventEntity(
-                    coordinator=coordinator,
-                    vehicle_id=vehicle_id,
+            if coordinator.is_endpoint_supported(
+                ENDPOINT_KEY_SIMPLIFIED_EVENTS, vehicle_id
+            ):
+                entities.append(
+                    AutoPiSimplifiedEventEntity(
+                        coordinator=coordinator,
+                        vehicle_id=vehicle_id,
+                    )
                 )
-            )
-            entities.append(
-                AutoPiDtcEventEntity(
-                    coordinator=coordinator,
-                    vehicle_id=vehicle_id,
+            if coordinator.is_endpoint_supported(ENDPOINT_KEY_OBD_DTCS, vehicle_id):
+                entities.append(
+                    AutoPiDtcEventEntity(
+                        coordinator=coordinator,
+                        vehicle_id=vehicle_id,
+                    )
                 )
-            )
-            entities.append(
-                AutoPiRfidEventEntity(
-                    coordinator=coordinator,
-                    vehicle_id=vehicle_id,
+            if coordinator.is_endpoint_supported(ENDPOINT_KEY_RFID_EVENTS):
+                entities.append(
+                    AutoPiRfidEventEntity(
+                        coordinator=coordinator,
+                        vehicle_id=vehicle_id,
+                    )
                 )
-            )
 
     if entities:
         _LOGGER.debug("Adding %d AutoPi event entities", len(entities))

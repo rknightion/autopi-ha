@@ -18,7 +18,19 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, MANUFACTURER
-from .coordinator import AutoPiDataUpdateCoordinator
+from .coordinator import (
+    ENDPOINT_KEY_CHARGING_SESSIONS,
+    ENDPOINT_KEY_DIAGNOSTICS,
+    ENDPOINT_KEY_EVENTS_HISTOGRAM,
+    ENDPOINT_KEY_FLEET_ALERTS,
+    ENDPOINT_KEY_FLEET_VEHICLE_SUMMARY,
+    ENDPOINT_KEY_GEOFENCE_SUMMARY,
+    ENDPOINT_KEY_MOST_RECENT_POSITIONS,
+    ENDPOINT_KEY_OBD_DTCS,
+    ENDPOINT_KEY_TRIPS,
+    ENDPOINT_KEY_VEHICLE_ALERTS,
+    AutoPiDataUpdateCoordinator,
+)
 from .data_field_sensors import create_data_field_sensors
 from .entities.base import AutoPiEntity, AutoPiVehicleEntity
 from .position_sensors import create_position_sensors
@@ -48,37 +60,39 @@ async def async_setup_entry(
     entities.append(AutoPiVehicleCountSensor(coordinator))
 
     # Add fleet alert count sensor
-    entities.append(AutoPiFleetAlertCountSensor(coordinator))
+    if coordinator.is_endpoint_supported(ENDPOINT_KEY_FLEET_ALERTS):
+        entities.append(AutoPiFleetAlertCountSensor(coordinator))
 
     # Add fleet vehicle summary sensors
-    entities.extend(
-        [
-            AutoPiFleetVehicleSummarySensor(
-                coordinator,
-                "all_vehicles",
-                "Fleet Vehicles",
-                icon="mdi:car-multiple",
-            ),
-            AutoPiFleetVehicleSummarySensor(
-                coordinator,
-                "active_now",
-                "Fleet Active Now",
-                icon="mdi:car-connected",
-            ),
-            AutoPiFleetVehicleSummarySensor(
-                coordinator,
-                "driven_last_30_days",
-                "Fleet Driven Last 30 Days",
-                icon="mdi:calendar-range",
-            ),
-            AutoPiFleetVehicleSummarySensor(
-                coordinator,
-                "on_location",
-                "Fleet On Location",
-                icon="mdi:map-marker",
-            ),
-        ]
-    )
+    if coordinator.is_endpoint_supported(ENDPOINT_KEY_FLEET_VEHICLE_SUMMARY):
+        entities.extend(
+            [
+                AutoPiFleetVehicleSummarySensor(
+                    coordinator,
+                    "all_vehicles",
+                    "Fleet Vehicles",
+                    icon="mdi:car-multiple",
+                ),
+                AutoPiFleetVehicleSummarySensor(
+                    coordinator,
+                    "active_now",
+                    "Fleet Active Now",
+                    icon="mdi:car-connected",
+                ),
+                AutoPiFleetVehicleSummarySensor(
+                    coordinator,
+                    "driven_last_30_days",
+                    "Fleet Driven Last 30 Days",
+                    icon="mdi:calendar-range",
+                ),
+                AutoPiFleetVehicleSummarySensor(
+                    coordinator,
+                    "on_location",
+                    "Fleet On Location",
+                    icon="mdi:map-marker",
+                ),
+            ]
+        )
 
     # Add diagnostic sensors (these aggregate from all coordinators)
     # Use the fast coordinator for updates
@@ -92,12 +106,37 @@ async def async_setup_entry(
                     "Creating vehicle sensor for %s (%s)", vehicle.name, vehicle_id
                 )
                 entities.append(AutoPiVehicleSensor(coordinator, vehicle_id))
-                entities.append(AutoPiVehicleAlertCountSensor(coordinator, vehicle_id))
-                entities.append(AutoPiVehicleDtcCountSensor(coordinator, vehicle_id))
-                entities.append(AutoPiVehicleLastDtcSensor(coordinator, vehicle_id))
-                entities.append(AutoPiGeofenceCountSensor(coordinator, vehicle_id))
-                entities.append(AutoPiLocationCountSensor(coordinator, vehicle_id))
-                entities.append(AutoPiLastChargeDurationSensor(coordinator, vehicle_id))
+                if coordinator.is_endpoint_supported(
+                    ENDPOINT_KEY_VEHICLE_ALERTS, vehicle_id
+                ):
+                    entities.append(
+                        AutoPiVehicleAlertCountSensor(coordinator, vehicle_id)
+                    )
+
+                if coordinator.is_endpoint_supported(
+                    ENDPOINT_KEY_OBD_DTCS, vehicle_id
+                ) or coordinator.is_endpoint_supported(
+                    ENDPOINT_KEY_DIAGNOSTICS, vehicle_id
+                ):
+                    entities.append(
+                        AutoPiVehicleDtcCountSensor(coordinator, vehicle_id)
+                    )
+
+                if coordinator.is_endpoint_supported(ENDPOINT_KEY_OBD_DTCS, vehicle_id):
+                    entities.append(AutoPiVehicleLastDtcSensor(coordinator, vehicle_id))
+
+                if coordinator.is_endpoint_supported(
+                    ENDPOINT_KEY_GEOFENCE_SUMMARY, vehicle_id
+                ):
+                    entities.append(AutoPiGeofenceCountSensor(coordinator, vehicle_id))
+                    entities.append(AutoPiLocationCountSensor(coordinator, vehicle_id))
+
+                if coordinator.is_endpoint_supported(
+                    ENDPOINT_KEY_CHARGING_SESSIONS, vehicle_id
+                ):
+                    entities.append(
+                        AutoPiLastChargeDurationSensor(coordinator, vehicle_id)
+                    )
 
                 # Add data field sensors if available (includes position sensors)
                 if (
@@ -158,47 +197,53 @@ async def async_setup_entry(
                     )
 
                 # Add last communication sensor (position coordinator)
-                entities.append(
-                    AutoPiLastCommunicationSensor(position_coordinator, vehicle_id)
-                )
+                if position_coordinator.is_endpoint_supported(
+                    ENDPOINT_KEY_MOST_RECENT_POSITIONS
+                ):
+                    entities.append(
+                        AutoPiLastCommunicationSensor(position_coordinator, vehicle_id)
+                    )
 
                 # Add event volume sensors
-                entities.extend(
-                    [
-                        AutoPiEventVolumeSensor(
-                            coordinator,
-                            vehicle_id,
-                            "harsh",
-                            "24h",
-                            "Harsh Events (24h)",
-                            icon="mdi:car-brake-alert",
-                        ),
-                        AutoPiEventVolumeSensor(
-                            coordinator,
-                            vehicle_id,
-                            "harsh",
-                            "7d",
-                            "Harsh Events (7d)",
-                            icon="mdi:car-brake-alert",
-                        ),
-                        AutoPiEventVolumeSensor(
-                            coordinator,
-                            vehicle_id,
-                            "speeding",
-                            "24h",
-                            "Speeding Events (24h)",
-                            icon="mdi:speedometer",
-                        ),
-                        AutoPiEventVolumeSensor(
-                            coordinator,
-                            vehicle_id,
-                            "speeding",
-                            "7d",
-                            "Speeding Events (7d)",
-                            icon="mdi:speedometer",
-                        ),
-                    ]
-                )
+                if coordinator.is_endpoint_supported(
+                    ENDPOINT_KEY_EVENTS_HISTOGRAM, vehicle_id
+                ):
+                    entities.extend(
+                        [
+                            AutoPiEventVolumeSensor(
+                                coordinator,
+                                vehicle_id,
+                                "harsh",
+                                "24h",
+                                "Harsh Events (24h)",
+                                icon="mdi:car-brake-alert",
+                            ),
+                            AutoPiEventVolumeSensor(
+                                coordinator,
+                                vehicle_id,
+                                "harsh",
+                                "7d",
+                                "Harsh Events (7d)",
+                                icon="mdi:car-brake-alert",
+                            ),
+                            AutoPiEventVolumeSensor(
+                                coordinator,
+                                vehicle_id,
+                                "speeding",
+                                "24h",
+                                "Speeding Events (24h)",
+                                icon="mdi:speedometer",
+                            ),
+                            AutoPiEventVolumeSensor(
+                                coordinator,
+                                vehicle_id,
+                                "speeding",
+                                "7d",
+                                "Speeding Events (7d)",
+                                icon="mdi:speedometer",
+                            ),
+                        ]
+                    )
 
             except (AttributeError, ValueError, TypeError):
                 _LOGGER.exception(
@@ -212,6 +257,7 @@ async def async_setup_entry(
                     trip_coordinator
                     and trip_coordinator.data
                     and vehicle_id in trip_coordinator.data
+                    and trip_coordinator.is_endpoint_supported(ENDPOINT_KEY_TRIPS)
                 ):
                     trip_vehicle = trip_coordinator.data[vehicle_id]
                     if trip_vehicle.trip_count > 0:
@@ -227,9 +273,7 @@ async def async_setup_entry(
                             )
                         )
                         entities.append(
-                            AutoPiTripAverageSpeedSensor(
-                                trip_coordinator, vehicle_id
-                            )
+                            AutoPiTripAverageSpeedSensor(trip_coordinator, vehicle_id)
                         )
                         _LOGGER.debug(
                             "Created trip sensors for vehicle %s with %d trips",

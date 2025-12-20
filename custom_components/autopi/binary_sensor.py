@@ -15,7 +15,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_FIELD_TIMEOUT_MINUTES, DOMAIN
-from .coordinator import AutoPiDataUpdateCoordinator
+from .coordinator import (
+    ENDPOINT_KEY_CHARGING_SESSIONS,
+    ENDPOINT_KEY_MOST_RECENT_POSITIONS,
+    AutoPiDataUpdateCoordinator,
+)
 from .entities.base import AutoPiVehicleEntity
 from .types import DataFieldValue
 
@@ -279,32 +283,33 @@ async def async_setup_entry(
     for vehicle_id in vehicle_ids:
         # Movement and online sensors use position coordinator data
         entities.append(MovementBinarySensor(position_coordinator, vehicle_id))
-        entities.append(TrackerOnlineBinarySensor(position_coordinator, vehicle_id))
+        if position_coordinator.is_endpoint_supported(
+            ENDPOINT_KEY_MOST_RECENT_POSITIONS
+        ):
+            entities.append(TrackerOnlineBinarySensor(position_coordinator, vehicle_id))
 
         # Charging state sensors use base coordinator data
-        entities.append(ChargingInProgressBinarySensor(coordinator, vehicle_id))
+        if coordinator.is_endpoint_supported(
+            ENDPOINT_KEY_CHARGING_SESSIONS, vehicle_id
+        ):
+            entities.append(ChargingInProgressBinarySensor(coordinator, vehicle_id))
 
         # Data field derived binary sensors
-        if (
-            position_coordinator.data
-            and vehicle_id in position_coordinator.data
-            and position_coordinator.data[vehicle_id].data_fields
-        ):
-            available_fields = set(
-                position_coordinator.data[vehicle_id].data_fields.keys()
-            )
+        vehicle_data = (
+            position_coordinator.data.get(vehicle_id)
+            if position_coordinator.data
+            else None
+        )
+        if vehicle_data and vehicle_data.data_fields:
+            available_fields = set(vehicle_data.data_fields.keys())
 
             if "obd.bat.state" in available_fields:
                 entities.append(
-                    BatteryChargingStateBinarySensor(
-                        position_coordinator, vehicle_id
-                    )
+                    BatteryChargingStateBinarySensor(position_coordinator, vehicle_id)
                 )
             if "std.ignition.value" in available_fields:
                 entities.append(
-                    IgnitionRunningBinarySensor(
-                        position_coordinator, vehicle_id
-                    )
+                    IgnitionRunningBinarySensor(position_coordinator, vehicle_id)
                 )
 
     _LOGGER.debug("Adding %d AutoPi binary sensor entities", len(entities))
