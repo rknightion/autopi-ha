@@ -212,9 +212,6 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/rknightion/autopi-ha
       name: GitHub Repository
-    - icon: material/home-assistant
-      link: https://www.home-assistant.io
-      name: Home Assistant
   version:
     provider: mike
     default: stable
@@ -244,8 +241,7 @@ extra_javascript:
   - javascripts/seo.js
 
 copyright: |
-  &copy; 2024 <a href="https://github.com/rknightion"  target="_blank" rel="noopener">Rob Knighton</a> &nbsp;
-  <a href="#__consent">Change cookie settings</a>
+  <a href="https://m7kni.io" target="_blank" rel="noopener">m7kni.io</a>
 
 watch:
   - docs/includes/
