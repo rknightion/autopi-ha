@@ -63,10 +63,12 @@ class TestBinarySensorSetup:
         base_coordinator = Mock()
         base_coordinator.data = {"123": vehicle}
         base_coordinator.config_entry = mock_entry
+        base_coordinator.is_endpoint_supported = Mock(return_value=True)
 
         position_coordinator = Mock()
         position_coordinator.data = {"123": vehicle}
         position_coordinator.config_entry = mock_entry
+        position_coordinator.is_endpoint_supported = Mock(return_value=True)
 
         hass.data[DOMAIN] = {
             mock_entry.entry_id: {
@@ -99,10 +101,12 @@ class TestBinarySensorSetup:
         base_coordinator = Mock()
         base_coordinator.data = {}
         base_coordinator.config_entry = mock_entry
+        base_coordinator.is_endpoint_supported = Mock(return_value=True)
 
         position_coordinator = Mock()
         position_coordinator.data = {}
         position_coordinator.config_entry = mock_entry
+        position_coordinator.is_endpoint_supported = Mock(return_value=True)
 
         hass.data[DOMAIN] = {
             mock_entry.entry_id: {

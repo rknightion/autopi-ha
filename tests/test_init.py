@@ -39,14 +39,23 @@ async def test_setup_entry(hass: HomeAssistant) -> None:
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
         mock_coordinator.get_vehicle_count = MagicMock(return_value=1)
         mock_coordinator.data = {}  # Add empty data to prevent the RuntimeWarning
+        mock_coordinator.get_unsupported_endpoints = MagicMock(
+            return_value=(set(), {})
+        )
         mock_coordinator_class.return_value = mock_coordinator
 
         mock_position_coordinator = AsyncMock()
         mock_position_coordinator.async_config_entry_first_refresh = AsyncMock()
+        mock_position_coordinator.get_unsupported_endpoints = MagicMock(
+            return_value=(set(), {})
+        )
         mock_position_coordinator_class.return_value = mock_position_coordinator
 
         mock_trip_coordinator = AsyncMock()
         mock_trip_coordinator.async_config_entry_first_refresh = AsyncMock()
+        mock_trip_coordinator.get_unsupported_endpoints = MagicMock(
+            return_value=(set(), {})
+        )
         mock_trip_coordinator_class.return_value = mock_trip_coordinator
 
         mock_auto_zero = AsyncMock()

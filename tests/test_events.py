@@ -6,7 +6,19 @@ from unittest.mock import MagicMock
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.autopi.event import AutoPiVehicleEvent
+from custom_components.autopi.const import DOMAIN
+from custom_components.autopi.coordinator import (
+    ENDPOINT_KEY_OBD_DTCS,
+    ENDPOINT_KEY_RFID_EVENTS,
+    ENDPOINT_KEY_SIMPLIFIED_EVENTS,
+)
+from custom_components.autopi.event import (
+    AutoPiDtcEventEntity,
+    AutoPiRfidEventEntity,
+    AutoPiSimplifiedEventEntity,
+    AutoPiVehicleEvent,
+    async_setup_entry,
+)
 from custom_components.autopi.types import AutoPiEvent, AutoPiVehicle
 
 
@@ -196,3 +208,51 @@ async def test_event_entity_unknown_event_type(hass: HomeAssistant, mock_coordin
 
     # Check that a warning was logged
     assert "Unknown event type 'some_new_event_type'" in caplog.text
+
+
+async def test_event_setup_skips_unsupported_endpoints(hass: HomeAssistant):
+    """Test event setup skips unsupported endpoints."""
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry"
+
+    vehicle = AutoPiVehicle(
+        id=123,
+        name="Test Vehicle",
+        license_plate="ABC123",
+        vin="1234567890",
+        year=2022,
+        type="ICE",
+        battery_voltage=12,
+        devices=["device1"],
+        make_id=1,
+        model_id=2,
+    )
+
+    coordinator = MagicMock()
+    coordinator.data = {"123": vehicle}
+
+    def is_supported(endpoint_key, vehicle_id=None):
+        if endpoint_key in {
+            ENDPOINT_KEY_SIMPLIFIED_EVENTS,
+            ENDPOINT_KEY_RFID_EVENTS,
+        }:
+            return False
+        if endpoint_key == ENDPOINT_KEY_OBD_DTCS:
+            return True
+        return True
+
+    coordinator.is_endpoint_supported = MagicMock(side_effect=is_supported)
+
+    hass.data[DOMAIN] = {mock_entry.entry_id: {"coordinator": coordinator}}
+
+    added_entities = []
+
+    def mock_add_entities(entities):
+        added_entities.extend(entities)
+
+    await async_setup_entry(hass, mock_entry, mock_add_entities)
+
+    assert any(isinstance(e, AutoPiVehicleEvent) for e in added_entities)
+    assert any(isinstance(e, AutoPiDtcEventEntity) for e in added_entities)
+    assert not any(isinstance(e, AutoPiSimplifiedEventEntity) for e in added_entities)
+    assert not any(isinstance(e, AutoPiRfidEventEntity) for e in added_entities)

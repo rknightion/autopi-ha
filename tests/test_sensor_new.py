@@ -11,7 +11,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.autopi.const import DOMAIN
 from custom_components.autopi.sensor import (
+    AutoPiEventVolumeSensor,
     AutoPiFleetAlertCountSensor,
+    AutoPiFleetVehicleSummarySensor,
     AutoPiLastChargeDurationSensor,
     AutoPiLastCommunicationSensor,
     AutoPiLastTripDistanceSensor,
@@ -23,6 +25,14 @@ from custom_components.autopi.sensor import (
     AutoPiVehicleAlertCountSensor,
     AutoPiVehicleSensor,
     async_setup_entry,
+)
+from custom_components.autopi.coordinator import (
+    ENDPOINT_KEY_CHARGING_SESSIONS,
+    ENDPOINT_KEY_EVENTS_HISTOGRAM,
+    ENDPOINT_KEY_FLEET_ALERTS,
+    ENDPOINT_KEY_FLEET_VEHICLE_SUMMARY,
+    ENDPOINT_KEY_MOST_RECENT_POSITIONS,
+    ENDPOINT_KEY_VEHICLE_ALERTS,
 )
 from custom_components.autopi.types import (
     AutoPiTrip,
@@ -361,8 +371,10 @@ class TestAsyncSetupEntry:
         mock_coordinator.get_vehicle_count = Mock(return_value=2)
         mock_coordinator._fleet_alerts_total = 0
         mock_coordinator._fleet_alerts = []
+        mock_coordinator.is_endpoint_supported = Mock(return_value=True)
 
         mock_position_coordinator = Mock()
+        mock_position_coordinator.is_endpoint_supported = Mock(return_value=True)
         # Add data fields to position data
         vehicle_with_position = Mock(spec=AutoPiVehicle)
         vehicle_with_position.id = mock_vehicle.id
@@ -430,9 +442,11 @@ class TestAsyncSetupEntry:
         mock_coordinator.get_vehicle_count = Mock(return_value=0)
         mock_coordinator._fleet_alerts_total = 0
         mock_coordinator._fleet_alerts = []
+        mock_coordinator.is_endpoint_supported = Mock(return_value=True)
 
         mock_position_coordinator = Mock()
         mock_position_coordinator.data = {}
+        mock_position_coordinator.is_endpoint_supported = Mock(return_value=True)
 
         # Setup hass data
         hass.data[DOMAIN] = {
@@ -461,3 +475,79 @@ class TestAsyncSetupEntry:
         assert len(added_entities) >= 3
         assert any(isinstance(e, AutoPiVehicleCountSensor) for e in added_entities)
         assert any(isinstance(e, AutoPiFleetAlertCountSensor) for e in added_entities)
+
+    async def test_setup_entry_skips_unsupported_endpoints(
+        self, hass: HomeAssistant, mock_vehicle
+    ):
+        """Test setup entry skips sensors for unsupported endpoints."""
+        mock_coordinator = Mock()
+        mock_coordinator.data = {str(mock_vehicle.id): mock_vehicle}
+        mock_coordinator.get_vehicle_count = Mock(return_value=1)
+        mock_coordinator._fleet_alerts_total = 0
+        mock_coordinator._fleet_alerts = []
+
+        def base_supported(endpoint_key, vehicle_id=None):
+            if endpoint_key in {
+                ENDPOINT_KEY_FLEET_ALERTS,
+                ENDPOINT_KEY_FLEET_VEHICLE_SUMMARY,
+                ENDPOINT_KEY_VEHICLE_ALERTS,
+                ENDPOINT_KEY_CHARGING_SESSIONS,
+                ENDPOINT_KEY_EVENTS_HISTOGRAM,
+            }:
+                return False
+            return True
+
+        mock_coordinator.is_endpoint_supported = Mock(side_effect=base_supported)
+
+        mock_position_coordinator = Mock()
+        mock_position_coordinator.data = {str(mock_vehicle.id): mock_vehicle}
+
+        def position_supported(endpoint_key, vehicle_id=None):
+            if endpoint_key == ENDPOINT_KEY_MOST_RECENT_POSITIONS:
+                return False
+            return True
+
+        mock_position_coordinator.is_endpoint_supported = Mock(
+            side_effect=position_supported
+        )
+
+        hass.data[DOMAIN] = {
+            "test_entry": {
+                "coordinator": mock_coordinator,
+                "position_coordinator": mock_position_coordinator,
+                "trip_coordinator": None,
+                "coordinators": {
+                    "coordinator": mock_coordinator,
+                    "position_coordinator": mock_position_coordinator,
+                },
+            }
+        }
+
+        mock_entry = Mock()
+        mock_entry.entry_id = "test_entry"
+
+        added_entities = []
+
+        def mock_add_entities(entities):
+            added_entities.extend(entities)
+
+        await async_setup_entry(hass, mock_entry, mock_add_entities)
+
+        assert not any(
+            isinstance(e, AutoPiFleetAlertCountSensor) for e in added_entities
+        )
+        assert not any(
+            isinstance(e, AutoPiFleetVehicleSummarySensor) for e in added_entities
+        )
+        assert not any(
+            isinstance(e, AutoPiVehicleAlertCountSensor) for e in added_entities
+        )
+        assert not any(
+            isinstance(e, AutoPiLastChargeDurationSensor) for e in added_entities
+        )
+        assert not any(
+            isinstance(e, AutoPiEventVolumeSensor) for e in added_entities
+        )
+        assert not any(
+            isinstance(e, AutoPiLastCommunicationSensor) for e in added_entities
+        )
