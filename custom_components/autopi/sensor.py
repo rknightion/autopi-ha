@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -11,7 +12,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, UnitOfLength
+from homeassistant.const import EntityCategory, UnitOfLength, UnitOfSpeed, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -49,6 +50,36 @@ async def async_setup_entry(
     # Add fleet alert count sensor
     entities.append(AutoPiFleetAlertCountSensor(coordinator))
 
+    # Add fleet vehicle summary sensors
+    entities.extend(
+        [
+            AutoPiFleetVehicleSummarySensor(
+                coordinator,
+                "all_vehicles",
+                "Fleet Vehicles",
+                icon="mdi:car-multiple",
+            ),
+            AutoPiFleetVehicleSummarySensor(
+                coordinator,
+                "active_now",
+                "Fleet Active Now",
+                icon="mdi:car-connected",
+            ),
+            AutoPiFleetVehicleSummarySensor(
+                coordinator,
+                "driven_last_30_days",
+                "Fleet Driven Last 30 Days",
+                icon="mdi:calendar-range",
+            ),
+            AutoPiFleetVehicleSummarySensor(
+                coordinator,
+                "on_location",
+                "Fleet On Location",
+                icon="mdi:map-marker",
+            ),
+        ]
+    )
+
     # Add diagnostic sensors (these aggregate from all coordinators)
     # Use the fast coordinator for updates
     entities.append(AutoPiUpdateDurationSensor(coordinator, all_coordinators))
@@ -61,6 +92,12 @@ async def async_setup_entry(
                     "Creating vehicle sensor for %s (%s)", vehicle.name, vehicle_id
                 )
                 entities.append(AutoPiVehicleSensor(coordinator, vehicle_id))
+                entities.append(AutoPiVehicleAlertCountSensor(coordinator, vehicle_id))
+                entities.append(AutoPiVehicleDtcCountSensor(coordinator, vehicle_id))
+                entities.append(AutoPiVehicleLastDtcSensor(coordinator, vehicle_id))
+                entities.append(AutoPiGeofenceCountSensor(coordinator, vehicle_id))
+                entities.append(AutoPiLocationCountSensor(coordinator, vehicle_id))
+                entities.append(AutoPiLastChargeDurationSensor(coordinator, vehicle_id))
 
                 # Add data field sensors if available (includes position sensors)
                 if (
@@ -120,6 +157,49 @@ async def async_setup_entry(
                         vehicle.name,
                     )
 
+                # Add last communication sensor (position coordinator)
+                entities.append(
+                    AutoPiLastCommunicationSensor(position_coordinator, vehicle_id)
+                )
+
+                # Add event volume sensors
+                entities.extend(
+                    [
+                        AutoPiEventVolumeSensor(
+                            coordinator,
+                            vehicle_id,
+                            "harsh",
+                            "24h",
+                            "Harsh Events (24h)",
+                            icon="mdi:car-brake-alert",
+                        ),
+                        AutoPiEventVolumeSensor(
+                            coordinator,
+                            vehicle_id,
+                            "harsh",
+                            "7d",
+                            "Harsh Events (7d)",
+                            icon="mdi:car-brake-alert",
+                        ),
+                        AutoPiEventVolumeSensor(
+                            coordinator,
+                            vehicle_id,
+                            "speeding",
+                            "24h",
+                            "Speeding Events (24h)",
+                            icon="mdi:speedometer",
+                        ),
+                        AutoPiEventVolumeSensor(
+                            coordinator,
+                            vehicle_id,
+                            "speeding",
+                            "7d",
+                            "Speeding Events (7d)",
+                            icon="mdi:speedometer",
+                        ),
+                    ]
+                )
+
             except (AttributeError, ValueError, TypeError):
                 _LOGGER.exception(
                     "Failed to create sensors for vehicle %s",
@@ -140,6 +220,16 @@ async def async_setup_entry(
                         )
                         entities.append(
                             AutoPiLastTripDistanceSensor(trip_coordinator, vehicle_id)
+                        )
+                        entities.append(
+                            AutoPiTripLifetimeDistanceSensor(
+                                trip_coordinator, vehicle_id
+                            )
+                        )
+                        entities.append(
+                            AutoPiTripAverageSpeedSensor(
+                                trip_coordinator, vehicle_id
+                            )
                         )
                         _LOGGER.debug(
                             "Created trip sensors for vehicle %s with %d trips",
@@ -269,6 +359,45 @@ class AutoPiFleetAlertCountSensor(AutoPiEntity, SensorEntity):
         )
 
 
+class AutoPiFleetVehicleSummarySensor(AutoPiEntity, SensorEntity):
+    """Sensor showing fleet vehicle activity summary."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "vehicles"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        metric: str,
+        name: str,
+        icon: str,
+    ) -> None:
+        """Initialize the fleet summary sensor."""
+        super().__init__(coordinator, f"fleet_vehicle_{metric}")
+        self._metric = metric
+        self._attr_name = name
+        self._attr_icon = icon
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the metric value."""
+        summary = self.coordinator.get_fleet_vehicle_summary()
+        if summary is None:
+            return None
+        return int(getattr(summary, self._metric, 0))
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.config_entry.entry_id)},
+            name="AutoPi Integration",
+            manufacturer=MANUFACTURER,
+            configuration_url="https://app.autopi.io",
+        )
+
+
 class AutoPiVehicleSensor(AutoPiVehicleEntity, SensorEntity):
     """Sensor representing an individual vehicle."""
 
@@ -313,6 +442,255 @@ class AutoPiVehicleSensor(AutoPiVehicleEntity, SensorEntity):
             )
 
         return attrs
+
+
+class AutoPiVehicleAlertCountSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing open alerts for a vehicle."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "alerts"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:alert"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the vehicle alert sensor."""
+        super().__init__(coordinator, vehicle_id, "vehicle_alerts")
+        self._attr_name = "Alerts"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return alert count."""
+        return self.coordinator.get_vehicle_alert_count(self._vehicle_id)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+        summary = self.coordinator.get_vehicle_alert_summary(self._vehicle_id)
+        attrs["severity_counts"] = summary.get("severity_counts", {})
+        attrs["alerts"] = summary.get("alerts", [])
+        return attrs
+
+
+class AutoPiVehicleDtcCountSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing DTC count for a vehicle."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "codes"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:alert-circle"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the DTC count sensor."""
+        super().__init__(coordinator, vehicle_id, "dtc_count")
+        self._attr_name = "DTC Count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return DTC count."""
+        return self.coordinator.get_vehicle_dtc_count(self._vehicle_id)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+        last_dtc = self.coordinator.get_vehicle_last_dtc(self._vehicle_id)
+        if last_dtc:
+            attrs["last_dtc_code"] = last_dtc.code
+            attrs["last_dtc_description"] = last_dtc.description
+            attrs["last_dtc_occurred_at"] = (
+                last_dtc.occurred_at.isoformat() if last_dtc.occurred_at else None
+            )
+        return attrs
+
+
+class AutoPiVehicleLastDtcSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing last DTC code."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:car-wrench"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the last DTC sensor."""
+        super().__init__(coordinator, vehicle_id, "last_dtc")
+        self._attr_name = "Last DTC"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return last DTC code."""
+        last_dtc = self.coordinator.get_vehicle_last_dtc(self._vehicle_id)
+        return last_dtc.code if last_dtc else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+        last_dtc = self.coordinator.get_vehicle_last_dtc(self._vehicle_id)
+        if last_dtc:
+            attrs["description"] = last_dtc.description
+            attrs["occurred_at"] = (
+                last_dtc.occurred_at.isoformat() if last_dtc.occurred_at else None
+            )
+        return attrs
+
+
+class AutoPiGeofenceCountSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing geofence count for a vehicle."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "geofences"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:map-marker"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the geofence count sensor."""
+        super().__init__(coordinator, vehicle_id, "geofence_count")
+        self._attr_name = "Geofence Count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return geofence count."""
+        summary = self.coordinator.get_geofence_summary(self._vehicle_id)
+        return summary.geofence_count if summary else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+        summary = self.coordinator.get_geofence_summary(self._vehicle_id)
+        if summary:
+            attrs["last_entered"] = (
+                summary.last_entered.isoformat() if summary.last_entered else None
+            )
+            attrs["last_exited"] = (
+                summary.last_exited.isoformat() if summary.last_exited else None
+            )
+        return attrs
+
+
+class AutoPiLocationCountSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing location count for a vehicle."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "locations"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:map-marker-radius"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the location count sensor."""
+        super().__init__(coordinator, vehicle_id, "location_count")
+        self._attr_name = "Location Count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return location count."""
+        summary = self.coordinator.get_geofence_summary(self._vehicle_id)
+        return summary.location_count if summary else None
+
+
+class AutoPiLastCommunicationSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing last communication timestamp."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:clock"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the last communication sensor."""
+        super().__init__(coordinator, vehicle_id, "last_communication")
+        self._attr_name = "Last Communication"
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return last communication timestamp."""
+        return self.coordinator.get_last_communication(self._vehicle_id)
+
+
+class AutoPiLastChargeDurationSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing duration of the last charge session."""
+
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:timer"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the last charge duration sensor."""
+        super().__init__(coordinator, vehicle_id, "last_charge_duration")
+        self._attr_name = "Last Charge Duration"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return last charge duration in seconds."""
+        info = self.coordinator.get_vehicle_charging_info(self._vehicle_id)
+        return info.get("last_charge_duration_seconds")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+        attrs.update(self.coordinator.get_vehicle_charging_info(self._vehicle_id))
+        return attrs
+
+
+class AutoPiEventVolumeSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing event volume for a tag and window."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "events"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+        tag: str,
+        window: str,
+        name: str,
+        icon: str,
+    ) -> None:
+        """Initialize the event volume sensor."""
+        super().__init__(coordinator, vehicle_id, f"event_volume_{tag}_{window}")
+        self._tag = tag
+        self._window = window
+        self._attr_name = name
+        self._attr_icon = icon
+
+    @property
+    def native_value(self) -> int | None:
+        """Return event volume."""
+        return self.coordinator.get_event_volume(
+            self._vehicle_id, self._tag, self._window
+        )
 
 
 class AutoPiUpdateDurationSensor(AutoPiEntity, SensorEntity):
@@ -505,3 +883,57 @@ class AutoPiLastTripDistanceSensor(AutoPiVehicleEntity, SensorEntity):
 
         attrs["auto_zero_enabled"] = False
         return attrs
+
+
+class AutoPiTripLifetimeDistanceSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing total lifetime trip distance."""
+
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
+    _attr_icon = "mdi:road-variant"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the lifetime distance sensor."""
+        super().__init__(coordinator, vehicle_id, "trip_distance_total")
+        self._attr_name = "Trip Distance Total"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the total trip distance."""
+        if vehicle := self.vehicle:
+            return round(vehicle.total_distance_km, 1)
+        return None
+
+
+class AutoPiTripAverageSpeedSensor(AutoPiVehicleEntity, SensorEntity):
+    """Sensor showing average trip speed."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_device_class = SensorDeviceClass.SPEED
+    _attr_native_unit_of_measurement = UnitOfSpeed.KILOMETERS_PER_HOUR
+    _attr_icon = "mdi:speedometer"
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the average speed sensor."""
+        super().__init__(coordinator, vehicle_id, "trip_speed_average")
+        self._attr_name = "Trip Speed Average"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the average trip speed."""
+        if vehicle := self.vehicle:
+            return (
+                round(vehicle.average_speed_kmh, 2)
+                if vehicle.average_speed_kmh is not None
+                else None
+            )
+        return None

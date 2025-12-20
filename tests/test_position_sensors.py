@@ -13,6 +13,7 @@ from custom_components.autopi.position_sensors import (
     GPSCourseSensor,
     GPSLatitudeSensor,
     GPSLongitudeSensor,
+    GPSPrecisionSensor,
     GPSSatellitesSensor,
     GPSSpeedSensor,
     create_position_sensors,
@@ -126,6 +127,20 @@ class TestGPSPositionSensors:
         attrs = sensor.extra_state_attributes
         assert attrs["location_accuracy"] == 7.5  # 8 satellites = 7.5m accuracy
 
+    def test_gps_precision_sensor(self, mock_coordinator, mock_vehicle):
+        """Test GPS precision sensor."""
+        field = create_data_field("track.pos", "pr", 5, "int")
+        mock_vehicle.data_fields = {
+            "track.pos.pr": field,
+            "track.pos.nsat": create_data_field("track.pos", "nsat", 10, "int"),
+        }
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = GPSPrecisionSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 5
+        assert sensor.extra_state_attributes["num_satellites"] == 10
+
     def test_gps_satellites_accuracy_ranges(self, mock_coordinator, mock_vehicle):
         """Test GPS satellites accuracy calculation for different ranges."""
         test_cases = [
@@ -206,13 +221,13 @@ class TestPositionSensorCreation:
             "track.pos.cog",
             "track.pos.nsat",
             "track.pos.loc",
-            "track.pos.pr",  # Should be ignored
+            "track.pos.pr",
         }
 
         sensors = create_position_sensors(mock_coordinator, "123", available_fields)
 
-        # Should create 6 sensors (loc creates both lat and lon)
-        assert len(sensors) == 6
+        # Should create 7 sensors (loc creates both lat and lon)
+        assert len(sensors) == 7
 
         # Check sensor types
         sensor_types = {type(sensor).__name__ for sensor in sensors}
@@ -221,6 +236,7 @@ class TestPositionSensorCreation:
             "GPSSpeedSensor",
             "GPSCourseSensor",
             "GPSSatellitesSensor",
+            "GPSPrecisionSensor",
             "GPSLatitudeSensor",
             "GPSLongitudeSensor",
         }
@@ -228,9 +244,9 @@ class TestPositionSensorCreation:
 
     def test_create_sensors_handles_errors(self, mock_coordinator, caplog):
         """Test sensor creation handles errors gracefully."""
-        # Create a field that's not mapped to any sensor
-        available_fields = {"track.pos.pr"}  # Position residual - not implemented
+        # Create a field that's mapped to a sensor
+        available_fields = {"track.pos.pr"}
         sensors = create_position_sensors(mock_coordinator, "123", available_fields)
 
-        # Should return empty list for unmapped fields
-        assert len(sensors) == 0
+        # Should return a precision sensor
+        assert len(sensors) == 1

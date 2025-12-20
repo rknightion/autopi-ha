@@ -10,9 +10,21 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from .const import (
     ALERTS_ENDPOINT,
+    CHARGING_SESSIONS_ENDPOINT,
     DATA_FIELDS_ENDPOINT,
     DEFAULT_BASE_URL,
+    DIAGNOSTICS_ENDPOINT,
     EVENTS_ENDPOINT,
+    EVENTS_HISTOGRAM_ENDPOINT,
+    FLEET_ALERTS_ENDPOINT,
+    FLEET_ALERTS_SUMMARY_ENDPOINT,
+    FLEET_VEHICLE_SUMMARY_ENDPOINT,
+    GEOFENCE_SUMMARY_ENDPOINT_TEMPLATE,
+    MOST_RECENT_POSITIONS_ENDPOINT,
+    OBD_DTCS_ENDPOINT,
+    RECENT_STATS_ENDPOINT,
+    RFID_EVENTS_ENDPOINT,
+    SIMPLIFIED_EVENTS_ENDPOINT,
     TRIPS_ENDPOINT,
     USER_AGENT,
     VEHICLE_PROFILE_ENDPOINT,
@@ -30,10 +42,18 @@ from .types import (
     AutoPiEvent,
     AutoPiTrip,
     AutoPiVehicle,
+    ChargingSession,
     DataFieldResponse,
     DataFieldValue,
+    DeviceMostRecentPosition,
+    DtcEntry,
     EventsResponse,
     FleetAlert,
+    FleetAlertSummary,
+    FleetVehicleSummary,
+    RecentStatEvent,
+    RfidEvent,
+    SimplifiedEvent,
     TripsResponse,
 )
 
@@ -338,6 +358,355 @@ class AutoPiClient:
         except Exception:
             _LOGGER.exception("Failed to fetch events for device %s", device_id)
             raise
+
+    async def get_recent_stats(
+        self,
+        device_id: str,
+        from_timestamp: str,
+        stat_type: str | None = None,
+        kind: str | None = None,
+    ) -> list[RecentStatEvent]:
+        """Get recent stats for a specific device."""
+        _LOGGER.debug("Fetching recent stats for device %s", device_id)
+
+        try:
+            params: dict[str, Any] = {
+                "device_id": device_id,
+                "from_timestamp": from_timestamp,
+            }
+            if stat_type:
+                params["type"] = stat_type
+            if kind:
+                params["kind"] = kind
+
+            response = await self._request(
+                "GET",
+                RECENT_STATS_ENDPOINT,
+                params=params,
+            )
+
+            if not isinstance(response, list):
+                _LOGGER.error("Unexpected recent stats response type: %s", type(response))
+                return []
+
+            events: list[RecentStatEvent] = []
+            for entry in response:
+                if not isinstance(entry, dict):
+                    continue
+                parsed = RecentStatEvent.from_api_data(entry)
+                if parsed:
+                    events.append(parsed)
+
+            events.sort(key=lambda item: item.timestamp, reverse=True)
+            return events
+
+        except Exception:
+            _LOGGER.exception("Failed to fetch recent stats for device %s", device_id)
+            raise
+
+    async def get_most_recent_positions(self) -> list[DeviceMostRecentPosition]:
+        """Get most recent positions for all devices."""
+        _LOGGER.debug("Fetching most recent positions from AutoPi API")
+
+        try:
+            response = await self._request("GET", MOST_RECENT_POSITIONS_ENDPOINT)
+
+            if not isinstance(response, list):
+                _LOGGER.error(
+                    "Unexpected most recent positions response type: %s",
+                    type(response),
+                )
+                return []
+
+            positions: list[DeviceMostRecentPosition] = []
+            for entry in response:
+                if not isinstance(entry, dict):
+                    continue
+                try:
+                    positions.append(DeviceMostRecentPosition.from_api_data(entry))
+                except (KeyError, ValueError, TypeError) as err:
+                    _LOGGER.warning("Failed to parse most recent position: %s", err)
+                    continue
+
+            return positions
+
+        except Exception:
+            _LOGGER.exception("Failed to fetch most recent positions")
+            raise
+
+    async def get_charging_sessions(
+        self,
+        vehicle_id: int,
+        start_tags: list[str],
+        end_tags: list[str],
+        from_utc: str,
+        to_utc: str,
+    ) -> list[ChargingSession]:
+        """Get charging sessions for a vehicle."""
+        _LOGGER.debug("Fetching charging sessions for vehicle %d", vehicle_id)
+
+        try:
+            params: dict[str, Any] = {
+                "vehicle_id": vehicle_id,
+                "start_tags": start_tags,
+                "end_tags": end_tags,
+                "from_utc": from_utc,
+                "to_utc": to_utc,
+            }
+
+            response = await self._request(
+                "GET",
+                CHARGING_SESSIONS_ENDPOINT,
+                params=params,
+            )
+
+            if not isinstance(response, list):
+                _LOGGER.error(
+                    "Unexpected charging sessions response type: %s", type(response)
+                )
+                return []
+
+            sessions = []
+            for entry in response:
+                if not isinstance(entry, dict):
+                    continue
+                sessions.append(ChargingSession.from_api_data(entry))
+
+            return sessions
+
+        except Exception:
+            _LOGGER.exception("Failed to fetch charging sessions for vehicle %d", vehicle_id)
+            raise
+
+    async def get_fleet_alerts_summary(self) -> FleetAlertSummary:
+        """Get fleet alerts summary."""
+        _LOGGER.debug("Fetching fleet alerts summary")
+
+        response = await self._request("GET", FLEET_ALERTS_SUMMARY_ENDPOINT)
+        if not isinstance(response, dict):
+            _LOGGER.error("Unexpected fleet alerts summary response: %s", type(response))
+            return FleetAlertSummary(open=0, critical=0, high=0, medium=0, low=0)
+
+        return FleetAlertSummary.from_api_data(response)
+
+    async def get_vehicle_alerts(
+        self, vehicle_id: int, page_size: int = 5
+    ) -> dict[str, Any]:
+        """Get alerts for a specific vehicle."""
+        _LOGGER.debug("Fetching alerts for vehicle %d", vehicle_id)
+        response = await self._request(
+            "GET",
+            FLEET_ALERTS_ENDPOINT,
+            params={"vehicle": vehicle_id, "page_size": page_size},
+        )
+        if not isinstance(response, dict):
+            _LOGGER.error("Unexpected vehicle alerts response: %s", type(response))
+            return {"count": 0, "results": [], "page_size": page_size}
+        return response
+
+    async def get_diagnostics(
+        self, device_id: str, page_hits: int = 5
+    ) -> dict[str, Any]:
+        """Get diagnostic events for a device."""
+        _LOGGER.debug("Fetching diagnostics for device %s", device_id)
+        response = await self._request(
+            "GET",
+            DIAGNOSTICS_ENDPOINT,
+            params={"device_id": device_id, "page_hits": page_hits},
+        )
+        if not isinstance(response, dict):
+            _LOGGER.error("Unexpected diagnostics response: %s", type(response))
+            return {"count": 0, "results": []}
+        return response
+
+    async def get_obd_dtcs(self, vehicle_id: int) -> list[DtcEntry]:
+        """Get OBD DTC entries for a vehicle."""
+        _LOGGER.debug("Fetching OBD DTCs for vehicle %d", vehicle_id)
+        response = await self._request(
+            "GET",
+            OBD_DTCS_ENDPOINT,
+            params={"vehicle_id": vehicle_id},
+        )
+
+        entries: list[DtcEntry] = []
+        if isinstance(response, dict):
+            results = response.get("results", [])
+        else:
+            results = response if isinstance(response, list) else []
+
+        for entry in results:
+            if not isinstance(entry, dict):
+                continue
+            entries.append(DtcEntry.from_api_data(entry))
+
+        return entries
+
+    async def get_geofence_summary(self, vehicle_id: int) -> dict[str, Any]:
+        """Get geofence summary for a vehicle."""
+        _LOGGER.debug("Fetching geofence summary for vehicle %d", vehicle_id)
+        endpoint = GEOFENCE_SUMMARY_ENDPOINT_TEMPLATE.format(vehicle_id=vehicle_id)
+        response = await self._request("GET", endpoint)
+        if not isinstance(response, dict):
+            _LOGGER.error("Unexpected geofence summary response: %s", type(response))
+            return {"count": 0, "results": [], "counts": {"locations": 0, "geofences": 0}}
+        return response
+
+    async def get_fleet_vehicle_summary(self) -> FleetVehicleSummary:
+        """Get fleet vehicle activity summary."""
+        _LOGGER.debug("Fetching fleet vehicle summary")
+        response = await self._request("GET", FLEET_VEHICLE_SUMMARY_ENDPOINT)
+        if not isinstance(response, dict):
+            _LOGGER.error("Unexpected fleet vehicle summary response: %s", type(response))
+            return FleetVehicleSummary(
+                all_vehicles=0,
+                active_now=0,
+                driven_last_30_days=0,
+                on_location=0,
+            )
+
+        return FleetVehicleSummary(
+            all_vehicles=int(
+                response.get("all", response.get("all_vehicles", 0))
+            ),
+            active_now=int(
+                response.get("active_now", response.get("active_vehicles_now", 0))
+            ),
+            driven_last_30_days=int(
+                response.get(
+                    "driven_last_30_days",
+                    response.get("driven_vehicles_last_30_days", 0),
+                )
+            ),
+            on_location=int(response.get("on_location", 0)),
+        )
+
+    async def get_events_histogram(
+        self,
+        device_id: str,
+        start_utc: str,
+        end_utc: str,
+        interval: str,
+        filter_tag: str,
+        event_type: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Get event histogram buckets."""
+        _LOGGER.debug(
+            "Fetching events histogram for device %s (tag: %s)", device_id, filter_tag
+        )
+        params: dict[str, Any] = {
+            "device_id": device_id,
+            "start_utc": start_utc,
+            "end_utc": end_utc,
+            "interval": interval,
+            "filter_tag": filter_tag,
+        }
+        if event_type:
+            params["type"] = event_type
+
+        response = await self._request(
+            "GET",
+            EVENTS_HISTOGRAM_ENDPOINT,
+            params=params,
+        )
+
+        if not isinstance(response, list):
+            _LOGGER.error("Unexpected events histogram response: %s", type(response))
+            return []
+
+        return [entry for entry in response if isinstance(entry, dict)]
+
+    async def get_simplified_events(
+        self,
+        vehicle_id: int,
+        page_hits: int = 1,
+        ordering: str = "-ts",
+    ) -> list[SimplifiedEvent]:
+        """Get simplified events for a vehicle."""
+        _LOGGER.debug("Fetching simplified events for vehicle %d", vehicle_id)
+        response = await self._request(
+            "GET",
+            SIMPLIFIED_EVENTS_ENDPOINT,
+            params={
+                "vehicle_id": vehicle_id,
+                "page_hits": page_hits,
+                "ordering": ordering,
+            },
+        )
+
+        if not isinstance(response, dict):
+            _LOGGER.error("Unexpected simplified events response: %s", type(response))
+            return []
+
+        results = response.get("results", [])
+        events: list[SimplifiedEvent] = []
+        for entry in results:
+            if not isinstance(entry, dict):
+                continue
+            parsed = SimplifiedEvent.from_api_data(entry)
+            if parsed:
+                events.append(parsed)
+
+        events.sort(key=lambda event: event.timestamp, reverse=True)
+        return events
+
+    async def get_rfid_events(
+        self,
+        start_time: str,
+        end_time: str,
+    ) -> list[RfidEvent]:
+        """Get RFID events."""
+        _LOGGER.debug("Fetching RFID events")
+        response = await self._request(
+            "GET",
+            RFID_EVENTS_ENDPOINT,
+            params={"start_time": start_time, "end_time": end_time},
+        )
+
+        results: list[dict[str, Any]] = []
+        if isinstance(response, dict):
+            results = response.get("rfid_events", []) or response.get("results", [])
+        elif isinstance(response, list):
+            results = response
+
+        events: list[RfidEvent] = []
+        for entry in results:
+            if not isinstance(entry, dict):
+                continue
+            parsed = RfidEvent.from_api_data(entry)
+            if parsed:
+                events.append(parsed)
+
+        events.sort(key=lambda event: event.timestamp, reverse=True)
+        return events
+
+    async def get_trips_page(
+        self,
+        vehicle_id: int,
+        device_id: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> TripsResponse:
+        """Get a page of trips using limit/offset pagination."""
+        _LOGGER.debug(
+            "Fetching trips page for vehicle %d (limit=%d, offset=%d)",
+            vehicle_id,
+            limit,
+            offset,
+        )
+        params: dict[str, Any] = {
+            "vehicle": vehicle_id,
+            "limit": limit,
+            "offset": offset,
+        }
+        if device_id:
+            params["device_id"] = device_id
+
+        response = await self._request(
+            "GET",
+            TRIPS_ENDPOINT,
+            params=params,
+        )
+        return cast(TripsResponse, response)
 
     async def _request(
         self,

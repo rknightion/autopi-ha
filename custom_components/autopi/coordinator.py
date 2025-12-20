@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
-from typing import TYPE_CHECKING
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -38,13 +38,26 @@ from .types import (
     AutoPiEvent,
     AutoPiTrip,
     AutoPiVehicle,
+    ChargingSession,
     CoordinatorData,
     DataFieldValue,
+    DtcEntry,
     FleetAlert,
+    FleetAlertSummary,
+    FleetVehicleSummary,
+    GeofenceSummary,
+    RecentStatEvent,
+    RfidEvent,
+    SimplifiedEvent,
     VehiclePosition,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _format_utc(dt: datetime) -> str:
+    """Format a datetime as ISO 8601 UTC string."""
+    return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
@@ -80,6 +93,40 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
         # Device events tracking
         self._device_events: dict[str, list[AutoPiEvent]] = {}
         self._last_event_timestamps: dict[str, str] = {}
+
+        # Fleet alerts summary and per-vehicle alerts
+        self._fleet_alert_summary: FleetAlertSummary | None = None
+        self._vehicle_alerts: dict[str, dict[str, Any]] = {}
+
+        # Charging sessions per vehicle
+        self._charging_sessions: dict[str, ChargingSession | None] = {}
+
+        # Diagnostic data
+        self._vehicle_diagnostics: dict[str, dict[str, Any]] = {}
+        self._vehicle_dtcs: dict[str, list[DtcEntry]] = {}
+        self._last_dtc_ids: dict[str, str] = {}
+
+        # Geofence summary per vehicle
+        self._geofence_summary: dict[str, GeofenceSummary] = {}
+
+        # Fleet vehicle summary
+        self._fleet_vehicle_summary: FleetVehicleSummary | None = None
+
+        # Event histogram counts per vehicle/tag
+        self._event_histogram_counts: dict[str, dict[str, dict[str, int]]] = {}
+
+        # Simplified events per vehicle
+        self._simplified_events: dict[str, SimplifiedEvent] = {}
+        self._last_simplified_event_ids: dict[str, str] = {}
+
+        # RFID events
+        self._rfid_events: list[RfidEvent] = []
+        self._last_rfid_event_ts: datetime | None = None
+
+        # Movement and last communication (populated by position coordinator)
+        self._last_communications: dict[str, datetime] = {}
+        self._movement_state: dict[str, bool] = {}
+        self._movement_info: dict[str, dict[str, Any]] = {}
 
         # Discovery tracking
         self._all_vehicles: list[AutoPiVehicle] = []
@@ -124,6 +171,7 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             self._update_count,
             self.update_interval,
         )
+        now_utc = datetime.now(UTC)
 
         try:
             # Create client if not exists
@@ -212,6 +260,14 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 _LOGGER.warning("Failed to fetch fleet alerts: %s", err)
                 # Continue even if alerts fail
 
+            # Fetch fleet alert summary
+            try:
+                self._total_api_calls += 1
+                self._fleet_alert_summary = await self._client.get_fleet_alerts_summary()
+            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                self._failed_api_calls += 1
+                _LOGGER.warning("Failed to fetch fleet alerts summary: %s", err)
+
             # Fetch events for each device
             for vehicle in data.values():
                 for device_id in vehicle.devices:
@@ -270,6 +326,204 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                             err,
                         )
                         # Continue even if events fail for one device
+
+            # Fetch fleet vehicle summary
+            try:
+                self._total_api_calls += 1
+                self._fleet_vehicle_summary = (
+                    await self._client.get_fleet_vehicle_summary()
+                )
+            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                self._failed_api_calls += 1
+                _LOGGER.warning("Failed to fetch fleet vehicle summary: %s", err)
+
+            # Fetch RFID events (last 7 days or since last event)
+            try:
+                self._total_api_calls += 1
+                rfid_start = self._last_rfid_event_ts or (
+                    now_utc - timedelta(days=7)
+                )
+                rfid_events = await self._client.get_rfid_events(
+                    _format_utc(rfid_start),
+                    _format_utc(now_utc),
+                )
+                self._rfid_events = rfid_events
+                if rfid_events:
+                    newest_ts = rfid_events[0].timestamp
+                    if self._last_rfid_event_ts:
+                        for event in reversed(rfid_events):
+                            if event.timestamp > self._last_rfid_event_ts:
+                                self._fire_rfid_event(event)
+                    self._last_rfid_event_ts = newest_ts
+            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                self._failed_api_calls += 1
+                _LOGGER.warning("Failed to fetch RFID events: %s", err)
+
+            # Fetch per-vehicle data
+            for vehicle_id, vehicle in data.items():
+                # Vehicle alerts
+                try:
+                    self._total_api_calls += 1
+                    alerts_response = await self._client.get_vehicle_alerts(vehicle.id)
+                    count = int(alerts_response.get("count", 0))
+                    results = alerts_response.get("results", [])
+                    severity_counts: dict[str, int] = {}
+                    for alert in results:
+                        if not isinstance(alert, dict):
+                            continue
+                        severity = str(
+                            alert.get("severity")
+                            or alert.get("level")
+                            or alert.get("priority")
+                            or "unknown"
+                        )
+                        severity_counts[severity] = severity_counts.get(severity, 0) + 1
+                    self._vehicle_alerts[vehicle_id] = {
+                        "count": count,
+                        "severity_counts": severity_counts,
+                        "alerts": results,
+                    }
+                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning(
+                        "Failed to fetch alerts for vehicle %s: %s",
+                        vehicle.name,
+                        err,
+                    )
+
+                # Charging sessions
+                try:
+                    self._total_api_calls += 1
+                    year_start = datetime(
+                        now_utc.year, 1, 1, tzinfo=UTC
+                    )
+                    sessions = await self._client.get_charging_sessions(
+                        vehicle.id,
+                        ["vehicle/battery/charging"],
+                        ["vehicle/battery/discharging"],
+                        _format_utc(year_start),
+                        _format_utc(now_utc),
+                    )
+                    latest_session = None
+                    if sessions:
+                        latest_session = max(
+                            sessions,
+                            key=lambda session: session.start
+                            or datetime.min.replace(tzinfo=UTC),
+                        )
+                    self._charging_sessions[vehicle_id] = latest_session
+                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning(
+                        "Failed to fetch charging sessions for vehicle %s: %s",
+                        vehicle.name,
+                        err,
+                    )
+
+                # Diagnostics and DTCs
+                device_id = vehicle.devices[0] if vehicle.devices else None
+                if device_id:
+                    try:
+                        self._total_api_calls += 1
+                        diagnostics = await self._client.get_diagnostics(device_id)
+                        self._vehicle_diagnostics[vehicle_id] = diagnostics
+                    except (
+                        AutoPiConnectionError,
+                        AutoPiAPIError,
+                        AutoPiTimeoutError,
+                    ) as err:
+                        self._failed_api_calls += 1
+                        _LOGGER.warning(
+                            "Failed to fetch diagnostics for vehicle %s: %s",
+                            vehicle.name,
+                            err,
+                        )
+
+                try:
+                    self._total_api_calls += 1
+                    dtcs = await self._client.get_obd_dtcs(vehicle.id)
+                    self._vehicle_dtcs[vehicle_id] = dtcs
+                    self._process_new_dtc_events(vehicle_id, dtcs)
+                except (AutoPiConnectionError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning(
+                        "Failed to fetch DTCs for vehicle %s: %s",
+                        vehicle.name,
+                        err,
+                    )
+                except AutoPiAPIError as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.debug(
+                        "DTC endpoint unavailable for vehicle %s: %s",
+                        vehicle.name,
+                        err,
+                    )
+
+                # Geofence summary
+                try:
+                    self._total_api_calls += 1
+                    geofence_response = await self._client.get_geofence_summary(
+                        vehicle.id
+                    )
+                    self._geofence_summary[vehicle_id] = self._parse_geofence_summary(
+                        geofence_response
+                    )
+                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning(
+                        "Failed to fetch geofence summary for vehicle %s: %s",
+                        vehicle.name,
+                        err,
+                    )
+
+                # Simplified events
+                try:
+                    self._total_api_calls += 1
+                    simplified_events = await self._client.get_simplified_events(
+                        vehicle.id, page_hits=1, ordering="-ts"
+                    )
+                    if simplified_events:
+                        latest = simplified_events[0]
+                        self._simplified_events[vehicle_id] = latest
+                        self._process_new_simplified_event(vehicle_id, latest)
+                except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                    self._failed_api_calls += 1
+                    _LOGGER.warning(
+                        "Failed to fetch simplified events for vehicle %s: %s",
+                        vehicle.name,
+                        err,
+                    )
+
+                # Event histogram counts
+                if device_id:
+                    for tag in ("harsh", "speeding"):
+                        try:
+                            self._total_api_calls += 1
+                            buckets = await self._client.get_events_histogram(
+                                device_id,
+                                _format_utc(now_utc - timedelta(days=7)),
+                                _format_utc(now_utc),
+                                "1h",
+                                tag,
+                                event_type="event",
+                            )
+                            count_24h, count_7d = self._summarize_histogram(
+                                buckets, now_utc
+                            )
+                            self._event_histogram_counts.setdefault(vehicle_id, {})[
+                                tag
+                            ] = {"24h": count_24h, "7d": count_7d}
+                        except (
+                            AutoPiConnectionError,
+                            AutoPiAPIError,
+                            AutoPiTimeoutError,
+                        ) as err:
+                            self._failed_api_calls += 1
+                            _LOGGER.warning(
+                                "Failed to fetch event histogram for vehicle %s: %s",
+                                vehicle.name,
+                                err,
+                            )
 
             # Track successful update
             self._last_update_duration = self.hass.loop.time() - start_time
@@ -447,6 +701,170 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             event.device_id,
         )
 
+    def _fire_dtc_event(self, vehicle_id: str, dtc: DtcEntry) -> None:
+        """Fire an event for a new DTC entry."""
+        event_data = {
+            "vehicle_id": vehicle_id,
+            "dtc_code": dtc.code,
+            "description": dtc.description,
+            "occurred_at": dtc.occurred_at.isoformat() if dtc.occurred_at else None,
+        }
+
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_dtc_event",
+            event_data,
+        )
+
+        _LOGGER.debug(
+            "Fired DTC event for vehicle %s: %s", vehicle_id, dtc.code
+        )
+
+    def _fire_simplified_event(
+        self, vehicle_id: str, event: SimplifiedEvent
+    ) -> None:
+        """Fire an event for a simplified event."""
+        event_data = {
+            "vehicle_id": vehicle_id,
+            "timestamp": event.timestamp.isoformat(),
+            "event": event.event_type,
+            "tag": event.tag,
+            "area": event.area,
+            "name": event.name,
+        }
+
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_simplified_event",
+            event_data,
+        )
+
+        _LOGGER.debug(
+            "Fired simplified event for vehicle %s: %s", vehicle_id, event.event_type
+        )
+
+    def _fire_rfid_event(self, event: RfidEvent) -> None:
+        """Fire an event for an RFID entry."""
+        event_data = {
+            "timestamp": event.timestamp.isoformat(),
+            "status": event.status,
+            "token": event.token,
+            "user_email": event.user_email,
+            "vehicle_id": event.vehicle_id,
+        }
+
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_rfid_event",
+            event_data,
+        )
+
+        _LOGGER.debug(
+            "Fired RFID event for vehicle %s",
+            event.vehicle_id,
+        )
+
+    def _process_new_dtc_events(
+        self, vehicle_id: str, dtcs: list[DtcEntry]
+    ) -> None:
+        """Process new DTC entries and fire events."""
+        if not dtcs:
+            return
+
+        latest = max(
+            dtcs,
+            key=lambda entry: entry.occurred_at or datetime.min.replace(tzinfo=UTC),
+        )
+        dtc_id = f"{latest.code}:{latest.occurred_at}"
+
+        last_dtc_id = self._last_dtc_ids.get(vehicle_id)
+        if last_dtc_id is None:
+            self._last_dtc_ids[vehicle_id] = dtc_id
+            _LOGGER.debug(
+                "Initial DTC fetch for vehicle %s: skipping event firing",
+                vehicle_id,
+            )
+            return
+
+        if dtc_id != last_dtc_id:
+            self._fire_dtc_event(vehicle_id, latest)
+            self._last_dtc_ids[vehicle_id] = dtc_id
+
+    def _process_new_simplified_event(
+        self, vehicle_id: str, event: SimplifiedEvent
+    ) -> None:
+        """Process simplified event and fire when new."""
+        event_id = f"{event.event_type}:{event.timestamp.isoformat()}"
+        last_id = self._last_simplified_event_ids.get(vehicle_id)
+
+        if last_id is None:
+            self._last_simplified_event_ids[vehicle_id] = event_id
+            _LOGGER.debug(
+                "Initial simplified event fetch for vehicle %s: skipping event firing",
+                vehicle_id,
+            )
+            return
+
+        if event_id != last_id:
+            self._fire_simplified_event(vehicle_id, event)
+            self._last_simplified_event_ids[vehicle_id] = event_id
+
+    def _parse_geofence_summary(self, response: dict[str, Any]) -> GeofenceSummary:
+        """Parse geofence summary response."""
+        counts = response.get("counts", {}) if isinstance(response, dict) else {}
+        location_count = int(counts.get("locations", 0))
+        geofence_count = int(counts.get("geofences", 0))
+
+        last_entered: datetime | None = None
+        last_exited: datetime | None = None
+        for entry in response.get("results", []) if isinstance(response, dict) else []:
+            if not isinstance(entry, dict):
+                continue
+            for key, value in entry.items():
+                if not isinstance(value, str):
+                    continue
+                if "enter" in key and last_entered is None:
+                    try:
+                        last_entered = datetime.fromisoformat(
+                            value.replace("Z", "+00:00")
+                        )
+                    except ValueError:
+                        continue
+                if "exit" in key and last_exited is None:
+                    try:
+                        last_exited = datetime.fromisoformat(
+                            value.replace("Z", "+00:00")
+                        )
+                    except ValueError:
+                        continue
+
+        return GeofenceSummary(
+            location_count=location_count,
+            geofence_count=geofence_count,
+            last_entered=last_entered,
+            last_exited=last_exited,
+        )
+
+    def _summarize_histogram(
+        self, buckets: list[dict[str, Any]], now: datetime
+    ) -> tuple[int, int]:
+        """Summarize histogram buckets into 24h and 7d counts."""
+        total_7d = 0
+        total_24h = 0
+        cutoff = now - timedelta(days=1)
+
+        for bucket in buckets:
+            count = int(bucket.get("count", 0) or 0)
+            total_7d += count
+
+            ts_value = bucket.get("ts") or bucket.get("start") or bucket.get("timestamp")
+            if ts_value:
+                try:
+                    ts = datetime.fromisoformat(str(ts_value).replace("Z", "+00:00"))
+                except ValueError:
+                    continue
+                if ts >= cutoff:
+                    total_24h += count
+
+        return total_24h, total_7d
+
     @property
     def device_events(self) -> dict[str, list[AutoPiEvent]]:
         """Get device events."""
@@ -462,6 +880,103 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
             List of events for the device
         """
         return self._device_events.get(device_id, [])
+
+    def get_vehicle_alert_summary(self, vehicle_id: str) -> dict[str, Any]:
+        """Return alert summary for a vehicle."""
+        return self._vehicle_alerts.get(
+            vehicle_id, {"count": 0, "severity_counts": {}, "alerts": []}
+        )
+
+    def get_vehicle_alert_count(self, vehicle_id: str) -> int:
+        """Return alert count for a vehicle."""
+        return int(self.get_vehicle_alert_summary(vehicle_id).get("count", 0))
+
+    def get_vehicle_charging_state(self, vehicle_id: str) -> bool | None:
+        """Return charging state for a vehicle."""
+        session = self._charging_sessions.get(vehicle_id)
+        if session is None:
+            return None
+        if session.end is None:
+            return True
+        if session.state and session.state.lower() in {"charging", "active"}:
+            return True
+        return False
+
+    def get_vehicle_charging_info(self, vehicle_id: str) -> dict[str, Any]:
+        """Return charging info for a vehicle."""
+        session = self._charging_sessions.get(vehicle_id)
+        if session is None:
+            return {}
+        return {
+            "last_charge_start": session.start.isoformat() if session.start else None,
+            "last_charge_end": session.end.isoformat() if session.end else None,
+            "last_charge_duration_seconds": session.duration_seconds,
+            "last_charge_state": session.state,
+            "start_tag": session.start_tag,
+            "end_tag": session.end_tag,
+        }
+
+    def get_vehicle_dtc_entries(self, vehicle_id: str) -> list[DtcEntry]:
+        """Return DTC entries for a vehicle."""
+        return self._vehicle_dtcs.get(vehicle_id, [])
+
+    def get_vehicle_dtc_count(self, vehicle_id: str) -> int:
+        """Return DTC count for a vehicle."""
+        dtcs = self._vehicle_dtcs.get(vehicle_id, [])
+        if dtcs:
+            return len(dtcs)
+        diagnostics = self._vehicle_diagnostics.get(vehicle_id, {})
+        return int(diagnostics.get("count", 0))
+
+    def get_vehicle_last_dtc(self, vehicle_id: str) -> DtcEntry | None:
+        """Return last DTC entry for a vehicle."""
+        dtcs = self._vehicle_dtcs.get(vehicle_id, [])
+        if not dtcs:
+            return None
+        return max(
+            dtcs,
+            key=lambda entry: entry.occurred_at or datetime.min.replace(tzinfo=UTC),
+        )
+
+    def get_geofence_summary(self, vehicle_id: str) -> GeofenceSummary | None:
+        """Return geofence summary for a vehicle."""
+        return self._geofence_summary.get(vehicle_id)
+
+    def get_fleet_vehicle_summary(self) -> FleetVehicleSummary | None:
+        """Return fleet vehicle summary."""
+        return self._fleet_vehicle_summary
+
+    def get_event_volume(
+        self, vehicle_id: str, tag: str, window: str
+    ) -> int | None:
+        """Return event volume for a tag/window."""
+        vehicle_data = self._event_histogram_counts.get(vehicle_id)
+        if not vehicle_data:
+            return None
+        tag_data = vehicle_data.get(tag)
+        if not tag_data:
+            return None
+        return tag_data.get(window)
+
+    def get_simplified_event(self, vehicle_id: str) -> SimplifiedEvent | None:
+        """Return latest simplified event for a vehicle."""
+        return self._simplified_events.get(vehicle_id)
+
+    def get_last_communication(self, vehicle_id: str) -> datetime | None:
+        """Return last communication timestamp for a vehicle."""
+        return self._last_communications.get(vehicle_id)
+
+    def get_online_threshold(self) -> timedelta:
+        """Return online threshold based on update interval."""
+        return max(self.update_interval * 2, timedelta(minutes=5))
+
+    def get_vehicle_movement(self, vehicle_id: str) -> bool | None:
+        """Return movement state for a vehicle."""
+        return self._movement_state.get(vehicle_id)
+
+    def get_vehicle_movement_info(self, vehicle_id: str) -> dict[str, Any]:
+        """Return movement info for a vehicle."""
+        return self._movement_info.get(vehicle_id, {})
 
     async def _check_for_new_vehicles(self, vehicles: list[AutoPiVehicle]) -> None:
         """Check for new vehicles and initiate discovery flows.
@@ -648,6 +1163,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
             self._update_count,
             self.update_interval,
         )
+        now_utc = datetime.now(UTC)
 
         try:
             # Get vehicles from base coordinator
@@ -665,6 +1181,34 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                         CONF_BASE_URL, DEFAULT_BASE_URL
                     ),
                 )
+
+            # Fetch most recent positions for last communication/fallback location
+            recent_position_map: dict[str, VehiclePosition] = {}
+            last_comm_map: dict[str, datetime] = {}
+            try:
+                self._total_api_calls += 1
+                positions = await self._client.get_most_recent_positions()
+                device_to_vehicle: dict[str, str] = {}
+                for vehicle_id, vehicle in self._base_coordinator.data.items():
+                    for device_id in vehicle.devices:
+                        device_to_vehicle[device_id] = vehicle_id
+
+                for entry in positions:
+                    vehicle_id = device_to_vehicle.get(entry.device_id)
+                    if not vehicle_id:
+                        continue
+                    if entry.last_communication:
+                        current_last = last_comm_map.get(vehicle_id)
+                        if current_last is None or entry.last_communication > current_last:
+                            last_comm_map[vehicle_id] = entry.last_communication
+                            if entry.position:
+                                recent_position_map[vehicle_id] = entry.position
+
+                if last_comm_map:
+                    self._last_communications = last_comm_map
+            except (AutoPiConnectionError, AutoPiAPIError, AutoPiTimeoutError) as err:
+                self._failed_api_calls += 1
+                _LOGGER.warning("Failed to fetch most recent positions: %s", err)
 
             _LOGGER.debug(
                 "Fetching data fields for all vehicles",
@@ -826,6 +1370,76 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                         vehicle.name,
                     )
 
+                # Fetch recent stats for movement detection
+                latest_event: RecentStatEvent | None = None
+                if vehicle.devices:
+                    from_timestamp = _format_utc(now_utc - timedelta(days=1))
+                    for device_id in vehicle.devices:
+                        try:
+                            self._total_api_calls += 1
+                            events = await self._client.get_recent_stats(
+                                device_id,
+                                from_timestamp,
+                                stat_type="event",
+                            )
+                            if events:
+                                if (
+                                    latest_event is None
+                                    or events[0].timestamp > latest_event.timestamp
+                                ):
+                                    latest_event = events[0]
+                        except (
+                            AutoPiConnectionError,
+                            AutoPiAPIError,
+                            AutoPiTimeoutError,
+                        ) as err:
+                            self._failed_api_calls += 1
+                            _LOGGER.warning(
+                                "Failed to fetch recent stats for device %s: %s",
+                                device_id,
+                                err,
+                            )
+
+                movement_state: bool | None = None
+                movement_info: dict[str, Any] = {}
+                if latest_event and latest_event.tag:
+                    movement_info.update(
+                        {
+                            "last_event_tag": latest_event.tag,
+                            "last_event_time": latest_event.timestamp.isoformat(),
+                            "event_type": latest_event.event_type,
+                            "source": "recent_stats",
+                        }
+                    )
+                    if "standstill" in latest_event.tag:
+                        movement_state = False
+                    else:
+                        movement_state = True
+
+                if movement_state is None and vehicle_copy.data_fields:
+                    speed_value = None
+                    for field_id in ("track.pos.sog", "std.speed.value", "obd.speed.value"):
+                        field_data = vehicle_copy.data_fields.get(field_id)
+                        if field_data and field_data.last_value is not None:
+                            try:
+                                speed_value = float(field_data.last_value)
+                                break
+                            except (TypeError, ValueError):
+                                continue
+                    if speed_value is not None:
+                        movement_state = speed_value > 0
+                        movement_info = {"source": "speed"}
+
+                if movement_state is not None:
+                    self._movement_state[vehicle_id] = movement_state
+                    self._movement_info[vehicle_id] = movement_info
+
+                # Attach last communication and fallback position
+                if vehicle_id in last_comm_map:
+                    vehicle_copy.last_communication = last_comm_map[vehicle_id]
+                if vehicle_copy.position is None and vehicle_id in recent_position_map:
+                    vehicle_copy.position = recent_position_map[vehicle_id]
+
                 data[vehicle_id] = vehicle_copy
 
             # Track successful update
@@ -883,6 +1497,10 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
         self._base_coordinator = base_coordinator
         # Store trip history for event detection
         self._last_trip_ids: dict[str, str] = {}
+        # Cache trip totals to avoid heavy pagination each update
+        self._trip_totals_cache: dict[str, tuple[float, int, float | None]] = {}
+        self._trip_totals_last_fetch: dict[str, datetime] = {}
+        self._trip_totals_last_trip_id: dict[str, str] = {}
 
     async def _async_update_data(self) -> CoordinatorData:
         """Fetch trip data from AutoPi API.
@@ -901,6 +1519,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             self._update_count,
             self.update_interval,
         )
+        now_utc = datetime.now(UTC)
 
         try:
             # Get vehicles from base coordinator
@@ -945,6 +1564,9 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                     trip_count=0,
                     last_trip=None,
                     total_distance_km=0.0,
+                    total_duration_seconds=0,
+                    average_speed_kmh=None,
+                    last_communication=vehicle.last_communication,
                 )
 
                 # Fetch trip data
@@ -987,8 +1609,43 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                             trip_count,
                         )
 
-                    # TODO: Calculate total distance from all trips (requires paginating through all trips)
-                    # For now, we'll track this separately in the sensor
+                    # Calculate total distance and duration from all trips (paginated)
+                    last_fetch = self._trip_totals_last_fetch.get(vehicle_id)
+                    should_refresh = (
+                        vehicle_id not in self._trip_totals_cache
+                        or (
+                            vehicle_copy.last_trip
+                            and self._trip_totals_last_trip_id.get(vehicle_id)
+                            != vehicle_copy.last_trip.trip_id
+                        )
+                        or (
+                            last_fetch is not None
+                            and now_utc - last_fetch > timedelta(hours=6)
+                        )
+                    )
+
+                    if should_refresh:
+                        total_distance, total_duration, avg_speed = (
+                            await self._calculate_trip_totals(vehicle, device_id)
+                        )
+                        self._trip_totals_cache[vehicle_id] = (
+                            total_distance,
+                            total_duration,
+                            avg_speed,
+                        )
+                        self._trip_totals_last_fetch[vehicle_id] = now_utc
+                        if vehicle_copy.last_trip:
+                            self._trip_totals_last_trip_id[vehicle_id] = (
+                                vehicle_copy.last_trip.trip_id
+                            )
+                    else:
+                        total_distance, total_duration, avg_speed = (
+                            self._trip_totals_cache.get(vehicle_id, (0.0, 0, None))
+                        )
+
+                    vehicle_copy.total_distance_km = total_distance
+                    vehicle_copy.total_duration_seconds = total_duration
+                    vehicle_copy.average_speed_kmh = avg_speed
 
                 except (
                     AutoPiConnectionError,
@@ -1039,6 +1696,45 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
                 exc_info=True,
             )
             raise UpdateFailed(f"Failed to fetch trip data: {err}") from err
+
+    async def _calculate_trip_totals(
+        self, vehicle: AutoPiVehicle, device_id: str | None
+    ) -> tuple[float, int, float | None]:
+        """Calculate total distance and duration across all trips."""
+        if self._client is None:
+            return 0.0, 0, None
+
+        total_distance = 0.0
+        total_duration = 0
+        limit = 500
+        offset = 0
+
+        while True:
+            self._total_api_calls += 1
+            response = await self._client.get_trips_page(
+                vehicle.id, device_id, limit=limit, offset=offset
+            )
+            results = response.get("results", [])
+            if not results:
+                break
+
+            for trip_data in results:
+                try:
+                    trip = AutoPiTrip.from_api_data(trip_data)
+                except (KeyError, ValueError, TypeError):
+                    continue
+                total_distance += trip.distance_km
+                total_duration += trip.duration_seconds
+
+            offset += limit
+            if offset >= response.get("count", 0):
+                break
+
+        avg_speed = None
+        if total_duration > 0:
+            avg_speed = round(total_distance / (total_duration / 3600), 2)
+
+        return total_distance, total_duration, avg_speed
 
     def _fire_trip_event(self, vehicle: AutoPiVehicle, trip: AutoPiTrip) -> None:
         """Fire an event for a new trip.

@@ -36,10 +36,15 @@ DEFAULT_UPDATE_INTERVAL_FAST_MINUTES: Final = 1
 MIN_SCAN_INTERVAL_MINUTES: Final = 1
 MAX_SCAN_INTERVAL_MINUTES: Final = 10
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.DEVICE_TRACKER, Platform.EVENT]
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.DEVICE_TRACKER,
+    Platform.EVENT,
+]
 
 # Future platforms to be implemented:
-# Platform.BINARY_SENSOR - for vehicle status indicators
+# (add new platforms here as support expands)
 
 ATTR_VEHICLE_NAME: Final = "vehicle_name"
 ATTR_LICENSE_PLATE: Final = "license_plate"
@@ -62,6 +67,18 @@ DATA_FIELDS_ENDPOINT: Final = "/logbook/storage/data_fields/"
 TRIPS_ENDPOINT: Final = "/logbook/v2/trips/"
 ALERTS_ENDPOINT: Final = "/logbook/fleet_summary/alerts/"
 EVENTS_ENDPOINT: Final = "/logbook/events/"
+RECENT_STATS_ENDPOINT: Final = "/logbook/v2/recent_stats/"
+MOST_RECENT_POSITIONS_ENDPOINT: Final = "/logbook/v2/most_recent_positions/"
+CHARGING_SESSIONS_ENDPOINT: Final = "/logbook/charging_sessions/"
+FLEET_ALERTS_SUMMARY_ENDPOINT: Final = "/fleet/alerts/summary/"
+FLEET_ALERTS_ENDPOINT: Final = "/fleet/alerts/"
+DIAGNOSTICS_ENDPOINT: Final = "/logbook/diagnostics/"
+OBD_DTCS_ENDPOINT: Final = "/obd/dtcs/"
+GEOFENCE_SUMMARY_ENDPOINT_TEMPLATE: Final = "/fleet/vehicles/{vehicle_id}/geofence_summary/"
+FLEET_VEHICLE_SUMMARY_ENDPOINT: Final = "/logbook/fleet_summary/vehicles/"
+EVENTS_HISTOGRAM_ENDPOINT: Final = "/logbook/events_histogram/"
+SIMPLIFIED_EVENTS_ENDPOINT: Final = "/logbook/simplified_events/"
+RFID_EVENTS_ENDPOINT: Final = "/rfid_events/"
 
 MANUFACTURER: Final = "AutoPi"
 

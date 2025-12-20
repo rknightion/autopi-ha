@@ -123,6 +123,35 @@ class GPSSatellitesSensor(AutoPiDataFieldSensor):
         return attrs
 
 
+class GPSPrecisionSensor(AutoPiDataFieldSensor):
+    """GPS precision/position quality sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "track.pos.pr",
+            "GPS Precision",
+            icon="mdi:crosshairs-gps",
+            device_class=SensorDeviceClass.DISTANCE,
+            unit_of_measurement=UnitOfLength.METERS,
+            state_class=SensorStateClass.MEASUREMENT,
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+        if self.vehicle and self.vehicle.data_fields:
+            nsat_field = self.vehicle.data_fields.get("track.pos.nsat")
+            if nsat_field and nsat_field.last_value is not None:
+                attrs["num_satellites"] = int(nsat_field.last_value)
+        return attrs
+
+
 class GPSLatitudeSensor(AutoPiDataFieldSensor):
     """GPS latitude sensor."""
 
@@ -203,6 +232,7 @@ POSITION_FIELD_TO_SENSOR_CLASS: dict[str, Any] = {
     "track.pos.sog": GPSSpeedSensor,
     "track.pos.cog": GPSCourseSensor,
     "track.pos.nsat": GPSSatellitesSensor,
+    "track.pos.pr": GPSPrecisionSensor,
     "track.pos.loc": (
         GPSLatitudeSensor,
         GPSLongitudeSensor,

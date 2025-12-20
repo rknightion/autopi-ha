@@ -23,18 +23,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "homeassistant-stubs==2025.12.2",
-    "ruff==0.14.10",
+    "homeassistant-stubs>=2025.12.2",
+    "ruff==0.14.9",
     "mypy",
     "bandit==1.9.2",
-    "pytest-homeassistant-custom-component==0.13.300",
-    "mkdocs-git-authors-plugin>=0.10.0",
-    "mkdocs-git-committers-plugin-2>=2.5.0",
-    "mkdocs-git-revision-date-localized-plugin>=1.4.7",
-    "mkdocs-glightbox>=0.4.0",
-    "mkdocs-include-markdown-plugin>=7.1.6",
-    "mkdocs-material>=9.6.16",
-    "mkdocs-minify-plugin>=0.8.0",
+    "pytest-homeassistant-custom-component>=0.13.300",
 ]
 
 
@@ -188,4 +181,3 @@ convention = "google"
 quote-style = "double"
 # Like Black, indent with spaces.
 indent-style = "space"
-

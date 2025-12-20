@@ -128,6 +128,9 @@ class AutoPiVehicle:
     trip_count: int = 0
     last_trip: AutoPiTrip | None = None
     total_distance_km: float = 0.0
+    total_duration_seconds: int = 0
+    average_speed_kmh: float | None = None
+    last_communication: datetime | None = None
 
     @property
     def unique_id(self) -> str:
@@ -483,4 +486,239 @@ class AutoPiEvent:
             event_type=data["event"],
             data=merged_data,
             device_id=device_id,
+        )
+
+
+@dataclass
+class RecentStatEvent:
+    """Parsed recent stats event."""
+
+    timestamp: datetime
+    tag: str | None
+    event_type: str | None
+
+    @classmethod
+    def from_api_data(cls, data: dict[str, Any]) -> RecentStatEvent | None:
+        """Create RecentStatEvent from API data."""
+        timestamp = data.get("@ts") or data.get("ts")
+        if not timestamp:
+            return None
+        try:
+            parsed_ts = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return cls(
+            timestamp=parsed_ts,
+            tag=data.get("@tag") or data.get("tag"),
+            event_type=data.get("@t") or data.get("type"),
+        )
+
+
+@dataclass
+class DeviceMostRecentPosition:
+    """Most recent position payload for a device."""
+
+    device_id: str
+    unit_id: str | None
+    display_name: str | None
+    last_communication: datetime | None
+    position: VehiclePosition | None
+
+    @classmethod
+    def from_api_data(cls, data: DevicePositionData) -> DeviceMostRecentPosition:
+        """Create DeviceMostRecentPosition from API data."""
+        last_comm = None
+        last_comm_raw = data.get("last_communication")
+        if last_comm_raw:
+            try:
+                last_comm = datetime.fromisoformat(last_comm_raw.replace("Z", "+00:00"))
+            except ValueError:
+                last_comm = None
+
+        position = None
+        positions = data.get("positions", [])
+        if positions:
+            try:
+                position = VehiclePosition.from_api_data(positions[0])
+            except (KeyError, ValueError, TypeError):
+                position = None
+
+        return cls(
+            device_id=data.get("id", ""),
+            unit_id=data.get("unit_id"),
+            display_name=data.get("display"),
+            last_communication=last_comm,
+            position=position,
+        )
+
+
+@dataclass
+class ChargingSession:
+    """Charging session information."""
+
+    start: datetime | None
+    end: datetime | None
+    duration_seconds: int | None
+    state: str | None
+    start_tag: str | None
+    end_tag: str | None
+
+    @classmethod
+    def from_api_data(cls, data: dict[str, Any]) -> ChargingSession:
+        """Create ChargingSession from API data."""
+        def _parse_dt(value: str | None) -> datetime | None:
+            if not value:
+                return None
+            try:
+                return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+
+        duration_seconds = None
+        duration_raw = data.get("duration")
+        if isinstance(duration_raw, str) and ":" in duration_raw:
+            parts = duration_raw.split(":")
+            if len(parts) == 3:
+                try:
+                    duration_seconds = (
+                        int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+                    )
+                except ValueError:
+                    duration_seconds = None
+
+        return cls(
+            start=_parse_dt(data.get("start")),
+            end=_parse_dt(data.get("end")),
+            duration_seconds=duration_seconds,
+            state=data.get("state"),
+            start_tag=data.get("start_tag"),
+            end_tag=data.get("end_tag"),
+        )
+
+
+@dataclass
+class FleetAlertSummary:
+    """Fleet alerts summary."""
+
+    open: int
+    critical: int
+    high: int
+    medium: int
+    low: int
+
+    @classmethod
+    def from_api_data(cls, data: dict[str, Any]) -> FleetAlertSummary:
+        """Create FleetAlertSummary from API data."""
+        return cls(
+            open=int(data.get("open", 0)),
+            critical=int(data.get("critical", 0)),
+            high=int(data.get("high", 0)),
+            medium=int(data.get("medium", 0)),
+            low=int(data.get("low", 0)),
+        )
+
+
+@dataclass
+class DtcEntry:
+    """Diagnostic trouble code entry."""
+
+    code: str
+    description: str | None
+    occurred_at: datetime | None
+
+    @classmethod
+    def from_api_data(cls, data: dict[str, Any]) -> DtcEntry:
+        """Create DtcEntry from API data."""
+        occurred = None
+        occurred_raw = data.get("occurred_at_utc") or data.get("occurred_at")
+        if occurred_raw:
+            try:
+                occurred = datetime.fromisoformat(occurred_raw.replace("Z", "+00:00"))
+            except ValueError:
+                occurred = None
+        return cls(
+            code=str(data.get("dtc_code") or data.get("code") or ""),
+            description=data.get("description") or data.get("text"),
+            occurred_at=occurred,
+        )
+
+
+@dataclass
+class GeofenceSummary:
+    """Geofence summary counts."""
+
+    location_count: int
+    geofence_count: int
+    last_entered: datetime | None
+    last_exited: datetime | None
+
+
+@dataclass
+class FleetVehicleSummary:
+    """Fleet vehicle activity summary."""
+
+    all_vehicles: int
+    active_now: int
+    driven_last_30_days: int
+    on_location: int
+
+
+@dataclass
+class SimplifiedEvent:
+    """Simplified event entry."""
+
+    timestamp: datetime
+    tag: str | None
+    event_type: str | None
+    area: str | None
+    name: str | None
+
+    @classmethod
+    def from_api_data(cls, data: dict[str, Any]) -> SimplifiedEvent | None:
+        """Create SimplifiedEvent from API data."""
+        ts = data.get("ts")
+        if not ts:
+            return None
+        try:
+            timestamp = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return cls(
+            timestamp=timestamp,
+            tag=data.get("tag"),
+            event_type=data.get("event"),
+            area=data.get("area"),
+            name=data.get("name"),
+        )
+
+
+@dataclass
+class RfidEvent:
+    """RFID event entry."""
+
+    timestamp: datetime
+    status: str | None
+    token: str | None
+    user_email: str | None
+    vehicle_id: int | None
+
+    @classmethod
+    def from_api_data(cls, data: dict[str, Any]) -> RfidEvent | None:
+        """Create RfidEvent from API data."""
+        ts = data.get("ts")
+        if not ts:
+            return None
+        try:
+            timestamp = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        user = data.get("user") or {}
+        vehicle = data.get("vehicle") or {}
+        vehicle_id = vehicle.get("id")
+        return cls(
+            timestamp=timestamp,
+            status=data.get("status"),
+            token=data.get("token"),
+            user_email=user.get("email"),
+            vehicle_id=vehicle_id if isinstance(vehicle_id, int) else None,
         )

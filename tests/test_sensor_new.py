@@ -12,10 +12,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from custom_components.autopi.const import DOMAIN
 from custom_components.autopi.sensor import (
     AutoPiFleetAlertCountSensor,
+    AutoPiLastChargeDurationSensor,
+    AutoPiLastCommunicationSensor,
     AutoPiLastTripDistanceSensor,
+    AutoPiTripAverageSpeedSensor,
     AutoPiTripCountSensor,
+    AutoPiTripLifetimeDistanceSensor,
     AutoPiUpdateDurationSensor,
     AutoPiVehicleCountSensor,
+    AutoPiVehicleAlertCountSensor,
     AutoPiVehicleSensor,
     async_setup_entry,
 )
@@ -182,6 +187,60 @@ class TestAutopiVehicleSensor:
         assert attrs["vin"] == mock_vehicle.vin
         assert attrs["year"] == mock_vehicle.year
         assert attrs["type"] == mock_vehicle.type
+
+
+class TestAdditionalVehicleSensors:
+    """Test additional vehicle sensors."""
+
+    async def test_last_communication_sensor(self, mock_coordinator, mock_vehicle):
+        """Test last communication sensor."""
+        mock_coordinator.data = {str(mock_vehicle.id): mock_vehicle}
+        timestamp = datetime.now(UTC)
+        mock_coordinator.get_last_communication = Mock(return_value=timestamp)
+
+        sensor = AutoPiLastCommunicationSensor(mock_coordinator, str(mock_vehicle.id))
+
+        assert sensor.native_value == timestamp
+
+    async def test_vehicle_alert_count_sensor(self, mock_coordinator, mock_vehicle):
+        """Test vehicle alert count sensor."""
+        mock_coordinator.data = {str(mock_vehicle.id): mock_vehicle}
+        mock_coordinator.get_vehicle_alert_count = Mock(return_value=2)
+        mock_coordinator.get_vehicle_alert_summary = Mock(
+            return_value={"severity_counts": {"high": 1}, "alerts": []}
+        )
+
+        sensor = AutoPiVehicleAlertCountSensor(mock_coordinator, str(mock_vehicle.id))
+
+        assert sensor.native_value == 2
+        assert sensor.extra_state_attributes["severity_counts"]["high"] == 1
+
+    async def test_last_charge_duration_sensor(self, mock_coordinator, mock_vehicle):
+        """Test last charge duration sensor."""
+        mock_coordinator.data = {str(mock_vehicle.id): mock_vehicle}
+        mock_coordinator.get_vehicle_charging_info = Mock(
+            return_value={"last_charge_duration_seconds": 3600}
+        )
+
+        sensor = AutoPiLastChargeDurationSensor(mock_coordinator, str(mock_vehicle.id))
+
+        assert sensor.native_value == 3600
+
+    async def test_trip_total_sensors(self, mock_coordinator, mock_vehicle):
+        """Test trip total distance and average speed sensors."""
+        mock_vehicle.total_distance_km = 1234.5
+        mock_vehicle.average_speed_kmh = 55.5
+        mock_coordinator.data = {str(mock_vehicle.id): mock_vehicle}
+
+        distance_sensor = AutoPiTripLifetimeDistanceSensor(
+            mock_coordinator, str(mock_vehicle.id)
+        )
+        speed_sensor = AutoPiTripAverageSpeedSensor(
+            mock_coordinator, str(mock_vehicle.id)
+        )
+
+        assert distance_sensor.native_value == 1234.5
+        assert speed_sensor.native_value == 55.5
 
 
 class TestAutopiUpdateDurationSensor:

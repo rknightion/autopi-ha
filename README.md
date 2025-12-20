@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/rknightion/autopi-ha.svg?style=flat-square)](LICENSE)
 [![Tests](https://github.com/rknightion/autopi-ha/workflows/Tests/badge.svg)](https://github.com/rknightion/autopi-ha/actions/workflows/tests.yml)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Frknightion%2Fautopi-ha.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Frknightion%2Fautopi-ha?ref=badge_shield)
-[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://autopi.ha-components.m7kni.com)
+[![Documentation](https://img.shields.io/badge/docs-m7kni.io-blue.svg)](https://m7kni.io/autopi-ha)
 
 ![AutoPi Logo](docs/images/logo.png)
 
@@ -101,7 +101,7 @@ After setup, you can modify options by clicking "Configure" on the integration:
 
 ## Documentation
 
-📚 **[Full Documentation](https://autopi.ha-components.m7kni.com)** - Comprehensive guides, API reference, and troubleshooting
+📚 **[Full Documentation](https://m7kni.io/autopi-ha)** - Comprehensive guides, API reference, and troubleshooting
 
 ## Supported Data Types
 

@@ -21,6 +21,7 @@ from homeassistant.const import (
     UnitOfTemperature,
     UnitOfTime,
     UnitOfVolume,
+    UnitOfVolumeFlowRate,
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -414,6 +415,22 @@ class BatteryVoltageSensor(AutoPiDataFieldSensor):
         )
 
 
+class BatteryChargingStateSensor(AutoPiDataFieldSensor):
+    """Battery charging state sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.bat.state",
+            "Battery Charging State (OBD)",
+            icon="mdi:battery-charging",
+        )
+
+
 class BatteryCurrentSensor(AutoPiDataFieldSensor):
     """Battery current sensor."""
 
@@ -469,6 +486,26 @@ class VehicleBatteryVoltageSensor(AutoPiDataFieldSensor):
             device_class=SensorDeviceClass.VOLTAGE,
             unit_of_measurement=UnitOfElectricPotential.VOLT,
             state_class=SensorStateClass.MEASUREMENT,
+        )
+
+
+class ExternalVoltageSensor(AutoPiDataFieldSensor):
+    """External/aux voltage sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "std.external_voltage.value",
+            "External Voltage",
+            icon="mdi:flash",
+            device_class=SensorDeviceClass.VOLTAGE,
+            unit_of_measurement=UnitOfElectricPotential.VOLT,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
         )
 
 
@@ -595,6 +632,25 @@ class TotalOdometerSensor(AutoPiDataFieldSensor):
         return UnitOfLength.KILOMETERS
 
 
+class OEMTotalMileageSensor(AutoPiDataFieldSensor):
+    """OEM total mileage sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.obd_oem_total_mileage.value",
+            "OEM Odometer",
+            icon="mdi:counter",
+            device_class=SensorDeviceClass.DISTANCE,
+            unit_of_measurement=UnitOfLength.KILOMETERS,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+        )
+
+
 class TripOdometerSensor(AutoPiDataFieldSensor):
     """Trip odometer sensor."""
 
@@ -679,6 +735,25 @@ class FuelRateGPSSensor(AutoPiDataFieldSensor):
             "Fuel Rate (GPS)",
             icon="mdi:fuel",
             unit_of_measurement="L/h",
+            state_class=SensorStateClass.MEASUREMENT,
+        )
+
+
+class FuelRateECUSensor(AutoPiAutoZeroDataFieldSensor):
+    """Instantaneous fuel rate sensor from ECU."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.fuel_rate.value",
+            "Fuel Rate (OBD)",
+            icon="mdi:fuel",
+            device_class=SensorDeviceClass.VOLUME_FLOW_RATE,
+            unit_of_measurement=UnitOfVolumeFlowRate.LITERS_PER_HOUR,
             state_class=SensorStateClass.MEASUREMENT,
         )
 
@@ -949,6 +1024,23 @@ class GSMSignalSensor(AutoPiDataFieldSensor):
         return PERCENTAGE
 
 
+class TimezoneOffsetSensor(AutoPiDataFieldSensor):
+    """Timezone offset sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "std.tz_offset.value",
+            "Timezone Offset",
+            icon="mdi:map-clock",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+
 class DTCCountSensor(AutoPiDataFieldSensor):
     """Diagnostic trouble code count sensor."""
 
@@ -970,18 +1062,23 @@ class DTCCountSensor(AutoPiDataFieldSensor):
 # Sensor mapping
 FIELD_ID_TO_SENSOR_CLASS: dict[str, Any] = {
     "obd.bat.level": BatteryChargeLevelSensor,
+    "obd.bat.state": BatteryChargingStateSensor,
     "obd.bat.voltage": BatteryVoltageSensor,
     "std.accelerometer_axis_x.value": AccelerometerXSensor,
     "std.accelerometer_axis_y.value": AccelerometerYSensor,
     "std.accelerometer_axis_z.value": AccelerometerZSensor,
     "std.battery_current.value": BatteryCurrentSensor,
     "std.battery_level.value": TrackerBatteryLevelSensor,
+    "std.external_voltage.value": ExternalVoltageSensor,
     "std.total_odometer.value": TotalOdometerSensor,
+    "obd.obd_oem_total_mileage.value": OEMTotalMileageSensor,
     "std.fuel_used_gps.value": FuelUsedGPSSensor,
     "std.ignition.value": IgnitionStateSensor,
     "std.trip_odometer.value": TripOdometerSensor,
     "std.fuel_rate_gps.value": FuelRateGPSSensor,
+    "obd.fuel_rate.value": FuelRateECUSensor,
     "std.gsm_signal.value": GSMSignalSensor,
+    "std.tz_offset.value": TimezoneOffsetSensor,
     "obd.ambient_air_temp.value": AmbientTemperatureSensor,
     "obd.engine_load.value": EngineLoadSensor,
     "obd.fuel_level.value": FuelLevelSensor,

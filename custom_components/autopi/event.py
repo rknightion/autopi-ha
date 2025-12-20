@@ -180,6 +180,153 @@ class AutoPiVehicleEvent(AutoPiVehicleEntity, EventEntity):
         return attrs
 
 
+class AutoPiSimplifiedEventEntity(AutoPiVehicleEntity, EventEntity):
+    """Event entity for simplified AutoPi events."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_event_types = ["simplified_event"]
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the simplified event entity."""
+        super().__init__(coordinator, vehicle_id, "simplified_event")
+        self._attr_translation_key = "simplified_events"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the entity."""
+        return "Simplified Events"
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+
+        @callback
+        def _handle_event(event: Event) -> None:
+            """Handle simplified events."""
+            event_data = event.data
+            vehicle_id = event_data.get("vehicle_id")
+            if vehicle_id != self._vehicle_id:
+                return
+
+            self._trigger_event(
+                "simplified_event",
+                {
+                    "timestamp": event_data.get("timestamp"),
+                    "event": event_data.get("event"),
+                    "tag": event_data.get("tag"),
+                    "area": event_data.get("area"),
+                    "name": event_data.get("name"),
+                },
+            )
+            self.async_write_ha_state()
+
+        self.async_on_remove(
+            self.hass.bus.async_listen(f"{DOMAIN}_simplified_event", _handle_event)
+        )
+
+
+class AutoPiDtcEventEntity(AutoPiVehicleEntity, EventEntity):
+    """Event entity for DTC events."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_event_types = ["dtc"]
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the DTC event entity."""
+        super().__init__(coordinator, vehicle_id, "dtc_event")
+        self._attr_translation_key = "dtc_events"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the entity."""
+        return "DTC Events"
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+
+        @callback
+        def _handle_event(event: Event) -> None:
+            """Handle DTC events."""
+            event_data = event.data
+            vehicle_id = event_data.get("vehicle_id")
+            if vehicle_id != self._vehicle_id:
+                return
+
+            self._trigger_event(
+                "dtc",
+                {
+                    "dtc_code": event_data.get("dtc_code"),
+                    "description": event_data.get("description"),
+                    "occurred_at": event_data.get("occurred_at"),
+                },
+            )
+            self.async_write_ha_state()
+
+        self.async_on_remove(
+            self.hass.bus.async_listen(f"{DOMAIN}_dtc_event", _handle_event)
+        )
+
+
+class AutoPiRfidEventEntity(AutoPiVehicleEntity, EventEntity):
+    """Event entity for RFID events."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_event_types = ["rfid_event"]
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+    ) -> None:
+        """Initialize the RFID event entity."""
+        super().__init__(coordinator, vehicle_id, "rfid_event")
+        self._attr_translation_key = "rfid_events"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the entity."""
+        return "RFID Events"
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+
+        @callback
+        def _handle_event(event: Event) -> None:
+            """Handle RFID events."""
+            event_data = event.data
+            vehicle_id = event_data.get("vehicle_id")
+            if vehicle_id != self._vehicle_id:
+                return
+
+            self._trigger_event(
+                "rfid_event",
+                {
+                    "timestamp": event_data.get("timestamp"),
+                    "status": event_data.get("status"),
+                    "token": event_data.get("token"),
+                    "user_email": event_data.get("user_email"),
+                },
+            )
+            self.async_write_ha_state()
+
+        self.async_on_remove(
+            self.hass.bus.async_listen(f"{DOMAIN}_rfid_event", _handle_event)
+        )
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -206,6 +353,24 @@ async def async_setup_entry(
             _LOGGER.debug("Creating event entity for vehicle %s", vehicle_id)
             entities.append(
                 AutoPiVehicleEvent(
+                    coordinator=coordinator,
+                    vehicle_id=vehicle_id,
+                )
+            )
+            entities.append(
+                AutoPiSimplifiedEventEntity(
+                    coordinator=coordinator,
+                    vehicle_id=vehicle_id,
+                )
+            )
+            entities.append(
+                AutoPiDtcEventEntity(
+                    coordinator=coordinator,
+                    vehicle_id=vehicle_id,
+                )
+            )
+            entities.append(
+                AutoPiRfidEventEntity(
                     coordinator=coordinator,
                     vehicle_id=vehicle_id,
                 )

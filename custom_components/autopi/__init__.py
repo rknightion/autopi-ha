@@ -11,6 +11,7 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+
     from .types import AutoPiVehicle
 
 from .auto_zero import get_auto_zero_manager
@@ -58,7 +59,7 @@ _setup_logging()
 
 
 def _format_vehicle_summary(
-    vehicles: list["AutoPiVehicle"], limit: int = 10
+    vehicles: list[AutoPiVehicle], limit: int = 10
 ) -> str:
     """Format vehicle summaries for concise logging."""
     if not vehicles:
@@ -94,7 +95,7 @@ def _format_selected_vehicle_summary(
 
 
 def _log_startup_summary(
-    entry: "ConfigEntry", coordinator: AutoPiDataUpdateCoordinator
+    entry: ConfigEntry, coordinator: AutoPiDataUpdateCoordinator
 ) -> None:
     """Log a one-time startup summary at info level."""
     options = entry.options

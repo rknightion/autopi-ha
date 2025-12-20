@@ -20,7 +20,9 @@ from custom_components.autopi.data_field_sensors import (
     AmbientTemperatureSensor,
     AutoPiDataFieldSensor,
     BatteryChargeLevelSensor,
+    BatteryChargingStateSensor,
     BatteryVoltageSensor,
+    FuelRateECUSensor,
     GSMSignalSensor,
     OBDSpeedSensor,
     TotalOdometerSensor,
@@ -196,6 +198,27 @@ class TestAutoPiDataFieldSensor:
         assert attrs["description"] == "Test field"
         assert "last_seen" in attrs
         assert "vehicle_id" in attrs
+
+    def test_battery_charging_state_sensor(self, mock_coordinator, mock_vehicle):
+        """Test battery charging state sensor."""
+        field = create_data_field("obd.bat", "state", "charging", "string")
+        mock_vehicle.data_fields = {"obd.bat.state": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = BatteryChargingStateSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == "charging"
+        assert sensor._attr_name == "Battery Charging State (OBD)"
+
+    def test_fuel_rate_ecu_sensor(self, mock_coordinator, mock_vehicle):
+        """Test ECU fuel rate sensor."""
+        field = create_data_field("obd.fuel_rate", "value", 1.5, "float")
+        mock_vehicle.data_fields = {"obd.fuel_rate.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = FuelRateECUSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 1.5
 
 
 class TestSpecificSensors:

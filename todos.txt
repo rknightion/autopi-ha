@@ -1,95 +1,95 @@
 AutoPi Home Assistant entity expansion candidates (cross-checked against current integration: vehicle count, fleet alert count, update duration, vehicle status, trip count, last trip distance, position sensors for track.pos.alt/sog/cog/nsat/loc, data field sensors for obd.bat.level/voltage, std.accelerometer_axis_{x,y,z}, std.battery_{current,level}, std.total_odometer, std.fuel_used_gps, std.ignition (numeric), std.trip_odometer, std.fuel_rate_gps, std.gsm_signal, obd.ambient_air_temp, obd.engine_load, obd.fuel_level, obd.intake_temp, obd.rpm, obd.speed, obd.distance_since_codes_clear, obd.number_of_dtc, obd.obd_oem_fuel_level, obd.run_time, obd.throttle_pos, std.battery_voltage, std.speed, obd.coolant_temp). Items below are not yet exposed unless noted as an enhancement of an existing metric.
 
-- Add battery charging state sensor/binary_sensor from OBD battery state (obd.bat.state).
+- [x] Add battery charging state sensor/binary_sensor from OBD battery state (obd.bat.state).
   Request: curl -s -H "Authorization: APIToken ec24e7f94fa985534c64e0628f94b850f9b4186c" "https://api.autopi.io/logbook/storage/data_fields/?device_id=2024b19b-affe-4f6a-98e0-e2b6700c981c&vehicle_id=9191"
   Response snippet: {"field":"obd.bat.state","title":"Battery Charging State","last_value":"discharging","last_seen":"2025-11-29T19:45:19.323976Z"}
   Notes: expose as string sensor and binary_sensor (charging = on) plus attribute with last_seen.
 
-- Add instantaneous fuel rate sensor from ECU (obd.fuel_rate.value).
+- [x] Add instantaneous fuel rate sensor from ECU (obd.fuel_rate.value).
   Request: same as above data_fields call.
   Response snippet: {"field":"obd.fuel_rate.value","title":"Fuel Rate","last_value":0.01,"type":"float","last_seen":"2025-11-29T14:32:39.315940Z"}
   Notes: unit likely L/h from OBD PID; include measurement sensor, fallback to docs if unit confirmation needed.
 
-- Add OEM odometer sensor using ECU mileage (obd.obd_oem_total_mileage.value).
+- [x] Add OEM odometer sensor using ECU mileage (obd.obd_oem_total_mileage.value).
   Request: data_fields call.
   Response snippet: {"field":"obd.obd_oem_total_mileage.value","title":"Obd Oem Total Mileage","last_value":18491,"type":"int"}
   Notes: represents km; expose as distance sensor to compare against std.total_odometer.
 
-- Add external/aux voltage sensor (std.external_voltage.value).
+- [x] Add external/aux voltage sensor (std.external_voltage.value).
   Request: data_fields call.
   Response snippet: {"field":"std.external_voltage.value","title":"value","last_value":12.9,"type":"float","last_seen":"2025-11-04T13:21:01.810770Z"}
   Notes: useful for trailer/aux feeds; diagnostic category.
 
-- Add timezone offset diagnostic sensor (std.tz_offset.value).
+- [x] Add timezone offset diagnostic sensor (std.tz_offset.value).
   Request: data_fields call.
   Response snippet: {"field":"std.tz_offset.value","last_value":"UTC+00:00","type":"string","last_seen":"2025-11-29T19:45:19.323976Z"}
   Notes: could feed HA device attribute or sensor; helps normalise timestamps.
 
-- Add GPS precision/position quality sensor (track.pos.pr).
+- [x] Add GPS precision/position quality sensor (track.pos.pr).
   Request: data_fields call.
   Response snippet: {"field":"track.pos.pr","title":"pr","last_value":0,"type":"int","last_seen":"2025-11-29T19:45:19.323976Z"}
   Notes: interpret as position precision/radius (value 0 when high accuracy); combine with nsat for accuracy attribute.
 
-- Add binary_sensor for ignition/engine running derived from std.ignition.value (currently numeric sensor only; existing numeric sensor remains).
+- [x] Add binary_sensor for ignition/engine running derived from std.ignition.value (currently numeric sensor only; existing numeric sensor remains).
   Request: data_fields call (field std.ignition.value -> 0/1).
   Response snippet: {"field":"std.ignition.value","last_value":0,"type":"int","last_seen":"2025-11-29T19:45:19.323976Z"}
   Notes: expose on/off with device_class power or running.
 
-- Add binary_sensor for movement using recent events tags from /logbook/v2/recent_stats/ (vehicle/position/standstill vs moving).
+- [x] Add binary_sensor for movement using recent events tags from /logbook/v2/recent_stats/ (vehicle/position/standstill vs moving).
   Request: curl -s -H "Authorization: APIToken ... " "https://api.autopi.io/logbook/v2/recent_stats/?device_id=2024b19b-affe-4f6a-98e0-e2b6700c981c&from_timestamp=2025-11-29T00:00:00Z&type=event"
   Response snippet includes {"@tag":"vehicle/position/standstill","@t":"event.vehicle.position","@ts":"2025-11-29T14:37:37.000000Z"}
   Notes: set binary_sensor on when latest position event is not standstill or when speed >0.
 
-- Add charging-in-progress binary_sensor plus last charge duration sensor using charging session reconstruction.
+- [x] Add charging-in-progress binary_sensor plus last charge duration sensor using charging session reconstruction.
   Request: curl -s -H "Authorization: APIToken ... " "https://api.autopi.io/logbook/charging_sessions/?vehicle_id=9191&start_tags=vehicle/battery/charging&end_tags=vehicle/battery/discharging&from_utc=2025-01-01T00:00:00Z&to_utc=2025-12-31T23:59:59Z"
   Response snippet: [{"start":"2025-11-29T14:31:25Z","end":"2025-11-29T18:45:09Z","duration":"04:13:44","state":"done","start_tag":"vehicle/battery/charging","end_tag":"vehicle/battery/discharging"}, ...]
   Notes: use most recent entry for last charge duration/end, and check if latest session has no end to flag active charging.
 
-- Add last communication / tracker-online sensors using /logbook/v2/most_recent_positions/.
+- [x] Add last communication / tracker-online sensors using /logbook/v2/most_recent_positions/.
   Request: curl -s -H "Authorization: APIToken ... " https://api.autopi.io/logbook/v2/most_recent_positions/
   Response snippet: {"id":"2024b19b-affe-4f6a-98e0-e2b6700c981c","display":"Tucson","last_communication":"2025-11-29T19:45:19.257391Z","positions":[{"altitude":40.0,"speed_over_ground":0.0,"course_over_ground":0.0,"nsat":14,"location":{"lat":50.96876,"lon":-1.301128}}]}
   Notes: create sensor for last_communication timestamp and binary_sensor for online/offline based on age; also reuse as fallback location source.
 
-- Add per-vehicle alert severity sensors using fleet alerts summary/list (fleet-wide alert count sensor already exists; this adds per-vehicle breakdown).
+- [x] Add per-vehicle alert severity sensors using fleet alerts summary/list (fleet-wide alert count sensor already exists; this adds per-vehicle breakdown).
   Request (summary): curl -s -H "Authorization: APIToken ... " https://api.autopi.io/fleet/alerts/summary/
   Response: {"open":0,"critical":0,"high":0,"medium":0,"low":0}
   Request (per-vehicle list): curl -s -H "Authorization: APIToken ... " "https://api.autopi.io/fleet/alerts/?vehicle=9191&page_size=5"
   Response: {"count":0,"results":[],"page_size":5}
   Notes: sensors for open alerts total, and per-vehicle open count with severity attributes.
 
-- Add DTC/diagnostic sensors (active code count, last code) via /logbook/diagnostics/ and /obd/dtcs/ (current entity only exposes obd.number_of_dtc; this covers historical/active code list).
+- [x] Add DTC/diagnostic sensors (active code count, last code) via /logbook/diagnostics/ and /obd/dtcs/ (current entity only exposes obd.number_of_dtc; this covers historical/active code list).
   Request: curl -s -H "Authorization: APIToken ... " "https://api.autopi.io/logbook/diagnostics/?device_id=2024b19b-affe-4f6a-98e0-e2b6700c981c&page_hits=5"
   Response: {"results":[],"count":0}
   Request (list DTCs): GET /obd/dtcs/?vehicle_id=9191 (Authorization header)
   Response example from docs: {"count":10,"results":[{"vehicle_id":1,"dtc_code":"P0300","description":"Random/Multiple Cylinder Misfire Detected","occurred_at_utc":"2023-10-27T10:00:00Z"}]}
   Notes: sensor showing active DTC count; event entity for new DTC arrivals.
 
-- Add geofence occupancy/count sensors using /fleet/vehicles/{vehicle_pk}/geofence_summary/.
+- [x] Add geofence occupancy/count sensors using /fleet/vehicles/{vehicle_pk}/geofence_summary/.
   Request: curl -s -H "Authorization: APIToken ... " https://api.autopi.io/fleet/vehicles/9191/geofence_summary/
   Response: {"count":0,"results":[],"page_size":20,"counts":{"locations":0,"geofences":0}}
   Notes: expose counts and last enter/exit timestamps when present.
 
-- Add fleet-level vehicle activity counters (all/active/driven recently) from /logbook/fleet_summary/vehicles/ (documented in autopi-api-combined).
+- [x] Add fleet-level vehicle activity counters (all/active/driven recently) from /logbook/fleet_summary/vehicles/ (documented in autopi-api-combined).
   Request: GET /logbook/fleet_summary/vehicles/ (Authorization header; supports vehicle_id, exclude_unassociated).
   Response example (docs): {"all":42,"active_now":12,"driven_last_30_days":30,"on_location":5}
   Notes: create diagnostic sensors on config-entry device for fleet health dashboards.
 
-- Add trip lifetime distance/avg speed sensors by paginating /logbook/v2/trips/ and summing distances.
+- [x] Add trip lifetime distance/avg speed sensors by paginating /logbook/v2/trips/ and summing distances.
   Request: curl -s -H "Authorization: APIToken ... " "https://api.autopi.io/logbook/v2/trips/?vehicle=9191&page_size=500&offset=0"
   Response snippet (docs): {"count":1500,"results":[{"id":"...","start_time_utc":"2023-10-26T08:00:00Z","end_time_utc":"2023-10-26T09:30:00Z","distanceKm":123.4,...}], "page_size":500}
   Notes: loop through pages to sum distanceKm and duration for total odometer/trip time sensors beyond the single-last-trip already exposed.
 
-- Add event volume sensors (e.g., harsh braking, speeding) using /logbook/events_histogram/.
+- [x] Add event volume sensors (e.g., harsh braking, speeding) using /logbook/events_histogram/.
   Request: GET /logbook/events_histogram/?device_id=2024b19b-affe-4f6a-98e0-e2b6700c981c&start_utc=2025-11-01T00:00:00Z&end_utc=2025-11-29T23:59:59Z&interval=1h&filter_tag=harsh
   Response example (docs): {"example":"[EventHistogram]"} – histogram buckets with counts.
   Notes: convert to sensors showing count in last 24h/week per tag to surface driving behaviour.
 
-- Add simplified events stream entity (or sensor with last event tag) from /logbook/simplified_events/.
+- [x] Add simplified events stream entity (or sensor with last event tag) from /logbook/simplified_events/.
   Request: GET /logbook/simplified_events/?vehicle_id=9191&page_hits=1&ordering=-ts (Authorization header)
   Response example (docs): list of events with ts, tag, type.
   Notes: helps expose last notable event (e.g., door open, RFID swipe) as HA event entity beyond current generic event platform.
 
-- Add RFID access log sensor/event entity using /websites/api_autopi_io/rfid_events.
+- [x] Add RFID access log sensor/event entity using /websites/api_autopi_io/rfid_events.
   Request: GET /websites/api_autopi_io/rfid_events?start_time=2025-11-01T00:00:00Z&end_time=2025-11-30T23:59:59Z (Authorization header)
   Response example (docs): {"rfid_events":[{"ts":"2023-03-20T12:05:47.926957Z","status":"entry","token":"ABC123XYZ","user":{"email":"..."},"vehicle":{"id":101,...}}]}
   Notes: emit HA events for key fob usage / immobiliser.
