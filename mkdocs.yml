@@ -192,8 +192,8 @@ nav:
     - Contributing: contributing.md
   - Reference:
     - Entity Reference: entities.md
-    - Changelog: changelog.md
     - FAQ: faq.md
+  - Changelog: changelog.md
 
 extra:
   social_image: assets/social-card.png
