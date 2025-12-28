@@ -159,7 +159,6 @@ tts/
 test_api.py
 test_integration.py
 secrets.yaml
-.secrets.baseline
 autopi_test_config.yaml
 
 # AutoPi specific
