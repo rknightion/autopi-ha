@@ -53,12 +53,16 @@
         "data": {
           "polling_interval": "Update Interval",
           "update_api_key": "Update API Key",
-          "auto_zero_enabled": "Auto-zero Metrics (BETA)"
+          "auto_zero_enabled": "Auto-zero Metrics (BETA)",
+          "suppress_accel_when_stationary": "Suppress Accelerometer When Stationary",
+          "discovery_enabled": "Auto-discover New Vehicles"
         },
         "data_description": {
           "polling_interval": "How often to fetch all data from AutoPi in minutes (1-10)",
           "update_api_key": "Check this box to update your AutoPi API key",
-          "auto_zero_enabled": "BETA: Automatically zeros certain metrics when data is older than 15 minutes to prevent stale values."
+          "auto_zero_enabled": "BETA: Automatically zeros certain metrics when data is older than 15 minutes to prevent stale values.",
+          "suppress_accel_when_stationary": "Stop updating X/Y/Z acceleration while the vehicle is detected as stationary.",
+          "discovery_enabled": "Automatically discover new vehicles added to your AutoPi fleet and show them on the integrations page."
         }
       },
       "api_key": {
