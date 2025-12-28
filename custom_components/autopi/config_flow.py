@@ -20,10 +20,12 @@ from .const import (
     CONF_DISCOVERY_ENABLED,
     CONF_SCAN_INTERVAL,
     CONF_SELECTED_VEHICLES,
+    CONF_SUPPRESS_ACCEL_WHEN_STATIONARY,
     CONF_UPDATE_INTERVAL_FAST,
     DEFAULT_BASE_URL,
     DEFAULT_NAME,
     DEFAULT_SCAN_INTERVAL_MINUTES,
+    DEFAULT_SUPPRESS_ACCEL_WHEN_STATIONARY,
     DEFAULT_UPDATE_INTERVAL_FAST_MINUTES,
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
@@ -437,6 +439,10 @@ class AutoPiOptionsFlow(OptionsFlow):
                 options_data[CONF_AUTO_ZERO_ENABLED] = user_input["auto_zero_enabled"]
             if "discovery_enabled" in user_input:
                 options_data[CONF_DISCOVERY_ENABLED] = user_input["discovery_enabled"]
+            if "suppress_accel_when_stationary" in user_input:
+                options_data[CONF_SUPPRESS_ACCEL_WHEN_STATIONARY] = user_input[
+                    "suppress_accel_when_stationary"
+                ]
 
             return self.async_create_entry(title="", data=options_data)
 
@@ -446,6 +452,10 @@ class AutoPiOptionsFlow(OptionsFlow):
         )
         current_auto_zero = self.config_entry.options.get(CONF_AUTO_ZERO_ENABLED, False)
         current_discovery = self.config_entry.options.get(CONF_DISCOVERY_ENABLED, True)
+        current_suppress_accel = self.config_entry.options.get(
+            CONF_SUPPRESS_ACCEL_WHEN_STATIONARY,
+            DEFAULT_SUPPRESS_ACCEL_WHEN_STATIONARY,
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -466,6 +476,10 @@ class AutoPiOptionsFlow(OptionsFlow):
                     vol.Optional(
                         "auto_zero_enabled",
                         default=current_auto_zero,
+                    ): bool,
+                    vol.Optional(
+                        "suppress_accel_when_stationary",
+                        default=current_suppress_accel,
                     ): bool,
                     vol.Optional(
                         "discovery_enabled",
