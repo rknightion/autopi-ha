@@ -24,11 +24,15 @@ CONF_UPDATE_INTERVAL_FAST: Final = "update_interval_fast"
 # Feature configuration
 CONF_AUTO_ZERO_ENABLED: Final = "auto_zero_enabled"
 CONF_DISCOVERY_ENABLED: Final = "discovery_enabled"
+CONF_SUPPRESS_ACCEL_WHEN_STATIONARY: Final = "suppress_accel_when_stationary"
 
 DEFAULT_NAME: Final = "AutoPi"
 DEFAULT_BASE_URL: Final = "https://api.autopi.io"
 DEFAULT_SCAN_INTERVAL: Final = 300  # 5 minutes
 DEFAULT_SCAN_INTERVAL_MINUTES: Final = 5
+
+# Default: suppress accelerometer updates when vehicle is stationary
+DEFAULT_SUPPRESS_ACCEL_WHEN_STATIONARY: Final = True
 
 # Default update intervals (in minutes)
 DEFAULT_UPDATE_INTERVAL_FAST_MINUTES: Final = 1

@@ -26,7 +26,12 @@ from homeassistant.const import (
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .auto_zero import AUTO_ZERO_METRICS, get_auto_zero_manager
-from .const import CONF_AUTO_ZERO_ENABLED, DATA_FIELD_TIMEOUT_MINUTES
+from .const import (
+    CONF_AUTO_ZERO_ENABLED,
+    CONF_SUPPRESS_ACCEL_WHEN_STATIONARY,
+    DATA_FIELD_TIMEOUT_MINUTES,
+    DEFAULT_SUPPRESS_ACCEL_WHEN_STATIONARY,
+)
 from .coordinator import AutoPiDataUpdateCoordinator
 from .entities.base import AutoPiVehicleEntity
 from .types import DataFieldValue
@@ -512,7 +517,127 @@ class ExternalVoltageSensor(AutoPiDataFieldSensor):
 # Accelerometer Sensors
 
 
-class AccelerometerXSensor(AutoPiAutoZeroDataFieldSensor):
+class AutoPiAccelerometerSensor(AutoPiAutoZeroDataFieldSensor):
+    """Base accelerometer sensor with stationary suppression."""
+
+    def __init__(
+        self,
+        coordinator: AutoPiDataUpdateCoordinator,
+        vehicle_id: str,
+        field_id: str,
+        name: str,
+        icon: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            field_id,
+            name,
+            icon=icon,
+            unit_of_measurement="g",
+            device_class=None,
+            state_class=SensorStateClass.MEASUREMENT,
+        )
+        self._last_reported_g: float | None = None
+
+    def _get_vehicle_field_value(self, field_id: str) -> Any | None:
+        """Return the latest value for a vehicle data field."""
+        vehicle = self.vehicle
+        if not vehicle or not vehicle.data_fields:
+            return None
+        field_data = vehicle.data_fields.get(field_id)
+        if not field_data:
+            return None
+        return field_data.last_value
+
+    def _parse_ignition_state(self) -> bool | None:
+        """Return ignition state if available."""
+        value = self._get_vehicle_field_value("std.ignition.value")
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value > 0
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"on", "true", "running"}:
+                return True
+            if normalized in {"off", "false", "stopped"}:
+                return False
+        return None
+
+    def _parse_engine_running(self) -> bool | None:
+        """Return engine running state based on RPM if available."""
+        value = self._get_vehicle_field_value("obd.rpm.value")
+        if value is None:
+            return None
+        try:
+            rpm_value = float(value)
+        except (TypeError, ValueError):
+            return None
+        return rpm_value > 0
+
+    def _is_vehicle_stationary(self) -> bool | None:
+        """Return True if the vehicle is detected as stationary."""
+        ignition_state = self._parse_ignition_state()
+        if ignition_state is False:
+            return True
+
+        engine_running = self._parse_engine_running()
+        if engine_running is False:
+            return True
+
+        movement_state = self.coordinator.get_vehicle_movement(self._vehicle_id)
+        if movement_state is not None:
+            return not movement_state
+
+        for field_id in ("track.pos.sog", "std.speed.value", "obd.speed.value"):
+            value = self._get_vehicle_field_value(field_id)
+            if value is None:
+                continue
+            try:
+                speed_value = float(value)
+            except (TypeError, ValueError):
+                continue
+            return speed_value <= 0
+
+        return None
+
+    def _should_suppress(self) -> bool:
+        """Return True if stationary suppression is enabled."""
+        return self.coordinator.config_entry.options.get(
+            CONF_SUPPRESS_ACCEL_WHEN_STATIONARY,
+            DEFAULT_SUPPRESS_ACCEL_WHEN_STATIONARY,
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the sensor value converted to standard g."""
+        field_data = self._get_field_data()
+        value = super().native_value
+        if self._should_suppress() and self._is_vehicle_stationary():
+            if self._last_reported_g is not None:
+                return self._last_reported_g
+            return 0.0
+        if value is not None:
+            # Convert from milli-g to g
+            if (
+                field_data is None
+                and self._restored_value is not None
+                and value == self._restored_value
+            ):
+                value_g = float(value)
+            else:
+                value_g = float(value) / 1000.0
+            value_g = round(value_g, 3)
+            self._last_reported_g = value_g
+            return value_g
+        return None
+
+
+class AccelerometerXSensor(AutoPiAccelerometerSensor):
     """X-axis accelerometer sensor."""
 
     def __init__(
@@ -525,22 +650,10 @@ class AccelerometerXSensor(AutoPiAutoZeroDataFieldSensor):
             "std.accelerometer_axis_x.value",
             "X-Axis Acceleration",
             icon="mdi:axis-x-arrow",
-            unit_of_measurement="g",
-            device_class=None,
-            state_class=SensorStateClass.MEASUREMENT,
         )
 
-    @property
-    def native_value(self) -> float | None:
-        """Return the sensor value converted to standard g."""
-        value = super().native_value
-        if value is not None:
-            # Convert from milli-g to g
-            return round(value / 1000.0, 3)
-        return None
 
-
-class AccelerometerYSensor(AutoPiAutoZeroDataFieldSensor):
+class AccelerometerYSensor(AutoPiAccelerometerSensor):
     """Y-axis accelerometer sensor."""
 
     def __init__(
@@ -553,22 +666,10 @@ class AccelerometerYSensor(AutoPiAutoZeroDataFieldSensor):
             "std.accelerometer_axis_y.value",
             "Y-Axis Acceleration",
             icon="mdi:axis-y-arrow",
-            unit_of_measurement="g",
-            device_class=None,
-            state_class=SensorStateClass.MEASUREMENT,
         )
 
-    @property
-    def native_value(self) -> float | None:
-        """Return the sensor value converted to standard g."""
-        value = super().native_value
-        if value is not None:
-            # Convert from milli-g to g
-            return round(value / 1000.0, 3)
-        return None
 
-
-class AccelerometerZSensor(AutoPiAutoZeroDataFieldSensor):
+class AccelerometerZSensor(AutoPiAccelerometerSensor):
     """Z-axis accelerometer sensor."""
 
     def __init__(
@@ -581,19 +682,7 @@ class AccelerometerZSensor(AutoPiAutoZeroDataFieldSensor):
             "std.accelerometer_axis_z.value",
             "Z-Axis Acceleration",
             icon="mdi:axis-z-arrow",
-            unit_of_measurement="g",
-            device_class=None,
-            state_class=SensorStateClass.MEASUREMENT,
         )
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the sensor value converted to standard g."""
-        value = super().native_value
-        if value is not None:
-            # Convert from milli-g to g
-            return round(value / 1000.0, 3)
-        return None
 
 
 # Odometer and Distance Sensors
