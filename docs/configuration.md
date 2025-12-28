@@ -65,6 +65,7 @@ Access configuration options after initial setup:
 |--------|-------------|---------|-------|
 | Update Interval | How often to fetch all data from AutoPi | 1 minute | 1-10 minutes |
 | Auto-zero Metrics (BETA) | Automatically zero stale metrics when vehicle is not on a trip | Disabled | On/Off |
+| Suppress Accelerometer When Stationary | Stop updating X/Y/Z acceleration when the vehicle is detected as stationary | Enabled | On/Off |
 | Update API Key | Option to update your AutoPi API key | - | - |
 
 ### Update Interval
@@ -104,6 +105,10 @@ Update Interval: 5-10 minutes
 ```
 - **Pros**: Minimal API calls
 - **Cons**: Significant delays in data updates, Auto-Zero feature not recommended
+
+### Suppress Accelerometer When Stationary
+
+When enabled, the integration stops updating X/Y/Z acceleration while the vehicle is detected as stationary (for example, ignition off or movement state indicates standstill). This prevents tiny GPS/IMU jitter from triggering automations while the car is parked.
 
 ## Advanced Configuration
 
@@ -192,6 +197,7 @@ autopi:
   options:
     update_interval_fast: 1
     auto_zero_enabled: false
+    suppress_accel_when_stationary: true
 ```
 
 ### Logger Configuration
