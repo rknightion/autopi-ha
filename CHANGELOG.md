@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0](https://github.com/rknightion/autopi-ha/compare/v0.8.0...v0.9.0) (2026-01-08)
+
+
+### Features
+
+* add accelerometer suppression when stationary ([a25ed08](https://github.com/rknightion/autopi-ha/commit/a25ed08d7c232c79856263aa892df7079e9a331e))
+* add UI config for accelerometer suppression ([c444117](https://github.com/rknightion/autopi-ha/commit/c444117200d33fa999624116812c66ea2d4b134c))
+* add UI strings for accelerometer suppression ([d87d1c2](https://github.com/rknightion/autopi-ha/commit/d87d1c2d4bf3688d5dd22f34383fcfbc640c08b3))
+
+
+### Documentation
+
+* enhance entity reference with comprehensive documentation ([7e8d04f](https://github.com/rknightion/autopi-ha/commit/7e8d04faaa95d80ec2ba833b7ad1d13a51abcb07))
+* update config docs for accelerometer feature ([5b84276](https://github.com/rknightion/autopi-ha/commit/5b84276531d988294fff4a3f0a3bfe15d18e023d))
+
+
+### Miscellaneous Chores
+
+* add secrets baseline for security scanning ([a453b8b](https://github.com/rknightion/autopi-ha/commit/a453b8b52c50b8a15062b84e8a9184079574bdd0))
+* **deps:** lock file maintenance ([#186](https://github.com/rknightion/autopi-ha/issues/186)) ([798a614](https://github.com/rknightion/autopi-ha/commit/798a6149c1d09d8e7b27bf07e3c8c0db50b65dda))
+* **deps:** lock file maintenance ([#187](https://github.com/rknightion/autopi-ha/issues/187)) ([f681deb](https://github.com/rknightion/autopi-ha/commit/f681deb18cdcdd1ab3b175097824b49c7dd2b4ff))
+* **deps:** lock file maintenance ([#188](https://github.com/rknightion/autopi-ha/issues/188)) ([f6ecbd0](https://github.com/rknightion/autopi-ha/commit/f6ecbd048819350efbd513ec113bb76674292a4c))
+* **deps:** update anthropics/claude-code-action digest to 1b8ee3b ([#191](https://github.com/rknightion/autopi-ha/issues/191)) ([98633f7](https://github.com/rknightion/autopi-ha/commit/98633f717222530b896e3f07a688b655332a3253))
+* **deps:** update anthropics/claude-code-action digest to c9ec2b0 ([#189](https://github.com/rknightion/autopi-ha/issues/189)) ([fe017fe](https://github.com/rknightion/autopi-ha/commit/fe017fe37eb2763898c6ef6dca110de0a81196e9))
+* **deps:** update astral-sh/setup-uv action to v7.2.0 ([#190](https://github.com/rknightion/autopi-ha/issues/190)) ([8147aea](https://github.com/rknightion/autopi-ha/commit/8147aea25f4bf3e687ae6dbbca96ed3f636152e1))
+* doc ([564cab7](https://github.com/rknightion/autopi-ha/commit/564cab7bc17946831e1e6e0e6c6069e3a7a7b3b9))
+* docs ([cdf3019](https://github.com/rknightion/autopi-ha/commit/cdf301962d5029b60970d20191db460ca8d57afb))
+* fix docbuild ([51b8c9e](https://github.com/rknightion/autopi-ha/commit/51b8c9ec030d5daa8d222231e2156105e6d8a25e))
+* fix docs ([5d77179](https://github.com/rknightion/autopi-ha/commit/5d771796786466cc1e6f131482dad381d7910d85))
+* replace mkdocs with zensical config ([608c66b](https://github.com/rknightion/autopi-ha/commit/608c66bbc105f17ba179d1b297778bf7ef63ef83))
+
 ## [0.8.0](https://github.com/rknightion/autopi-ha/compare/v0.7.2...v0.8.0) (2025-12-20)
 
 
