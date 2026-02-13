@@ -5,6 +5,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0](https://github.com/rknightion/autopi-ha/compare/v0.8.0...v0.9.0) (2026-02-13)
+
+
+### Features
+
+* add accelerometer suppression when stationary ([a25ed08](https://github.com/rknightion/autopi-ha/commit/a25ed08d7c232c79856263aa892df7079e9a331e))
+* add UI config for accelerometer suppression ([c444117](https://github.com/rknightion/autopi-ha/commit/c444117200d33fa999624116812c66ea2d4b134c))
+* add UI strings for accelerometer suppression ([d87d1c2](https://github.com/rknightion/autopi-ha/commit/d87d1c2d4bf3688d5dd22f34383fcfbc640c08b3))
+
+
+### Documentation
+
+* enhance entity reference with comprehensive documentation ([7e8d04f](https://github.com/rknightion/autopi-ha/commit/7e8d04faaa95d80ec2ba833b7ad1d13a51abcb07))
+* update config docs for accelerometer feature ([5b84276](https://github.com/rknightion/autopi-ha/commit/5b84276531d988294fff4a3f0a3bfe15d18e023d))
+
+
+### Miscellaneous Chores
+
+* add secrets baseline for security scanning ([a453b8b](https://github.com/rknightion/autopi-ha/commit/a453b8b52c50b8a15062b84e8a9184079574bdd0))
+* **deps:** lock file maintenance ([#186](https://github.com/rknightion/autopi-ha/issues/186)) ([798a614](https://github.com/rknightion/autopi-ha/commit/798a6149c1d09d8e7b27bf07e3c8c0db50b65dda))
+* **deps:** lock file maintenance ([#187](https://github.com/rknightion/autopi-ha/issues/187)) ([f681deb](https://github.com/rknightion/autopi-ha/commit/f681deb18cdcdd1ab3b175097824b49c7dd2b4ff))
+* **deps:** lock file maintenance ([#188](https://github.com/rknightion/autopi-ha/issues/188)) ([f6ecbd0](https://github.com/rknightion/autopi-ha/commit/f6ecbd048819350efbd513ec113bb76674292a4c))
+* **deps:** lock file maintenance ([#192](https://github.com/rknightion/autopi-ha/issues/192)) ([878d4b9](https://github.com/rknightion/autopi-ha/commit/878d4b9ad4a23e0cab20132e33eeb7e52767c8cb))
+* **deps:** lock file maintenance ([#200](https://github.com/rknightion/autopi-ha/issues/200)) ([4d4e331](https://github.com/rknightion/autopi-ha/commit/4d4e33154e61f413a52699312120b6f4e05f0f81))
+* **deps:** lock file maintenance ([#211](https://github.com/rknightion/autopi-ha/issues/211)) ([21cc425](https://github.com/rknightion/autopi-ha/commit/21cc425689ab74e54f565bfdcc4ca6f02c5fb9f6))
+* **deps:** lock file maintenance ([#225](https://github.com/rknightion/autopi-ha/issues/225)) ([04376e1](https://github.com/rknightion/autopi-ha/commit/04376e18680d6c60bc49bec3b345720c139af56c))
+* **deps:** lock file maintenance ([#241](https://github.com/rknightion/autopi-ha/issues/241)) ([0f344ab](https://github.com/rknightion/autopi-ha/commit/0f344abc40497c3cd8f3d3896b0ec6e8aa43ab9d))
+* **deps:** update actions/checkout action to v6.0.2 ([#204](https://github.com/rknightion/autopi-ha/issues/204)) ([8281dfb](https://github.com/rknightion/autopi-ha/commit/8281dfb0589458f0cf9ff7b32375cfc88eb633d3))
+* **deps:** update actions/checkout digest to de0fac2 ([#228](https://github.com/rknightion/autopi-ha/issues/228)) ([2cbfeb3](https://github.com/rknightion/autopi-ha/commit/2cbfeb32c57d65c8219d29db51241ebce53701d6))
+* **deps:** update actions/setup-python action to v6.2.0 ([#203](https://github.com/rknightion/autopi-ha/issues/203)) ([e61fac7](https://github.com/rknightion/autopi-ha/commit/e61fac7df9a26f73dfa6cb589b161c757b0ac7e8))
+* **deps:** update anthropics/claude-code-action digest to 006aaf2 ([#235](https://github.com/rknightion/autopi-ha/issues/235)) ([8b5ed55](https://github.com/rknightion/autopi-ha/commit/8b5ed5540b8082a656c67f518b92a9d01e8950e3))
+* **deps:** update anthropics/claude-code-action digest to 01e756b ([#221](https://github.com/rknightion/autopi-ha/issues/221)) ([6e4e9c7](https://github.com/rknightion/autopi-ha/commit/6e4e9c77b75adc125ad441a94cd5f109b6245ecf))
+* **deps:** update anthropics/claude-code-action digest to 0ed5eea ([#223](https://github.com/rknightion/autopi-ha/issues/223)) ([7e616e3](https://github.com/rknightion/autopi-ha/commit/7e616e3d5e5202acb3229e49d0a3fe491f3fe338))
+* **deps:** update anthropics/claude-code-action digest to 1b8ee3b ([#191](https://github.com/rknightion/autopi-ha/issues/191)) ([98633f7](https://github.com/rknightion/autopi-ha/commit/98633f717222530b896e3f07a688b655332a3253))
+* **deps:** update anthropics/claude-code-action digest to 2316a9a ([#202](https://github.com/rknightion/autopi-ha/issues/202)) ([77e7d89](https://github.com/rknightion/autopi-ha/commit/77e7d89136974c67839365ddf05223ca16e0dece))
+* **deps:** update anthropics/claude-code-action digest to 231bd75 ([#218](https://github.com/rknightion/autopi-ha/issues/218)) ([0dded57](https://github.com/rknightion/autopi-ha/commit/0dded5702322ae1e4a1a5cc9dfb7352681884166))
+* **deps:** update anthropics/claude-code-action digest to 23ed4cb ([#243](https://github.com/rknightion/autopi-ha/issues/243)) ([bc4c42f](https://github.com/rknightion/autopi-ha/commit/bc4c42f0c0e3525e9163261822cafb823cb93849))
+* **deps:** update anthropics/claude-code-action digest to 2804b41 ([#205](https://github.com/rknightion/autopi-ha/issues/205)) ([760262e](https://github.com/rknightion/autopi-ha/commit/760262e360b24c5710f0ca95044fd73b79cd933b))
+* **deps:** update anthropics/claude-code-action digest to 2817c54 ([#219](https://github.com/rknightion/autopi-ha/issues/219)) ([0dcac26](https://github.com/rknightion/autopi-ha/commit/0dcac26afa15c73f7340816ba1bbb3e199e936eb))
+* **deps:** update anthropics/claude-code-action digest to 4126f9d ([#217](https://github.com/rknightion/autopi-ha/issues/217)) ([12daffc](https://github.com/rknightion/autopi-ha/commit/12daffc4aea2114d442b13ebac3414659c3ea78d))
+* **deps:** update anthropics/claude-code-action digest to 6867bb3 ([#231](https://github.com/rknightion/autopi-ha/issues/231)) ([ddc668d](https://github.com/rknightion/autopi-ha/commit/ddc668d113b39659dcd094d30ca281007a06e341))
+* **deps:** update anthropics/claude-code-action digest to 6c61301 ([#239](https://github.com/rknightion/autopi-ha/issues/239)) ([28a997c](https://github.com/rknightion/autopi-ha/commit/28a997c807adb2959c268a8e4ee6467511c044c2))
+* **deps:** update anthropics/claude-code-action digest to 70e16de ([#224](https://github.com/rknightion/autopi-ha/issues/224)) ([8ae7dc1](https://github.com/rknightion/autopi-ha/commit/8ae7dc1e5d94b7697571681874eb5bd240200758))
+* **deps:** update anthropics/claude-code-action digest to 8341a56 ([#206](https://github.com/rknightion/autopi-ha/issues/206)) ([0a5fbe1](https://github.com/rknightion/autopi-ha/commit/0a5fbe12a3fda5d598fa3d37fc8bad6a0ec2e9eb))
+* **deps:** update anthropics/claude-code-action digest to 98af40b ([#229](https://github.com/rknightion/autopi-ha/issues/229)) ([63dd01e](https://github.com/rknightion/autopi-ha/commit/63dd01e6e479a5f03e2f8c7b11a35119ed558d8f))
+* **deps:** update anthropics/claude-code-action digest to a017b83 ([#197](https://github.com/rknightion/autopi-ha/issues/197)) ([ef4df69](https://github.com/rknightion/autopi-ha/commit/ef4df695f02dd545383eecd89a66818302942b19))
+* **deps:** update anthropics/claude-code-action digest to b113f49 ([#236](https://github.com/rknightion/autopi-ha/issues/236)) ([490ea71](https://github.com/rknightion/autopi-ha/commit/490ea71b27a7984989fc4c08f5186a1bfc1c5e45))
+* **deps:** update anthropics/claude-code-action digest to b433f16 ([#242](https://github.com/rknightion/autopi-ha/issues/242)) ([be2d948](https://github.com/rknightion/autopi-ha/commit/be2d948d944416b1b2e3d66f9885165ddc20056b))
+* **deps:** update anthropics/claude-code-action digest to c22f7c3 ([#245](https://github.com/rknightion/autopi-ha/issues/245)) ([27335e7](https://github.com/rknightion/autopi-ha/commit/27335e70d510aa66d421b691ea49836f02d0c7a1))
+* **deps:** update anthropics/claude-code-action digest to c9ec2b0 ([#189](https://github.com/rknightion/autopi-ha/issues/189)) ([fe017fe](https://github.com/rknightion/autopi-ha/commit/fe017fe37eb2763898c6ef6dca110de0a81196e9))
+* **deps:** update anthropics/claude-code-action digest to ea36d6a ([#249](https://github.com/rknightion/autopi-ha/issues/249)) ([b2e6f12](https://github.com/rknightion/autopi-ha/commit/b2e6f12a5dbd1dccc95cb6a7ce35db571ab01bdd))
+* **deps:** update anthropics/claude-code-action digest to f642197 ([#210](https://github.com/rknightion/autopi-ha/issues/210)) ([9bd6f09](https://github.com/rknightion/autopi-ha/commit/9bd6f09d82c53fd05bb531c924e551c8dbbf1fc8))
+* **deps:** update anthropics/claude-code-action digest to f669191 ([#244](https://github.com/rknightion/autopi-ha/issues/244)) ([9d70403](https://github.com/rknightion/autopi-ha/commit/9d70403853d4a605b0d4c743de8dcb062be3f7a2))
+* **deps:** update anthropics/claude-code-action digest to ff34ce0 ([#220](https://github.com/rknightion/autopi-ha/issues/220)) ([331492b](https://github.com/rknightion/autopi-ha/commit/331492bae8506a57145721008f9828928c6dd3df))
+* **deps:** update astral-sh/setup-uv action to v7.2.0 ([#190](https://github.com/rknightion/autopi-ha/issues/190)) ([8147aea](https://github.com/rknightion/autopi-ha/commit/8147aea25f4bf3e687ae6dbbca96ed3f636152e1))
+* **deps:** update astral-sh/setup-uv action to v7.2.1 ([#222](https://github.com/rknightion/autopi-ha/issues/222)) ([db1d964](https://github.com/rknightion/autopi-ha/commit/db1d9641ee8e5af42cba3b15f8cde14fa7381a22))
+* **deps:** update astral-sh/setup-uv action to v7.3.0 ([#237](https://github.com/rknightion/autopi-ha/issues/237)) ([03be9fe](https://github.com/rknightion/autopi-ha/commit/03be9fe8234175626c345d7bf490c7a45e0e1b6c))
+* **deps:** update dependency bandit to v1.9.3 ([#201](https://github.com/rknightion/autopi-ha/issues/201)) ([25bef32](https://github.com/rknightion/autopi-ha/commit/25bef32fb3b9b1274a5e34a6d0139d5d93676211))
+* **deps:** update dependency ruff to v0.14.11 ([#184](https://github.com/rknightion/autopi-ha/issues/184)) ([e04e185](https://github.com/rknightion/autopi-ha/commit/e04e185c4d8c4d87963cdb1451f41aeb5f091cb7))
+* **deps:** update dependency ruff to v0.14.12 ([#195](https://github.com/rknightion/autopi-ha/issues/195)) ([527a714](https://github.com/rknightion/autopi-ha/commit/527a71482c30e8dddc2cc62d6a170a48a39faffe))
+* **deps:** update dependency ruff to v0.14.13 ([#196](https://github.com/rknightion/autopi-ha/issues/196)) ([7c60cfe](https://github.com/rknightion/autopi-ha/commit/7c60cfeb356a0da80ca9cb04d3b0d88180835a71))
+* **deps:** update dependency ruff to v0.14.14 ([#207](https://github.com/rknightion/autopi-ha/issues/207)) ([2faf9cd](https://github.com/rknightion/autopi-ha/commit/2faf9cd140a88411b9bcddb3f2bc3e07d40c981f))
+* **deps:** update dependency ruff to v0.15.0 ([#230](https://github.com/rknightion/autopi-ha/issues/230)) ([465bb9a](https://github.com/rknightion/autopi-ha/commit/465bb9adbd0130a896bdc0a51193b8dfd22aa9cd))
+* **deps:** update dependency ruff to v0.15.1 ([#246](https://github.com/rknightion/autopi-ha/issues/246)) ([0bd8c49](https://github.com/rknightion/autopi-ha/commit/0bd8c490acba54287d8341ce81d28ce1cd267854))
+* **deps:** update github/codeql-action action to v4.31.10 ([#194](https://github.com/rknightion/autopi-ha/issues/194)) ([d7c526a](https://github.com/rknightion/autopi-ha/commit/d7c526aaa58b6b26dc8003cdff15f42d8112fa7e))
+* **deps:** update github/codeql-action action to v4.31.11 ([#209](https://github.com/rknightion/autopi-ha/issues/209)) ([235cc33](https://github.com/rknightion/autopi-ha/commit/235cc3305a4a507edf2cbb247495accd94328585))
+* **deps:** update github/codeql-action action to v4.32.0 ([#216](https://github.com/rknightion/autopi-ha/issues/216)) ([f4a1d9f](https://github.com/rknightion/autopi-ha/commit/f4a1d9f55dbf15ba66b5ec234f7aff561df845dc))
+* **deps:** update github/codeql-action action to v4.32.1 ([#227](https://github.com/rknightion/autopi-ha/issues/227)) ([fa3cda3](https://github.com/rknightion/autopi-ha/commit/fa3cda3b7bb616d18588a65821fae47e4c845a8d))
+* **deps:** update github/codeql-action action to v4.32.2 ([#234](https://github.com/rknightion/autopi-ha/issues/234)) ([1acd8cb](https://github.com/rknightion/autopi-ha/commit/1acd8cb5cb7ad339d0d6a447825ce7e9b18d5eb9))
+* **deps:** update github/codeql-action action to v4.32.3 ([#248](https://github.com/rknightion/autopi-ha/issues/248)) ([bb8c03a](https://github.com/rknightion/autopi-ha/commit/bb8c03abf37b7491c8dc2381533bff3602b38a48))
+* **deps:** update github/codeql-action digest to 19b2f06 ([#208](https://github.com/rknightion/autopi-ha/issues/208)) ([378020e](https://github.com/rknightion/autopi-ha/commit/378020ed797fd577ae2b6748dbe89c2bc34f671c))
+* **deps:** update github/codeql-action digest to 45cbd0c ([#233](https://github.com/rknightion/autopi-ha/issues/233)) ([b84328a](https://github.com/rknightion/autopi-ha/commit/b84328aee3a3fb4ad126a2c9e490015b4088f378))
+* **deps:** update github/codeql-action digest to 6bc82e0 ([#226](https://github.com/rknightion/autopi-ha/issues/226)) ([6419ecd](https://github.com/rknightion/autopi-ha/commit/6419ecdc826106b6d2694fb730aae351d760c2ab))
+* **deps:** update github/codeql-action digest to 9e907b5 ([#247](https://github.com/rknightion/autopi-ha/issues/247)) ([1145cdd](https://github.com/rknightion/autopi-ha/commit/1145cdd130649f2f6496e0e64d4670859ba0a568))
+* **deps:** update github/codeql-action digest to b20883b ([#215](https://github.com/rknightion/autopi-ha/issues/215)) ([02d8599](https://github.com/rknightion/autopi-ha/commit/02d8599fa84b2e8c261a204fa186df19b5325f65))
+* **deps:** update github/codeql-action digest to cdefb33 ([#193](https://github.com/rknightion/autopi-ha/issues/193)) ([f769ee7](https://github.com/rknightion/autopi-ha/commit/f769ee73afed250c10c442568d7b270d4b25bf6c))
+* **deps:** update hacs/action digest to dcb30e7 ([#214](https://github.com/rknightion/autopi-ha/issues/214)) ([e8560bd](https://github.com/rknightion/autopi-ha/commit/e8560bde382826e72e1f6126f43c6eafdfe92614))
+* **deps:** update home-assistant/actions digest to 55b4a5d ([#213](https://github.com/rknightion/autopi-ha/issues/213)) ([e736ef7](https://github.com/rknightion/autopi-ha/commit/e736ef7a5a22ce7dfa30ec7b67cedf170893cf75))
+* **deps:** update step-security/harden-runner action to v2.14.1 ([#212](https://github.com/rknightion/autopi-ha/issues/212)) ([35f2475](https://github.com/rknightion/autopi-ha/commit/35f2475ee6fd74f9761384bd1ffff01b47c55068))
+* **deps:** update step-security/harden-runner action to v2.14.2 ([#238](https://github.com/rknightion/autopi-ha/issues/238)) ([6713967](https://github.com/rknightion/autopi-ha/commit/6713967383347db8455091303cba093f2ef65180))
+* **deps:** update zizmorcore/zizmor-action action to v0.4.0 ([#198](https://github.com/rknightion/autopi-ha/issues/198)) ([5993908](https://github.com/rknightion/autopi-ha/commit/59939080fcb389a7c3f293f21c69978e6266ba59))
+* **deps:** update zizmorcore/zizmor-action action to v0.4.1 ([#199](https://github.com/rknightion/autopi-ha/issues/199)) ([a49741d](https://github.com/rknightion/autopi-ha/commit/a49741dbbc429eada8f083565ad799b5667483d1))
+* **deps:** update zizmorcore/zizmor-action action to v0.5.0 ([#232](https://github.com/rknightion/autopi-ha/issues/232)) ([6d1cc0a](https://github.com/rknightion/autopi-ha/commit/6d1cc0aec423724ab55bbf0be4403619809498cd))
+* doc ([564cab7](https://github.com/rknightion/autopi-ha/commit/564cab7bc17946831e1e6e0e6c6069e3a7a7b3b9))
+* docs ([cdf3019](https://github.com/rknightion/autopi-ha/commit/cdf301962d5029b60970d20191db460ca8d57afb))
+* fix docbuild ([51b8c9e](https://github.com/rknightion/autopi-ha/commit/51b8c9ec030d5daa8d222231e2156105e6d8a25e))
+* fix docs ([5d77179](https://github.com/rknightion/autopi-ha/commit/5d771796786466cc1e6f131482dad381d7910d85))
+* replace mkdocs with zensical config ([608c66b](https://github.com/rknightion/autopi-ha/commit/608c66bbc105f17ba179d1b297778bf7ef63ef83))
+
 ## [0.8.0](https://github.com/rknightion/autopi-ha/compare/v0.7.2...v0.8.0) (2025-12-20)
 
 
