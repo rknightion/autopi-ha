@@ -7,7 +7,7 @@ authors = [
 ]
 license = {text = "Apache-2.0"}
 readme = "README.md"
-requires-python = ">=3.13.2,<3.14"
+requires-python = ">=3.14.3,<3.15"
 keywords = ["homeassistant", "autopi", "vehicle", "obd", "gps", "tracking"]
 classifiers = [
     "Development Status :: 4 - Beta",
