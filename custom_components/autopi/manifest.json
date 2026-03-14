@@ -1,15 +1,23 @@
 {
   "domain": "autopi",
   "name": "AutoPi",
-  "after_dependencies": ["recorder"],
-  "codeowners": ["@rknightion"],
+  "after_dependencies": [
+    "recorder"
+  ],
+  "codeowners": [
+    "@rknightion"
+  ],
   "config_flow": true,
   "documentation": "https://m7kni.io/autopi-ha/",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/rknightion/autopi-ha/issues",
-  "loggers": ["aiohttp"],
+  "loggers": [
+    "aiohttp"
+  ],
   "quality_scale": "silver",
-  "requirements": ["aiohttp>=3.8.0"],
-  "version": "0.8.0"
+  "requirements": [
+    "aiohttp>=3.8.0"
+  ],
+  "version": "0.9.0"
 }
