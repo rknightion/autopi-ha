@@ -1,0 +1,14 @@
+title: AutoPi Home Assistant Integration Documentation
+description: Home Assistant integration for AutoPi devices, exposing live vehicle data and automation-friendly entities
+tags:
+  - home-assistant
+  - autopi
+  - vehicle-tracking
+  - obd-diagnostics
+image: assets/social-card.png
+twitter:
+  creator: "@rknightion"
+  site: "@rknightion"
+robots: index,follow
+language: en
+canonical_base: https://m7kni.io/autopi-ha/
