@@ -76,7 +76,7 @@ jobs:
           persist-credentials: false
 
       - name: Run hassfest
-        uses: home-assistant/actions/hassfest@dce0e860c68256ef2902ece06afa5401eb4674e1 # master
+        uses: home-assistant/actions/hassfest@d56d093b9ab8d2105bc0cb6ee9bcc0ef4ec8b96d # master
 
   # Validate HACS compliance
   hacs:
@@ -172,7 +172,7 @@ jobs:
       # Coverage reports are generated locally (see htmlcov/ directory)
       # Uncomment below to upload to Codecov (requires CODECOV_TOKEN secret)
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5.5.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
