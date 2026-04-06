@@ -321,7 +321,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.12.1" },
-    { name = "pycares", specifier = "<5" },
+    { name = "pycares", specifier = "<6" },
 ]
 
 [package.metadata.requires-dev]
