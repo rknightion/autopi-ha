@@ -32,4 +32,4 @@ jobs:
             If it appears to be a duplicate, post a comment mentioning the original issue.
 
           claude_args: |
-            --allowedTools "Bash(gh issue:*),Bash(gh search:*)"
+            --model sonnet --allowedTools "Bash(gh issue:*),Bash(gh search:*)"
