@@ -76,7 +76,7 @@ jobs:
           persist-credentials: false
 
       - name: Run hassfest
-        uses: home-assistant/actions/hassfest@f6f29a7ee3fa0eccadf3620a7b9ee00ab54ec03b # master
+        uses: home-assistant/actions/hassfest@f6f29a7ee3fa0eccadf3620a7b9ee00ab54ec03b # zizmor: ignore[ref-version-mismatch] no semver tags; HA ships it from the master branch, pinned by SHA
 
   # Validate HACS compliance
   hacs:
@@ -94,7 +94,7 @@ jobs:
           persist-credentials: false
 
       - name: HACS validation
-        uses: hacs/action@dcb30e72781db3f207d5236b861172774ab0b485 # main
+        uses: hacs/action@dcb30e72781db3f207d5236b861172774ab0b485 # zizmor: ignore[ref-version-mismatch] no semver tags; HACS ships it from the main branch, pinned by SHA
         with:
           category: integration
 
