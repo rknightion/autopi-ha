@@ -20,7 +20,9 @@ from custom_components.autopi.types import AutoPiVehicle, DataFieldValue
 pytest_plugins = "pytest_homeassistant_custom_component"
 
 
-def create_mock_aiohttp_response(status: int, json_data: dict | None = None, text: str = ""):
+def create_mock_aiohttp_response(
+    status: int, json_data: dict | None = None, text: str = ""
+):
     """Create a mock aiohttp response for testing.
 
     Args:
@@ -53,6 +55,7 @@ def load_fixture():
 
     Returns a function that can be called with a filename to load JSON fixtures.
     """
+
     def _load_fixture(filename: str) -> str:
         """Load a fixture file from the fixtures directory."""
         path = Path(__file__).parent / "fixtures" / filename
@@ -77,7 +80,9 @@ def mock_autopi_client():
     client.get_charging_sessions = AsyncMock(return_value=[])
     client.get_diagnostics = AsyncMock(return_value={"count": 0, "results": []})
     client.get_obd_dtcs = AsyncMock(return_value=[])
-    client.get_geofence_summary = AsyncMock(return_value={"counts": {"locations": 0, "geofences": 0}, "results": []})
+    client.get_geofence_summary = AsyncMock(
+        return_value={"counts": {"locations": 0, "geofences": 0}, "results": []}
+    )
     client.get_fleet_vehicle_summary = AsyncMock(return_value=None)
     client.get_events_histogram = AsyncMock(return_value=[])
     client.get_simplified_events = AsyncMock(return_value=[])

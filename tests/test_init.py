@@ -1,4 +1,5 @@
 """Test the AutoPi integration init."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -26,22 +27,25 @@ async def test_setup_entry(hass: HomeAssistant) -> None:
     mock_entry.async_on_unload = MagicMock()
 
     # Mock the coordinator and its methods
-    with patch(
-        "custom_components.autopi.AutoPiDataUpdateCoordinator"
-    ) as mock_coordinator_class, patch(
-        "custom_components.autopi.AutoPiPositionCoordinator"
-    ) as mock_position_coordinator_class, patch(
-        "custom_components.autopi.AutoPiTripCoordinator"
-    ) as mock_trip_coordinator_class, patch(
-        "custom_components.autopi.get_auto_zero_manager"
-    ) as mock_auto_zero_manager:
+    with (
+        patch(
+            "custom_components.autopi.AutoPiDataUpdateCoordinator"
+        ) as mock_coordinator_class,
+        patch(
+            "custom_components.autopi.AutoPiPositionCoordinator"
+        ) as mock_position_coordinator_class,
+        patch(
+            "custom_components.autopi.AutoPiTripCoordinator"
+        ) as mock_trip_coordinator_class,
+        patch(
+            "custom_components.autopi.get_auto_zero_manager"
+        ) as mock_auto_zero_manager,
+    ):
         mock_coordinator = AsyncMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
         mock_coordinator.get_vehicle_count = MagicMock(return_value=1)
         mock_coordinator.data = {}  # Add empty data to prevent the RuntimeWarning
-        mock_coordinator.get_unsupported_endpoints = MagicMock(
-            return_value=(set(), {})
-        )
+        mock_coordinator.get_unsupported_endpoints = MagicMock(return_value=(set(), {}))
         mock_coordinator_class.return_value = mock_coordinator
 
         mock_position_coordinator = AsyncMock()
@@ -65,7 +69,7 @@ async def test_setup_entry(hass: HomeAssistant) -> None:
         # Mock platform setup
         with patch(
             "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
-            return_value=None
+            return_value=None,
         ):
             # Test the setup
             from custom_components.autopi import async_setup_entry

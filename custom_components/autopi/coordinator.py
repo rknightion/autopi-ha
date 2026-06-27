@@ -491,8 +491,9 @@ class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
                         if sessions:
                             latest_session = max(
                                 sessions,
-                                key=lambda session: session.start
-                                or datetime.min.replace(tzinfo=UTC),
+                                key=lambda session: (
+                                    session.start or datetime.min.replace(tzinfo=UTC)
+                                ),
                             )
                         self._charging_sessions[vehicle_id] = latest_session
                     except AutoPiAPIError as err:
@@ -1691,7 +1692,7 @@ class AutoPiPositionCoordinator(AutoPiDataUpdateCoordinator):
                             try:
                                 speed_value = float(field_data.last_value)
                                 break
-                            except (TypeError, ValueError):
+                            except TypeError, ValueError:
                                 continue
                     if speed_value is not None:
                         movement_state = speed_value > 0
@@ -2003,7 +2004,7 @@ class AutoPiTripCoordinator(AutoPiDataUpdateCoordinator):
             for trip_data in results:
                 try:
                     trip = AutoPiTrip.from_api_data(trip_data)
-                except (KeyError, ValueError, TypeError):
+                except KeyError, ValueError, TypeError:
                     continue
                 total_distance += trip.distance_km
                 total_duration += trip.duration_seconds

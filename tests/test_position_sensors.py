@@ -144,14 +144,14 @@ class TestGPSPositionSensors:
     def test_gps_satellites_accuracy_ranges(self, mock_coordinator, mock_vehicle):
         """Test GPS satellites accuracy calculation for different ranges."""
         test_cases = [
-            (3, 100.0),   # < 4 satellites
-            (4, 30.0),    # 4 satellites
-            (5, 20.0),    # 5 satellites
-            (6, 15.0),    # 6 satellites
-            (7, 11.0),    # 7 satellites
-            (9, 7.5),     # 8-9 satellites
-            (10, 5.0),    # 10-11 satellites
-            (12, 3.0),    # 12+ satellites
+            (3, 100.0),  # < 4 satellites
+            (4, 30.0),  # 4 satellites
+            (5, 20.0),  # 5 satellites
+            (6, 15.0),  # 6 satellites
+            (7, 11.0),  # 7 satellites
+            (9, 7.5),  # 8-9 satellites
+            (10, 5.0),  # 10-11 satellites
+            (12, 3.0),  # 12+ satellites
         ]
 
         mock_coordinator.data = {"123": mock_vehicle}
@@ -167,7 +167,9 @@ class TestGPSPositionSensors:
 
     def test_gps_latitude_sensor(self, mock_coordinator, mock_vehicle):
         """Test GPS latitude sensor."""
-        field = create_data_field("track.pos", "loc", {"lat": 51.264327, "lon": -1.085937}, "dict")
+        field = create_data_field(
+            "track.pos", "loc", {"lat": 51.264327, "lon": -1.085937}, "dict"
+        )
         mock_vehicle.data_fields = {"track.pos.loc": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
@@ -179,7 +181,9 @@ class TestGPSPositionSensors:
 
     def test_gps_longitude_sensor(self, mock_coordinator, mock_vehicle):
         """Test GPS longitude sensor."""
-        field = create_data_field("track.pos", "loc", {"lat": 51.264327, "lon": -1.085937}, "dict")
+        field = create_data_field(
+            "track.pos", "loc", {"lat": 51.264327, "lon": -1.085937}, "dict"
+        )
         mock_vehicle.data_fields = {"track.pos.loc": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
@@ -191,7 +195,9 @@ class TestGPSPositionSensors:
 
     def test_lat_lon_caching(self, mock_coordinator, mock_vehicle):
         """Test latitude/longitude sensors cache values properly."""
-        field = create_data_field("track.pos", "loc", {"lat": 51.264327, "lon": -1.085937}, "dict")
+        field = create_data_field(
+            "track.pos", "loc", {"lat": 51.264327, "lon": -1.085937}, "dict"
+        )
         mock_vehicle.data_fields = {"track.pos.loc": field}
         mock_coordinator.data = {"123": mock_vehicle}
 

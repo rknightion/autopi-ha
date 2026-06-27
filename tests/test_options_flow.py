@@ -99,7 +99,7 @@ class TestOptionsFlowInit:
                 "polling_interval": 3,
                 "discovery_enabled": True,
                 "auto_zero_enabled": False,
-            }
+            },
         )
 
         assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
@@ -132,8 +132,7 @@ class TestOptionsFlowInit:
         }
 
         result = await hass.config_entries.options.async_configure(
-            result["flow_id"],
-            user_input=new_options
+            result["flow_id"], user_input=new_options
         )
 
         assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
@@ -166,7 +165,7 @@ class TestOptionsFlowInit:
                 "polling_interval": MIN_SCAN_INTERVAL_MINUTES,
                 "discovery_enabled": True,
                 "auto_zero_enabled": False,
-            }
+            },
         )
 
         assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
@@ -197,7 +196,7 @@ class TestOptionsFlowInit:
                 "polling_interval": MAX_SCAN_INTERVAL_MINUTES,
                 "discovery_enabled": True,
                 "auto_zero_enabled": False,
-            }
+            },
         )
 
         assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
@@ -233,7 +232,7 @@ class TestOptionsFlowAPIKeyUpdate:
                 "update_api_key": True,
                 "auto_zero_enabled": False,
                 "discovery_enabled": True,
-            }
+            },
         )
 
         assert result["type"] == data_entry_flow.FlowResultType.FORM
@@ -241,7 +240,11 @@ class TestOptionsFlowAPIKeyUpdate:
         assert CONF_API_KEY in result["data_schema"].schema
 
     async def test_update_api_key_with_valid_key(
-        self, hass: HomeAssistant, mock_config_entry_data, mock_config_entry_options, mock_api_vehicle_response
+        self,
+        hass: HomeAssistant,
+        mock_config_entry_data,
+        mock_config_entry_options,
+        mock_api_vehicle_response,
     ):
         """Test updating API key with valid credentials."""
         entry = MockConfigEntry(
@@ -266,22 +269,25 @@ class TestOptionsFlowAPIKeyUpdate:
                 "update_api_key": True,
                 "auto_zero_enabled": False,
                 "discovery_enabled": True,
-            }
+            },
         )
         assert result["type"] == data_entry_flow.FlowResultType.FORM
         assert result["step_id"] == "api_key"
 
         # Mock successful API validation
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter, \
-             patch.object(hass.config_entries, "async_reload") as mock_reload:
+        with (
+            patch(
+                "custom_components.autopi.config_flow.async_get_clientsession"
+            ) as mock_session_getter,
+            patch.object(hass.config_entries, "async_reload") as mock_reload,
+        ):
             mock_session = AsyncMock()
             mock_response = create_mock_aiohttp_response(200, mock_api_vehicle_response)
             mock_session.get = Mock(return_value=mock_response)
             mock_session_getter.return_value = mock_session
 
             result = await hass.config_entries.options.async_configure(
-                result["flow_id"],
-                user_input={CONF_API_KEY: "new_valid_key"}
+                result["flow_id"], user_input={CONF_API_KEY: "new_valid_key"}
             )
 
         # API key update returns abort, not create_entry
@@ -314,21 +320,22 @@ class TestOptionsFlowAPIKeyUpdate:
                 "update_api_key": True,
                 "auto_zero_enabled": False,
                 "discovery_enabled": True,
-            }
+            },
         )
         assert result["type"] == data_entry_flow.FlowResultType.FORM
         assert result["step_id"] == "api_key"
 
         # Mock authentication failure
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter:
+        with patch(
+            "custom_components.autopi.config_flow.async_get_clientsession"
+        ) as mock_session_getter:
             mock_session = AsyncMock()
             mock_response = create_mock_aiohttp_response(401)
             mock_session.get = Mock(return_value=mock_response)
             mock_session_getter.return_value = mock_session
 
             result = await hass.config_entries.options.async_configure(
-                result["flow_id"],
-                user_input={CONF_API_KEY: "invalid_key"}
+                result["flow_id"], user_input={CONF_API_KEY: "invalid_key"}
             )
 
         assert result["type"] == data_entry_flow.FlowResultType.FORM
@@ -361,21 +368,22 @@ class TestOptionsFlowAPIKeyUpdate:
                 "update_api_key": True,
                 "auto_zero_enabled": False,
                 "discovery_enabled": True,
-            }
+            },
         )
         assert result["type"] == data_entry_flow.FlowResultType.FORM
         assert result["step_id"] == "api_key"
 
         # Mock connection error
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter:
+        with patch(
+            "custom_components.autopi.config_flow.async_get_clientsession"
+        ) as mock_session_getter:
             mock_session = AsyncMock()
             # Make get() raise immediately (not as a coroutine)
             mock_session.get = Mock(side_effect=Exception("Connection failed"))
             mock_session_getter.return_value = mock_session
 
             result = await hass.config_entries.options.async_configure(
-                result["flow_id"],
-                user_input={CONF_API_KEY: "test_key"}
+                result["flow_id"], user_input={CONF_API_KEY: "test_key"}
             )
 
         assert result["type"] == data_entry_flow.FlowResultType.FORM

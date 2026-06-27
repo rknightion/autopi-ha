@@ -50,10 +50,14 @@ class TestConfigFlowUserStep:
         flow.hass = hass
 
         # Mock the API response
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter:
+        with patch(
+            "custom_components.autopi.config_flow.async_get_clientsession"
+        ) as mock_session_getter:
             mock_session = AsyncMock()
             mock_response = create_mock_aiohttp_response(200, mock_api_vehicle_response)
-            mock_session.get = Mock(return_value=mock_response)  # Return value, not AsyncMock
+            mock_session.get = Mock(
+                return_value=mock_response
+            )  # Return value, not AsyncMock
             mock_session_getter.return_value = mock_session
 
             result = await flow.async_step_user(
@@ -71,7 +75,9 @@ class TestConfigFlowUserStep:
         flow.hass = hass
 
         # Mock authentication failure
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter:
+        with patch(
+            "custom_components.autopi.config_flow.async_get_clientsession"
+        ) as mock_session_getter:
             mock_session = AsyncMock()
             mock_response = create_mock_aiohttp_response(401)
             mock_session.get = Mock(return_value=mock_response)
@@ -91,10 +97,14 @@ class TestConfigFlowUserStep:
         flow.hass = hass
 
         # Mock connection failure
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter:
+        with patch(
+            "custom_components.autopi.config_flow.async_get_clientsession"
+        ) as mock_session_getter:
             mock_session = AsyncMock()
             # Make get() raise immediately (not as a coroutine)
-            mock_session.get = Mock(side_effect=aiohttp.ClientError("Connection failed"))
+            mock_session.get = Mock(
+                side_effect=aiohttp.ClientError("Connection failed")
+            )
             mock_session_getter.return_value = mock_session
 
             result = await flow.async_step_user(
@@ -111,9 +121,13 @@ class TestConfigFlowUserStep:
         flow.hass = hass
 
         # Mock empty vehicle response
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter:
+        with patch(
+            "custom_components.autopi.config_flow.async_get_clientsession"
+        ) as mock_session_getter:
             mock_session = AsyncMock()
-            mock_response = create_mock_aiohttp_response(200, {"count": 0, "results": []})
+            mock_response = create_mock_aiohttp_response(
+                200, {"count": 0, "results": []}
+            )
             mock_session.get = Mock(return_value=mock_response)
             mock_session_getter.return_value = mock_session
 
@@ -130,9 +144,13 @@ class TestConfigFlowUserStep:
         flow.hass = hass
 
         # Mock API error (non-200, non-401 status)
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter:
+        with patch(
+            "custom_components.autopi.config_flow.async_get_clientsession"
+        ) as mock_session_getter:
             mock_session = AsyncMock()
-            mock_response = create_mock_aiohttp_response(500, text="Internal Server Error")
+            mock_response = create_mock_aiohttp_response(
+                500, text="Internal Server Error"
+            )
             mock_session.get = Mock(return_value=mock_response)
             mock_session_getter.return_value = mock_session
 
@@ -151,7 +169,9 @@ class TestConfigFlowUserStep:
         flow.hass = hass
 
         # Mock unexpected error
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter:
+        with patch(
+            "custom_components.autopi.config_flow.async_get_clientsession"
+        ) as mock_session_getter:
             mock_session = AsyncMock()
             # Make get() raise immediately (not as a coroutine)
             mock_session.get = Mock(side_effect=RuntimeError("Unexpected error"))
@@ -240,7 +260,9 @@ class TestConfigFlowVehicleSelection:
 class TestConfigFlowReauth:
     """Test the reauth flow."""
 
-    async def test_reauth_flow_shows_form(self, hass: HomeAssistant, mock_config_entry_data):
+    async def test_reauth_flow_shows_form(
+        self, hass: HomeAssistant, mock_config_entry_data
+    ):
         """Test that reauth flow shows the form."""
         # Create an existing config entry
         entry = config_entries.ConfigEntry(
@@ -294,8 +316,12 @@ class TestConfigFlowReauth:
         await flow.async_step_reauth({"entry_id": entry.entry_id})
 
         # Mock the API response and async_reload
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter, \
-             patch.object(hass.config_entries, "async_reload") as mock_reload:
+        with (
+            patch(
+                "custom_components.autopi.config_flow.async_get_clientsession"
+            ) as mock_session_getter,
+            patch.object(hass.config_entries, "async_reload") as mock_reload,
+        ):
             mock_session = AsyncMock()
             mock_response = create_mock_aiohttp_response(200, mock_api_vehicle_response)
             mock_session.get = Mock(return_value=mock_response)
@@ -338,15 +364,15 @@ class TestConfigFlowReauth:
         await flow.async_step_reauth({"entry_id": entry.entry_id})
 
         # Mock authentication failure
-        with patch("custom_components.autopi.config_flow.async_get_clientsession") as mock_session_getter:
+        with patch(
+            "custom_components.autopi.config_flow.async_get_clientsession"
+        ) as mock_session_getter:
             mock_session = AsyncMock()
             mock_response = create_mock_aiohttp_response(401)
             mock_session.get = Mock(return_value=mock_response)
             mock_session_getter.return_value = mock_session
 
-            result = await flow.async_step_reauth_confirm(
-                {CONF_API_KEY: "invalid_key"}
-            )
+            result = await flow.async_step_reauth_confirm({CONF_API_KEY: "invalid_key"})
 
         assert result["type"] == data_entry_flow.FlowResultType.FORM
         assert result["step_id"] == "reauth_confirm"
@@ -445,7 +471,9 @@ class TestConfigFlowDiscovery:
         assert result["type"] == data_entry_flow.FlowResultType.FORM
         assert result["step_id"] == "discovery_confirm"
 
-    @pytest.mark.skip(reason="Complex Home Assistant internals - unique_id checking requires full flow manager setup")
+    @pytest.mark.skip(
+        reason="Complex Home Assistant internals - unique_id checking requires full flow manager setup"
+    )
     async def test_discovery_already_configured_aborts(
         self, hass: HomeAssistant, mock_config_entry_data
     ):

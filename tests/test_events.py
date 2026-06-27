@@ -84,6 +84,7 @@ async def test_event_entity_unavailable(mock_coordinator):
 
 async def test_event_entity_attributes(mock_coordinator, mock_vehicle, mock_event):
     """Test event entity attributes."""
+
     # Return event only for device1, empty for device2
     def get_device_events(device_id):
         if device_id == "device1":
@@ -102,7 +103,9 @@ async def test_event_entity_attributes(mock_coordinator, mock_vehicle, mock_even
     assert attrs["recent_events"][0]["event"] == "charging"
 
 
-async def test_event_entity_event_handling(hass: HomeAssistant, mock_coordinator, mock_vehicle):
+async def test_event_entity_event_handling(
+    hass: HomeAssistant, mock_coordinator, mock_vehicle
+):
     """Test event entity handles device events."""
     event_entity = AutoPiVehicleEvent(mock_coordinator, "123")
     event_entity.hass = hass
@@ -136,12 +139,14 @@ async def test_event_entity_event_handling(hass: HomeAssistant, mock_coordinator
             "area": "vehicle/battery",
             "data": {"event.vehicle.battery.level": 95},
             "original_event_type": "charging",
-        }
+        },
     )
     event_entity.async_write_ha_state.assert_called_once()
 
 
-async def test_event_entity_ignores_other_vehicles(hass: HomeAssistant, mock_coordinator, mock_vehicle):
+async def test_event_entity_ignores_other_vehicles(
+    hass: HomeAssistant, mock_coordinator, mock_vehicle
+):
     """Test event entity ignores events from other vehicles."""
     event_entity = AutoPiVehicleEvent(mock_coordinator, "123")
     event_entity.hass = hass
@@ -168,7 +173,9 @@ async def test_event_entity_ignores_other_vehicles(hass: HomeAssistant, mock_coo
     event_entity._trigger_event.assert_not_called()
 
 
-async def test_event_entity_unknown_event_type(hass: HomeAssistant, mock_coordinator, mock_vehicle, caplog):
+async def test_event_entity_unknown_event_type(
+    hass: HomeAssistant, mock_coordinator, mock_vehicle, caplog
+):
     """Test event entity handles unknown event types."""
     event_entity = AutoPiVehicleEvent(mock_coordinator, "123")
     event_entity.hass = hass
@@ -202,7 +209,7 @@ async def test_event_entity_unknown_event_type(hass: HomeAssistant, mock_coordin
             "area": "vehicle/new_feature",
             "data": {"custom": "data"},
             "original_event_type": "some_new_event_type",
-        }
+        },
     )
     event_entity.async_write_ha_state.assert_called_once()
 

@@ -86,7 +86,9 @@ def test_trip_parsing_in_progress():
     """Test that in-progress trips are parsed correctly."""
     trip_data: TripData = {
         "id": "test-trip-4",
-        "start_time_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),  # Started just now
+        "start_time_utc": datetime.now(UTC)
+        .isoformat()
+        .replace("+00:00", "Z"),  # Started just now
         "end_time_utc": "",  # Not ended yet
         "start_position_lat": "52.520008",
         "start_position_lng": "13.404954",

@@ -163,7 +163,7 @@ async def async_setup_entry(
                                 len(position_sensors),
                                 vehicle.name,
                             )
-                        except (AttributeError, ValueError, TypeError):
+                        except AttributeError, ValueError, TypeError:
                             _LOGGER.exception(
                                 "Failed to create position sensors for vehicle %s",
                                 vehicle.name,
@@ -180,7 +180,7 @@ async def async_setup_entry(
                                 len(data_field_sensors),
                                 vehicle.name,
                             )
-                        except (AttributeError, ValueError, TypeError):
+                        except AttributeError, ValueError, TypeError:
                             _LOGGER.exception(
                                 "Failed to create data field sensors for vehicle %s",
                                 vehicle.name,
@@ -245,7 +245,7 @@ async def async_setup_entry(
                         ]
                     )
 
-            except (AttributeError, ValueError, TypeError):
+            except AttributeError, ValueError, TypeError:
                 _LOGGER.exception(
                     "Failed to create sensors for vehicle %s",
                     vehicle.name,
@@ -285,7 +285,7 @@ async def async_setup_entry(
                             "No trips found for vehicle %s",
                             vehicle.name,
                         )
-            except (AttributeError, ValueError, TypeError):
+            except AttributeError, ValueError, TypeError:
                 _LOGGER.exception(
                     "Failed to create trip sensors for vehicle %s",
                     vehicle.name,

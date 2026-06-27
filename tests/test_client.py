@@ -62,24 +62,26 @@ class TestAutoPiClient:
         mock_response = Mock()
         mock_response.status = 200
         mock_response.text = AsyncMock(return_value="")
-        mock_response.json = AsyncMock(return_value={
-            "results": [
-                {
-                    "id": 123,
-                    "display_name": "Test Vehicle",
-                    "callName": "Test",
-                    "licensePlate": "ABC123",
-                    "vin": "1234567890",
-                    "year": 2020,
-                    "type": "ICE",
-                    "battery_nominal_voltage": 12,
-                    "devices": [{"id": "device1"}],
-                    "make": {"id": 1},
-                    "model": {"id": 1},
-                }
-            ],
-            "next": None,
-        })
+        mock_response.json = AsyncMock(
+            return_value={
+                "results": [
+                    {
+                        "id": 123,
+                        "display_name": "Test Vehicle",
+                        "callName": "Test",
+                        "licensePlate": "ABC123",
+                        "vin": "1234567890",
+                        "year": 2020,
+                        "type": "ICE",
+                        "battery_nominal_voltage": 12,
+                        "devices": [{"id": "device1"}],
+                        "make": {"id": 1},
+                        "model": {"id": 1},
+                    }
+                ],
+                "next": None,
+            }
+        )
 
         # Configure mock to return an async context manager
         mock_session.request.return_value = create_async_context_manager(mock_response)
@@ -105,43 +107,51 @@ class TestAutoPiClient:
         mock_response1 = Mock()
         mock_response1.status = 200
         mock_response1.text = AsyncMock(return_value="")
-        mock_response1.json = AsyncMock(return_value={
-            "results": [{
-                "id": 1,
-                "display_name": "Vehicle 1",
-                "callName": "V1",
-                "licensePlate": "ABC111",
-                "vin": "VIN111",
-                "year": 2021,
-                "type": "ICE",
-                "battery_nominal_voltage": 12,
-                "devices": [{"id": "d1"}],
-                "make": {"id": 1},
-                "model": {"id": 1},
-            }],
-            "next": f"{DEFAULT_BASE_URL}/next_page",
-        })
+        mock_response1.json = AsyncMock(
+            return_value={
+                "results": [
+                    {
+                        "id": 1,
+                        "display_name": "Vehicle 1",
+                        "callName": "V1",
+                        "licensePlate": "ABC111",
+                        "vin": "VIN111",
+                        "year": 2021,
+                        "type": "ICE",
+                        "battery_nominal_voltage": 12,
+                        "devices": [{"id": "d1"}],
+                        "make": {"id": 1},
+                        "model": {"id": 1},
+                    }
+                ],
+                "next": f"{DEFAULT_BASE_URL}/next_page",
+            }
+        )
 
         # Second page
         mock_response2 = Mock()
         mock_response2.status = 200
         mock_response2.text = AsyncMock(return_value="")
-        mock_response2.json = AsyncMock(return_value={
-            "results": [{
-                "id": 2,
-                "display_name": "Vehicle 2",
-                "callName": "V2",
-                "licensePlate": "ABC222",
-                "vin": "VIN222",
-                "year": 2022,
-                "type": "ICE",
-                "battery_nominal_voltage": 12,
-                "devices": [{"id": "d2"}],
-                "make": {"id": 1},
-                "model": {"id": 1},
-            }],
-            "next": None,
-        })
+        mock_response2.json = AsyncMock(
+            return_value={
+                "results": [
+                    {
+                        "id": 2,
+                        "display_name": "Vehicle 2",
+                        "callName": "V2",
+                        "licensePlate": "ABC222",
+                        "vin": "VIN222",
+                        "year": 2022,
+                        "type": "ICE",
+                        "battery_nominal_voltage": 12,
+                        "devices": [{"id": "d2"}],
+                        "make": {"id": 1},
+                        "model": {"id": 1},
+                    }
+                ],
+                "next": None,
+            }
+        )
 
         # Configure mock to return responses in sequence
         mock_session.request.side_effect = [
@@ -204,28 +214,30 @@ class TestAutoPiClient:
         mock_response = Mock()
         mock_response.status = 200
         mock_response.text = AsyncMock(return_value="")
-        mock_response.json = AsyncMock(return_value=[
-            {
-                "field_prefix": "obd.bat",
-                "field_name": "level",
-                "frequency": 1.0,
-                "type": "int",
-                "title": "Battery Level",
-                "last_seen": "2024-01-20T10:00:00Z",
-                "last_value": 85,
-                "description": "Battery charge level",
-            },
-            {
-                "field_prefix": "track.pos",
-                "field_name": "loc",
-                "frequency": 0.5,
-                "type": "dict",
-                "title": "Location",
-                "last_seen": "2024-01-20T10:00:00Z",
-                "last_value": {"lat": 51.264327, "lon": -1.085937},
-                "description": "GPS location",
-            },
-        ])
+        mock_response.json = AsyncMock(
+            return_value=[
+                {
+                    "field_prefix": "obd.bat",
+                    "field_name": "level",
+                    "frequency": 1.0,
+                    "type": "int",
+                    "title": "Battery Level",
+                    "last_seen": "2024-01-20T10:00:00Z",
+                    "last_value": 85,
+                    "description": "Battery charge level",
+                },
+                {
+                    "field_prefix": "track.pos",
+                    "field_name": "loc",
+                    "frequency": 0.5,
+                    "type": "dict",
+                    "title": "Location",
+                    "last_seen": "2024-01-20T10:00:00Z",
+                    "last_value": {"lat": 51.264327, "lon": -1.085937},
+                    "description": "GPS location",
+                },
+            ]
+        )
 
         mock_session.request.return_value = create_async_context_manager(mock_response)
 
@@ -286,7 +298,9 @@ class TestAutoPiClient:
         mock_response_success = Mock()
         mock_response_success.status = 200
         mock_response_success.text = AsyncMock(return_value="")
-        mock_response_success.json = AsyncMock(return_value={"results": [], "next": None})
+        mock_response_success.json = AsyncMock(
+            return_value={"results": [], "next": None}
+        )
 
         # Configure mock to fail twice then succeed
         mock_session.request.side_effect = [
@@ -300,4 +314,3 @@ class TestAutoPiClient:
 
         assert vehicles == []
         assert mock_session.request.call_count == 3
-

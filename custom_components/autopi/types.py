@@ -311,7 +311,7 @@ class AutoPiTrip:
                         + int(duration_parts[1]) * 60
                         + int(duration_parts[2])
                     )
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 # If parsing fails, leave duration as 0
                 pass
         elif duration_str is None and data.get("state") in ("in_progress", "started"):
@@ -323,7 +323,7 @@ class AutoPiTrip:
                 duration_seconds = int(
                     (datetime.now(start_time.tzinfo) - start_time).total_seconds()
                 )
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 # If parsing fails, duration remains 0
                 duration_seconds = 0
 
@@ -359,14 +359,14 @@ class AutoPiTrip:
         if end_lat_str is not None and end_lat_str != "":
             try:
                 end_lat = float(end_lat_str)
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 # If parsing fails, use start position as fallback
                 end_lat = float(data["start_position_lat"])
 
         if end_lng_str is not None and end_lng_str != "":
             try:
                 end_lng = float(end_lng_str)
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 # If parsing fails, use start position as fallback
                 end_lng = float(data["start_position_lng"])
 
@@ -540,7 +540,7 @@ class DeviceMostRecentPosition:
         if positions:
             try:
                 position = VehiclePosition.from_api_data(positions[0])
-            except (KeyError, ValueError, TypeError):
+            except KeyError, ValueError, TypeError:
                 position = None
 
         return cls(

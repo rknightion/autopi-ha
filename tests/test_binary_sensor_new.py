@@ -86,7 +86,9 @@ class TestBinarySensorSetup:
 
         assert len(added_entities) == 5
 
-    async def test_async_setup_entry_logs_debug_message(self, hass: HomeAssistant, caplog):
+    async def test_async_setup_entry_logs_debug_message(
+        self, hass: HomeAssistant, caplog
+    ):
         """Test that async_setup_entry logs appropriate debug message."""
         import logging
 

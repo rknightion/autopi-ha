@@ -78,7 +78,9 @@ class TestAutoDeviceTracker:
     def test_location_from_data_fields(self, mock_coordinator, mock_vehicle):
         """Test getting location from data fields."""
         # Add location data field
-        loc_field = create_data_field("track.pos", "loc", {"lat": 51.264327, "lon": -1.085937})
+        loc_field = create_data_field(
+            "track.pos", "loc", {"lat": 51.264327, "lon": -1.085937}
+        )
         mock_vehicle.data_fields = {"track.pos.loc": loc_field}
         mock_coordinator.data = {"123": mock_vehicle}
 
@@ -122,14 +124,14 @@ class TestAutoDeviceTracker:
     def test_location_accuracy_ranges(self, mock_coordinator, mock_vehicle):
         """Test location accuracy for different satellite counts."""
         test_cases = [
-            (3, 100),   # < 4 satellites
-            (4, 30),    # 4 satellites
-            (5, 20),    # 5 satellites
-            (6, 15),    # 6 satellites
-            (7, 11),    # 7 satellites
-            (8, 8),     # 8-9 satellites (different from sensor which uses 7.5)
-            (10, 5),    # 10-11 satellites
-            (12, 3),    # 12+ satellites
+            (3, 100),  # < 4 satellites
+            (4, 30),  # 4 satellites
+            (5, 20),  # 5 satellites
+            (6, 15),  # 6 satellites
+            (7, 11),  # 7 satellites
+            (8, 8),  # 8-9 satellites (different from sensor which uses 7.5)
+            (10, 5),  # 10-11 satellites
+            (12, 3),  # 12+ satellites
         ]
 
         mock_coordinator.data = {"123": mock_vehicle}

@@ -114,9 +114,7 @@ class TestAutoPiDataFieldSensor:
         mock_vehicle.data_fields = {"test.field": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
-        sensor = AutoPiDataFieldSensor(
-            mock_coordinator, "123", "test.field", "Test"
-        )
+        sensor = AutoPiDataFieldSensor(mock_coordinator, "123", "test.field", "Test")
 
         assert sensor.native_value == 42.0
 
@@ -127,9 +125,7 @@ class TestAutoPiDataFieldSensor:
         mock_vehicle.data_fields = {"test.field": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
-        sensor = AutoPiDataFieldSensor(
-            mock_coordinator, "123", "test.field", "Test"
-        )
+        sensor = AutoPiDataFieldSensor(mock_coordinator, "123", "test.field", "Test")
 
         # Get initial value
         assert sensor.native_value == 42.0
@@ -147,9 +143,7 @@ class TestAutoPiDataFieldSensor:
         mock_vehicle.data_fields = {"test.field": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
-        sensor = AutoPiDataFieldSensor(
-            mock_coordinator, "123", "test.field", "Test"
-        )
+        sensor = AutoPiDataFieldSensor(mock_coordinator, "123", "test.field", "Test")
 
         # Get initial value
         assert sensor.native_value == 42.0
@@ -166,9 +160,7 @@ class TestAutoPiDataFieldSensor:
         mock_coordinator.data = {"123": mock_vehicle}
         mock_coordinator.last_update_success = True
 
-        sensor = AutoPiDataFieldSensor(
-            mock_coordinator, "123", "test.field", "Test"
-        )
+        sensor = AutoPiDataFieldSensor(mock_coordinator, "123", "test.field", "Test")
 
         # Should be unavailable without data
         assert sensor.available is False
@@ -186,9 +178,7 @@ class TestAutoPiDataFieldSensor:
         mock_vehicle.data_fields = {"test.field": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
-        sensor = AutoPiDataFieldSensor(
-            mock_coordinator, "123", "test.field", "Test"
-        )
+        sensor = AutoPiDataFieldSensor(mock_coordinator, "123", "test.field", "Test")
 
         attrs = sensor.extra_state_attributes
 
@@ -274,7 +264,9 @@ class TestSpecificSensors:
         assert sensor.native_value == 60
         assert sensor._attr_name == "Vehicle Speed (OBD)"
         assert sensor._attr_device_class == SensorDeviceClass.SPEED
-        assert sensor._attr_native_unit_of_measurement == UnitOfSpeed.KILOMETERS_PER_HOUR
+        assert (
+            sensor._attr_native_unit_of_measurement == UnitOfSpeed.KILOMETERS_PER_HOUR
+        )
 
     def test_odometer_sensor_conversion(self, mock_coordinator, mock_vehicle):
         """Test odometer sensor converts meters to kilometers."""
@@ -332,10 +324,15 @@ class TestSensorCreation:
         # Mock FIELD_ID_TO_SENSOR_CLASS to include a sensor that raises an error
         mock_sensor_class = Mock(side_effect=Exception("Test error"))
 
-        with patch.dict("custom_components.autopi.data_field_sensors.FIELD_ID_TO_SENSOR_CLASS",
-                       {"test.field": mock_sensor_class}, clear=False):
+        with patch.dict(
+            "custom_components.autopi.data_field_sensors.FIELD_ID_TO_SENSOR_CLASS",
+            {"test.field": mock_sensor_class},
+            clear=False,
+        ):
             available_fields = {"test.field", "obd.bat.level"}
-            sensors = create_data_field_sensors(mock_coordinator, "123", available_fields)
+            sensors = create_data_field_sensors(
+                mock_coordinator, "123", available_fields
+            )
 
             # Should still create valid sensors and log error for failed one
             assert len(sensors) == 1  # Only battery sensor created

@@ -581,7 +581,7 @@ class AutoPiClient:
                 if value is None:
                     return default
                 return int(value)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 return default
 
         return FleetVehicleSummary(

@@ -53,7 +53,9 @@ class TestAutopiVehicleCountSensor:
         assert sensor.native_unit_of_measurement == "vehicles"
         assert sensor.icon == "mdi:car-multiple"
 
-    async def test_vehicle_count_with_vehicles(self, mock_coordinator, mock_vehicle, mock_vehicle_2):
+    async def test_vehicle_count_with_vehicles(
+        self, mock_coordinator, mock_vehicle, mock_vehicle_2
+    ):
         """Test vehicle count with multiple vehicles."""
         mock_coordinator.data = {
             str(mock_vehicle.id): mock_vehicle,
@@ -184,7 +186,9 @@ class TestAutopiVehicleSensor:
 
         assert sensor.native_value == mock_vehicle.license_plate
 
-    async def test_vehicle_sensor_extra_attributes(self, mock_coordinator, mock_vehicle):
+    async def test_vehicle_sensor_extra_attributes(
+        self, mock_coordinator, mock_vehicle
+    ):
         """Test vehicle sensor extra attributes."""
         mock_coordinator.data = {str(mock_vehicle.id): mock_vehicle}
 
@@ -338,7 +342,9 @@ class TestAutopiTripSensors:
         trip_vehicle.last_trip = last_trip
         mock_trip_coordinator.data = {str(mock_vehicle.id): trip_vehicle}
 
-        sensor = AutoPiLastTripDistanceSensor(mock_trip_coordinator, str(mock_vehicle.id))
+        sensor = AutoPiLastTripDistanceSensor(
+            mock_trip_coordinator, str(mock_vehicle.id)
+        )
 
         assert sensor.name == "Last Trip Distance"
         assert sensor.native_value == 15.5
@@ -350,7 +356,9 @@ class TestAutopiTripSensors:
         trip_vehicle.last_trip = None
         mock_trip_coordinator.data = {str(mock_vehicle.id): trip_vehicle}
 
-        sensor = AutoPiLastTripDistanceSensor(mock_trip_coordinator, str(mock_vehicle.id))
+        sensor = AutoPiLastTripDistanceSensor(
+            mock_trip_coordinator, str(mock_vehicle.id)
+        )
 
         assert sensor.native_value is None
 
@@ -545,9 +553,7 @@ class TestAsyncSetupEntry:
         assert not any(
             isinstance(e, AutoPiLastChargeDurationSensor) for e in added_entities
         )
-        assert not any(
-            isinstance(e, AutoPiEventVolumeSensor) for e in added_entities
-        )
+        assert not any(isinstance(e, AutoPiEventVolumeSensor) for e in added_entities)
         assert not any(
             isinstance(e, AutoPiLastCommunicationSensor) for e in added_entities
         )

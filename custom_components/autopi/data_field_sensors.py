@@ -342,7 +342,7 @@ class AutoPiAutoZeroDataFieldSensor(AutoPiDataFieldSensorBase, RestoreEntity):
                             self._restored_value = float(last_state.state)
                         else:
                             self._restored_value = last_state.state
-                    except (ValueError, TypeError):
+                    except ValueError, TypeError:
                         _LOGGER.warning(
                             "Failed to restore value for %s on vehicle %s",
                             self._attr_name,
@@ -575,7 +575,7 @@ class AutoPiAccelerometerSensor(AutoPiAutoZeroDataFieldSensor):
             return None
         try:
             rpm_value = float(value)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return None
         return rpm_value > 0
 
@@ -599,7 +599,7 @@ class AutoPiAccelerometerSensor(AutoPiAutoZeroDataFieldSensor):
                 continue
             try:
                 speed_value = float(value)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 continue
             return speed_value <= 0
 
