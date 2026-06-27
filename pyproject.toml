@@ -7,13 +7,13 @@ authors = [
 ]
 license = {text = "Apache-2.0"}
 readme = "README.md"
-requires-python = ">=3.13.2,<3.14"
+requires-python = ">=3.14.2"
 keywords = ["homeassistant", "autopi", "vehicle", "obd", "gps", "tracking"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: Apache License 2.0",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Home Automation",
 ]
 dependencies = [
@@ -38,7 +38,7 @@ Repository = "https://github.com/rknightion/autopi-ha"
 "Bug Tracker" = "https://github.com/rknightion/autopi-ha/issues"
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 ignore_missing_imports = true
 follow_imports = "silent"
 warn_redundant_casts = true
@@ -114,7 +114,7 @@ exclude_dirs = ["tests", "scripts"]
 skips = ["B101", "B601"]
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py314"
 line-length = 88
 
 [tool.ruff.lint]

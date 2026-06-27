@@ -16,6 +16,11 @@
   "internalChecksAsSuccess": true,
   "packageRules": [
     {
+      "description": "Do not bump requires-python; the floor tracks Home Assistant's supported Python and is managed manually",
+      "matchDepNames": ["python"],
+      "enabled": false
+    },
+    {
       "description": "Never automerge release-please PRs - manual review required",
       "matchPaths": [".release-please-*.json"],
       "automerge": false
