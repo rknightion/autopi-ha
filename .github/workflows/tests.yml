@@ -185,12 +185,13 @@ jobs:
   ci-success:
     runs-on: ubuntu-latest
     name: ci-success
-    # hassfest/hacs run on every PR but stay informational (not gated): hassfest currently fails on a
-    # strings.json data_description URL. Add them here once green.
+    # All four jobs are gated: hassfest + hacs were added once the strings.json URL violation was fixed.
     if: always()
     needs:
       - lint-and-scan
       - pytest
+      - hassfest
+      - hacs
     steps:
       - name: Fail if any required job did not pass
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}

@@ -11,7 +11,7 @@
         },
         "data_description": {
           "api_key": "Your AutoPi API key from the AutoPi dashboard",
-          "base_url": "The base URL for the AutoPi API (default: https://api.autopi.io)"
+          "base_url": "The base URL for the AutoPi API"
         }
       },
       "select_vehicles": {
