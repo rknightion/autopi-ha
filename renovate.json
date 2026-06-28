@@ -22,7 +22,7 @@
     },
     {
       "description": "Never automerge release-please PRs - manual review required",
-      "matchPaths": [".release-please-*.json"],
+      "matchFileNames": [".release-please-*.json"],
       "automerge": false
     },
     {
