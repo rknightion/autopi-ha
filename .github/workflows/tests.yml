@@ -179,6 +179,15 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
+      # Upload coverage to Codacy. continue-on-error keeps a transient upload
+      # failure from breaking the required pytest gate (mirrors Codecov above).
+      - name: Upload coverage to Codacy
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 # v1.3.0
+        continue-on-error: true
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: coverage.xml
+
   # Single required status check (the branch ruleset requires only this). if: always() + an explicit
   # failure check so a failed/cancelled leg fails the gate — a skipped `if: success()` aggregator can be
   # mis-read by branch protection as passing. Renovate automerge waits for this to go green.

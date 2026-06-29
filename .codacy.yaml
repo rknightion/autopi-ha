@@ -1,0 +1,14 @@
+---
+# Codacy repository configuration.
+# Tool/pattern selection is governed by the organization coding standard
+# ("rknightion-standard"); this file only declares repo-local file exclusions,
+# which Codacy Cloud reads from the default branch.
+# Docs: https://docs.codacy.com/repositories-configure/codacy-configuration-file/
+exclude_paths:
+  - "docs/**"
+  - "test/**"
+  - "tests/**"
+  - "**/*_test.go"
+  - "vendor/**"
+  - "**/generated/**"
+  - "**/*_generated.*"
