@@ -91,7 +91,7 @@ cp -r autopi-ha/custom_components/autopi /config/custom_components/
 
 Check that files are in the correct location:
 
-```
+```text
 /config/custom_components/autopi/
 ├── __init__.py
 ├── config_flow.py
@@ -173,7 +173,7 @@ logger:
 ```
 
 Look for these log entries:
-```
+```text
 INFO: AutoPi integration loaded successfully
 DEBUG: AutoPi manifest loaded: version X.X.X
 ```

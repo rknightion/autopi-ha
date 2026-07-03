@@ -25,7 +25,7 @@ Each vehicle becomes a device with this naming pattern:
 
 Entities follow Home Assistant's `has_entity_name` pattern:
 
-```
+```text
 {device_name} {entity_name}
 ```
 
@@ -247,7 +247,7 @@ If entity customizations disappear:
 For families with multiple vehicles:
 
 #### Naming Strategy 1: User-Based
-```
+```text
 - Mom's Car
 - Dad's Truck  
 - Teen's Car
@@ -255,7 +255,7 @@ For families with multiple vehicles:
 ```
 
 #### Naming Strategy 2: Purpose-Based
-```
+```text
 - Daily Driver
 - Work Vehicle
 - Weekend Car
@@ -263,7 +263,7 @@ For families with multiple vehicles:
 ```
 
 #### Naming Strategy 3: Model-Based
-```
+```text
 - Tesla Model 3
 - Honda Pilot
 - Toyota Prius
@@ -275,7 +275,7 @@ For families with multiple vehicles:
 For business or fleet use:
 
 #### Geographic Naming
-```
+```text
 - North Region Van
 - South Region Truck
 - Downtown Delivery
@@ -283,7 +283,7 @@ For business or fleet use:
 ```
 
 #### Functional Naming
-```
+```text
 - Delivery Vehicle 1
 - Service Truck A
 - Manager Vehicle

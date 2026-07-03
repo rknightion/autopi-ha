@@ -84,7 +84,7 @@ Configure how frequently data is fetched from the AutoPi API:
 
 #### Real-Time Monitoring
 For near real-time vehicle tracking:
-```
+```text
 Update Interval: 1 minute
 ```
 - **Pros**: Most up-to-date data, required for Auto-Zero feature
@@ -92,7 +92,7 @@ Update Interval: 1 minute
 
 #### Balanced Configuration
 For typical home automation:
-```
+```text
 Update Interval: 5 minutes
 ```
 - **Pros**: Good balance of freshness and API efficiency
@@ -100,7 +100,7 @@ Update Interval: 5 minutes
 
 #### Conservative Configuration
 For minimal API usage:
-```
+```text
 Update Interval: 5-10 minutes
 ```
 - **Pros**: Minimal API calls
@@ -129,7 +129,7 @@ The integration automatically handles AutoPi API rate limits:
 
 #### Entity Naming
 Entities follow this pattern:
-```
+```text
 {vehicle_name}_{entity_type}
 ```
 

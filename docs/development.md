@@ -49,7 +49,7 @@ graph TD
 
 ### Directory Layout
 
-```
+```text
 custom_components/autopi/
 ├── __init__.py              # Main integration setup
 ├── config_flow.py           # Configuration flow

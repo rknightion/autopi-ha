@@ -1,6 +1,11 @@
+---
+title: Entity Reference
+description: Complete reference of all entities, sensors, device trackers, and attributes provided by the AutoPi Home Assistant integration
+---
+
 # Entity Reference
 
-This page provides a comprehensive reference of all entities provided by the AutoPi integration.
+The Entity Reference is a comprehensive listing of all entities provided by the AutoPi integration, including sensors, device trackers, binary sensors, and events.
 
 ## Sensors
 

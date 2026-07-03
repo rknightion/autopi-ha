@@ -115,7 +115,7 @@ Check the integration's diagnostic sensors for API health information.
 
 **A:** This depends on your configuration:
 
-```
+```text
 Daily API calls = (Number of vehicles × 1440 minutes) / Update interval
 ```
 

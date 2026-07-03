@@ -101,7 +101,7 @@ Set up alerts for API issues:
 
 #### Real-time Tracking
 For active vehicle monitoring:
-```
+```text
 Fast Updates (Position): 1-2 minutes
 Medium Updates (Status): 5 minutes
 Slow Updates (Future): 15 minutes
@@ -120,7 +120,7 @@ Slow Updates (Future): 15 minutes
 
 #### Balanced Usage
 For typical home automation:
-```
+```text
 Fast Updates (Position): 5 minutes
 Medium Updates (Status): 15 minutes
 Slow Updates (Future): 30 minutes
@@ -138,7 +138,7 @@ Slow Updates (Future): 30 minutes
 
 #### Conservative Mode
 For minimal API impact:
-```
+```text
 Fast Updates (Position): 15 minutes
 Medium Updates (Status): 30 minutes
 Slow Updates (Future): 60 minutes
@@ -217,7 +217,7 @@ The integration handles rate limits automatically:
 If your AutoPi plan has API limits or costs:
 
 #### Usage Calculation
-```
+```text
 Daily API Calls = (Vehicles × 24 × 60) / Update_Interval_Minutes
 ```
 

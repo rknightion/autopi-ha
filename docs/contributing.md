@@ -76,7 +76,7 @@ Contribute code improvements and new features:
 
 ### Project Structure
 
-```
+```text
 autopi-ha/
 ├── custom_components/autopi/    # Main integration code
 ├── tests/                       # Test suite

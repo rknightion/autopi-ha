@@ -1,8 +1,13 @@
+---
+title: Auto-Zero Metrics (BETA)
+description: How the Auto-Zero Metrics beta feature zeroes stale vehicle telemetry in the AutoPi Home Assistant integration, and how to configure it
+---
+
 # Auto-Zero Metrics (BETA)
 
 ## Overview
 
-The Auto-Zero Metrics feature is a **BETA** functionality that automatically sets certain vehicle metrics to zero when the data becomes stale (older than 15 minutes). This prevents outdated sensor values from being displayed for extended periods when the vehicle is parked or turned off.
+Auto-Zero Metrics is a **BETA** feature that automatically sets certain vehicle metrics to zero when the underlying data becomes stale (older than 15 minutes). This prevents outdated sensor values from being displayed for extended periods when the vehicle is parked or turned off.
 
 ## ⚠️ BETA Warning
 

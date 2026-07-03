@@ -1,6 +1,11 @@
+---
+title: Auto-Zero Debug Logging
+description: Guide to enabling and interpreting debug logs for the Auto-Zero Metrics feature in the AutoPi Home Assistant integration
+---
+
 # Auto-Zero Debug Logging Guide
 
-This document explains the debug logging added to track auto-zero behavior in real-time.
+This guide explains the debug logging that tracks Auto-Zero Metrics behavior in real time, and how to read each log tag.
 
 ## Enable Debug Logging
 
@@ -69,7 +74,7 @@ logger:
 
 ### Scenario 1: Home Assistant Startup with Stale Data
 
-```
+```text
 [AUTO-ZERO INIT] Initializing auto-zero manager
 [AUTO-ZERO INIT] Auto-zero manager initialized, auto_zero_enabled=True
 Processing 3 zeroed metrics from storage
@@ -82,7 +87,7 @@ is_metric_zeroed check: Engine RPM (OBD) on vehicle 123 IS ZEROED (zeroed 30.0 m
 
 ### Scenario 2: Data Becoming Stale
 
-```
+```text
 [SENSOR DATA] Engine RPM for vehicle 123 has value 0 (last_seen: 2025-01-15T10:00:00, age: 16.5 min)
 [AUTO-ZERO EVAL] Engine RPM (OBD) on vehicle 123: last_seen 16.5 min ago (threshold 15 min), currently zeroed: False
 [AUTO-ZERO ACTION] ZEROING Engine RPM (OBD) for vehicle 123 - data is 16.5 minutes old (threshold: 15 min)
@@ -92,7 +97,7 @@ is_metric_zeroed check: Engine RPM (OBD) on vehicle 123 IS ZEROED (zeroed 30.0 m
 
 ### Scenario 3: Fresh Data Arriving
 
-```
+```text
 [SENSOR DATA] Engine RPM for vehicle 123 has value 850 (last_seen: 2025-01-15T10:20:00, age: 2.1 min)
 [AUTO-ZERO EVAL] Engine RPM (OBD) on vehicle 123: last_seen 2.1 min ago (threshold 15 min), currently zeroed: True
 [AUTO-ZERO ACTION] UN-ZEROING Engine RPM (OBD) for vehicle 123 - fresh data received (2.1 minutes old)
