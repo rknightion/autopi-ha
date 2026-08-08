@@ -703,7 +703,7 @@ class TotalOdometerSensor(AutoPiDataFieldSensor):
             "Odometer",
             icon="mdi:counter",
             device_class=SensorDeviceClass.DISTANCE,
-            unit_of_measurement=UnitOfLength.METERS,
+            unit_of_measurement=UnitOfLength.KILOMETERS,
             state_class=SensorStateClass.TOTAL_INCREASING,
         )
 
@@ -715,11 +715,6 @@ class TotalOdometerSensor(AutoPiDataFieldSensor):
             # Convert from meters to kilometers
             return round(value / 1000.0, 1)
         return None
-
-    @property
-    def native_unit_of_measurement(self) -> str:
-        """Return km as the unit."""
-        return UnitOfLength.KILOMETERS
 
 
 class OEMTotalMileageSensor(AutoPiDataFieldSensor):
@@ -1094,6 +1089,7 @@ class GSMSignalSensor(AutoPiDataFieldSensor):
             "std.gsm_signal.value",
             "Cellular Signal Strength",
             icon="mdi:signal",
+            unit_of_measurement=PERCENTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             entity_category=EntityCategory.DIAGNOSTIC,
         )
@@ -1107,11 +1103,6 @@ class GSMSignalSensor(AutoPiDataFieldSensor):
             # 1 = 20%, 2 = 40%, 3 = 60%, 4 = 80%, 5 = 100%
             return round((value / 5) * 100)
         return None
-
-    @property
-    def native_unit_of_measurement(self) -> str:
-        """Return percentage as unit."""
-        return PERCENTAGE
 
 
 class TimezoneOffsetSensor(AutoPiDataFieldSensor):

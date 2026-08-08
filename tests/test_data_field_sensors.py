@@ -263,6 +263,7 @@ class TestSpecificSensors:
         # 3/5 * 100 = 60
         assert sensor.native_value == 60
         assert sensor.native_unit_of_measurement == PERCENTAGE
+        assert sensor._attr_native_unit_of_measurement == PERCENTAGE
         assert sensor._attr_entity_category == EntityCategory.DIAGNOSTIC
 
     def test_obd_speed_sensor(self, mock_coordinator, mock_vehicle):
@@ -291,6 +292,7 @@ class TestSpecificSensors:
         # 35767143 m = 35767.1 km
         assert sensor.native_value == 35767.1
         assert sensor.native_unit_of_measurement == UnitOfLength.KILOMETERS
+        assert sensor._attr_native_unit_of_measurement == UnitOfLength.KILOMETERS
 
     def test_temperature_sensor(self, mock_coordinator, mock_vehicle):
         """Test temperature sensor."""
