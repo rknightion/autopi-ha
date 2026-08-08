@@ -10,6 +10,7 @@ from homeassistant.const import (
     PERCENTAGE,
     EntityCategory,
     UnitOfElectricPotential,
+    UnitOfEnergy,
     UnitOfLength,
     UnitOfSpeed,
     UnitOfTemperature,
@@ -24,6 +25,12 @@ from custom_components.autopi.data_field_sensors import (
     BatteryVoltageSensor,
     FuelRateECUSensor,
     GSMSignalSensor,
+    HVBatteryChargingStateSensor,
+    HVBatteryCurrentSensor,
+    HVBatteryEnergySensor,
+    HVBatterySocSensor,
+    HVBatteryStateOfHealthSensor,
+    HVBatteryVoltageSensor,
     OBDSpeedSensor,
     TotalOdometerSensor,
     create_data_field_sensors,
@@ -294,6 +301,96 @@ class TestSpecificSensors:
         assert sensor._attr_native_unit_of_measurement == UnitOfTemperature.CELSIUS
 
 
+class TestEVBatterySensors:
+    """Test EV high-voltage battery sensor implementations."""
+
+    def test_hv_battery_soc_sensor(self, mock_coordinator, mock_vehicle):
+        """Test HV battery state of charge sensor."""
+        field = create_data_field(
+            "obd.oem_battery_charge_level", "value", 67, "int"
+        )
+        mock_vehicle.data_fields = {"obd.oem_battery_charge_level.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = HVBatterySocSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 67
+        assert sensor._attr_name == "HV Battery State of Charge"
+        assert sensor._attr_device_class == SensorDeviceClass.BATTERY
+        assert sensor._attr_native_unit_of_measurement == PERCENTAGE
+
+    def test_hv_battery_state_of_health_sensor(self, mock_coordinator, mock_vehicle):
+        """Test HV battery state of health sensor is diagnostic."""
+        field = create_data_field(
+            "obd.oem_battery_state_of_health", "value", 103, "int"
+        )
+        mock_vehicle.data_fields = {"obd.oem_battery_state_of_health.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = HVBatteryStateOfHealthSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 103
+        assert sensor._attr_entity_category == EntityCategory.DIAGNOSTIC
+
+    def test_hv_battery_voltage_sensor(self, mock_coordinator, mock_vehicle):
+        """Test HV battery pack voltage sensor."""
+        field = create_data_field(
+            "obd.oem_hv_battery_voltage", "value", 416.3, "float"
+        )
+        mock_vehicle.data_fields = {"obd.oem_hv_battery_voltage.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = HVBatteryVoltageSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 416.3
+        assert sensor._attr_device_class == SensorDeviceClass.VOLTAGE
+        assert sensor._attr_native_unit_of_measurement == UnitOfElectricPotential.VOLT
+
+    def test_hv_battery_current_sensor(self, mock_coordinator, mock_vehicle):
+        """Test HV battery current sensor."""
+        field = create_data_field("obd.oem_hv_battery_current", "value", 0, "float")
+        mock_vehicle.data_fields = {"obd.oem_hv_battery_current.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = HVBatteryCurrentSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 0
+        assert sensor._attr_device_class == SensorDeviceClass.CURRENT
+
+    def test_hv_battery_energy_sensor_conversion(
+        self, mock_coordinator, mock_vehicle
+    ):
+        """Test HV battery energy sensor converts from 0.1 kWh steps to kWh."""
+        field = create_data_field(
+            "obd.oem_hv_battery_measured_energy", "value", 470.3, "float"
+        )
+        mock_vehicle.data_fields = {
+            "obd.oem_hv_battery_measured_energy.value": field
+        }
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = HVBatteryEnergySensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 47.0
+        assert sensor._attr_device_class == SensorDeviceClass.ENERGY
+        assert (
+            sensor._attr_native_unit_of_measurement == UnitOfEnergy.KILO_WATT_HOUR
+        )
+
+    def test_hv_battery_charging_state_sensor(self, mock_coordinator, mock_vehicle):
+        """Test HV battery charging state sensor passes through the raw value."""
+        field = create_data_field(
+            "obd.oem_battery_charge_state", "value", 0, "int"
+        )
+        mock_vehicle.data_fields = {"obd.oem_battery_charge_state.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = HVBatteryChargingStateSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 0
+        assert sensor._attr_name == "HV Battery Charging State"
+
+
 class TestSensorCreation:
     """Test sensor creation functions."""
 
@@ -318,6 +415,38 @@ class TestSensorCreation:
         assert "BatteryVoltageSensor" in sensor_types
         assert "OBDSpeedSensor" in sensor_types
         assert "TotalOdometerSensor" in sensor_types
+
+    def test_create_ev_battery_sensors(self, mock_coordinator):
+        """Test creating EV high-voltage battery sensors from available fields."""
+        available_fields = {
+            "obd.oem_battery_charge_level.value",
+            "obd.oem_battery_state_of_health.value",
+            "obd.oem_hv_battery_voltage.value",
+            "obd.oem_hv_battery_current.value",
+            "obd.oem_battery_temperature.value",
+            "obd.oem_hv_battery_max_cell_temperature.value",
+            "obd.oem_hv_battery_min_cell_temperature.value",
+            "obd.oem_hv_battery_max_cell_voltage.value",
+            "obd.oem_hv_battery_measured_energy.value",
+            "obd.oem_battery_charge_state.value",
+        }
+
+        sensors = create_data_field_sensors(mock_coordinator, "123", available_fields)
+
+        assert len(sensors) == 10
+        sensor_types = {type(sensor).__name__ for sensor in sensors}
+        assert sensor_types == {
+            "HVBatterySocSensor",
+            "HVBatteryStateOfHealthSensor",
+            "HVBatteryVoltageSensor",
+            "HVBatteryCurrentSensor",
+            "HVBatteryTemperatureSensor",
+            "HVBatteryMaxCellTemperatureSensor",
+            "HVBatteryMinCellTemperatureSensor",
+            "HVBatteryMaxCellVoltageSensor",
+            "HVBatteryEnergySensor",
+            "HVBatteryChargingStateSensor",
+        }
 
     def test_create_sensors_with_error(self, mock_coordinator, caplog):
         """Test sensor creation handles errors gracefully."""

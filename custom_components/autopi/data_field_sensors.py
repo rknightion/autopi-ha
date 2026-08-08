@@ -16,6 +16,7 @@ from homeassistant.const import (
     EntityCategory,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
+    UnitOfEnergy,
     UnitOfLength,
     UnitOfSpeed,
     UnitOfTemperature,
@@ -1148,6 +1149,212 @@ class DTCCountSensor(AutoPiDataFieldSensor):
         )
 
 
+# EV / High-Voltage Battery Sensors
+
+
+class HVBatterySocSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery state of charge sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_battery_charge_level.value",
+            "HV Battery State of Charge",
+            icon="mdi:battery",
+            device_class=SensorDeviceClass.BATTERY,
+            unit_of_measurement=PERCENTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+        )
+
+
+class HVBatteryStateOfHealthSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery state of health sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_battery_state_of_health.value",
+            "HV Battery State of Health",
+            icon="mdi:battery-heart-variant",
+            unit_of_measurement=PERCENTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+
+class HVBatteryVoltageSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery pack voltage sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_voltage.value",
+            "HV Battery Voltage",
+            icon="mdi:flash",
+            device_class=SensorDeviceClass.VOLTAGE,
+            unit_of_measurement=UnitOfElectricPotential.VOLT,
+            state_class=SensorStateClass.MEASUREMENT,
+        )
+
+
+class HVBatteryCurrentSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery current sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_current.value",
+            "HV Battery Current",
+            icon="mdi:current-dc",
+            device_class=SensorDeviceClass.CURRENT,
+            unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            state_class=SensorStateClass.MEASUREMENT,
+        )
+
+
+class HVBatteryTemperatureSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery pack temperature sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_battery_temperature.value",
+            "HV Battery Temperature",
+            icon="mdi:thermometer",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            unit_of_measurement=UnitOfTemperature.CELSIUS,
+            state_class=SensorStateClass.MEASUREMENT,
+        )
+
+
+class HVBatteryMaxCellTemperatureSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery maximum cell temperature sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_max_cell_temperature.value",
+            "HV Battery Max Cell Temperature",
+            icon="mdi:thermometer-high",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            unit_of_measurement=UnitOfTemperature.CELSIUS,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+
+class HVBatteryMinCellTemperatureSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery minimum cell temperature sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_min_cell_temperature.value",
+            "HV Battery Min Cell Temperature",
+            icon="mdi:thermometer-low",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            unit_of_measurement=UnitOfTemperature.CELSIUS,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+
+class HVBatteryMaxCellVoltageSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery maximum cell voltage sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_max_cell_voltage.value",
+            "HV Battery Max Cell Voltage",
+            icon="mdi:flash-outline",
+            device_class=SensorDeviceClass.VOLTAGE,
+            unit_of_measurement=UnitOfElectricPotential.VOLT,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+
+class HVBatteryEnergySensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery available energy sensor.
+
+    The API reports this value in 0.1 kWh steps (confirmed by comparing the
+    raw value against the vehicle's known usable battery capacity at a given
+    state of charge).
+    """
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_measured_energy.value",
+            "HV Battery Energy",
+            icon="mdi:battery-charging-high",
+            device_class=SensorDeviceClass.ENERGY,
+            unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+            state_class=SensorStateClass.MEASUREMENT,
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the sensor value converted from 0.1 kWh steps to kWh."""
+        value = super().native_value
+        if value is not None:
+            return round(value / 10.0, 1)
+        return None
+
+
+class HVBatteryChargingStateSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery charging state sensor."""
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_battery_charge_state.value",
+            "HV Battery Charging State",
+            icon="mdi:battery-charging",
+        )
+
+
 # Sensor mapping
 FIELD_ID_TO_SENSOR_CLASS: dict[str, Any] = {
     "obd.bat.level": BatteryChargeLevelSensor,
@@ -1182,6 +1389,16 @@ FIELD_ID_TO_SENSOR_CLASS: dict[str, Any] = {
     "std.battery_voltage.value": VehicleBatteryVoltageSensor,
     "std.speed.value": TrackerSpeedSensor,
     "obd.coolant_temp.value": CoolantTemperatureSensor,
+    "obd.oem_battery_charge_level.value": HVBatterySocSensor,
+    "obd.oem_battery_state_of_health.value": HVBatteryStateOfHealthSensor,
+    "obd.oem_hv_battery_voltage.value": HVBatteryVoltageSensor,
+    "obd.oem_hv_battery_current.value": HVBatteryCurrentSensor,
+    "obd.oem_battery_temperature.value": HVBatteryTemperatureSensor,
+    "obd.oem_hv_battery_max_cell_temperature.value": HVBatteryMaxCellTemperatureSensor,
+    "obd.oem_hv_battery_min_cell_temperature.value": HVBatteryMinCellTemperatureSensor,
+    "obd.oem_hv_battery_max_cell_voltage.value": HVBatteryMaxCellVoltageSensor,
+    "obd.oem_hv_battery_measured_energy.value": HVBatteryEnergySensor,
+    "obd.oem_battery_charge_state.value": HVBatteryChargingStateSensor,
 }
 
 
