@@ -1288,7 +1288,13 @@ class HVBatteryMinCellTemperatureSensor(AutoPiDataFieldSensor):
 
 
 class HVBatteryMaxCellVoltageSensor(AutoPiDataFieldSensor):
-    """EV high-voltage battery maximum cell voltage sensor."""
+    """EV high-voltage battery maximum cell voltage sensor.
+
+    ASSUMPTION: the field is reported in volts, matching the pack voltage field
+    alongside it. Many OEM PIDs report per-cell voltage in millivolts instead,
+    and the data_fields API carries no unit metadata to distinguish them - a
+    vehicle reporting mV will read ~1000x high (a ~4 V cell showing as ~4000 V).
+    """
 
     def __init__(
         self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
@@ -1307,13 +1313,65 @@ class HVBatteryMaxCellVoltageSensor(AutoPiDataFieldSensor):
         )
 
 
-class HVBatteryEnergySensor(AutoPiDataFieldSensor):
-    """EV high-voltage battery available energy sensor.
+class HVBatteryMinCellVoltageSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery minimum cell voltage sensor.
 
-    The API reports this value in 0.1 kWh steps (confirmed by comparing the
-    raw value against the vehicle's known usable battery capacity at a given
-    state of charge).
+    Carries the same volts-not-millivolts assumption as
+    HVBatteryMaxCellVoltageSensor - see that class.
     """
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_min_cell_voltage.value",
+            "HV Battery Min Cell Voltage",
+            icon="mdi:flash-outline",
+            device_class=SensorDeviceClass.VOLTAGE,
+            unit_of_measurement=UnitOfElectricPotential.VOLT,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+
+class HVBatteryEnergySensorBase(AutoPiDataFieldSensor):
+    """Base class for OEM high-voltage battery energy fields.
+
+    ASSUMPTION: the API reports these fields in 0.1 kWh steps, so the raw value
+    is divided by 10. That was established on a single vehicle, by comparing the
+    raw value against its known usable capacity at a given state of charge - the
+    data_fields API carries no unit metadata (units live only on the PID
+    definition behind /obd/pids/), so there is nothing to key the scaling off at
+    runtime. A vehicle whose PID reports whole kWh will read 10x low here.
+
+    These are stored-energy readings rather than accumulated consumption, so the
+    device class is ENERGY_STORAGE - ENERGY only accepts TOTAL/TOTAL_INCREASING
+    and would make the MEASUREMENT state class invalid.
+    """
+
+    _RAW_STEPS_PER_KWH = 10.0
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the sensor value converted from 0.1 kWh steps to kWh."""
+        value = super().native_value
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return round(value / self._RAW_STEPS_PER_KWH, 1)
+        if value is not None:
+            _LOGGER.debug(
+                "Ignoring non-numeric value %r for sensor %s on vehicle %s",
+                value,
+                self._attr_name,
+                self._vehicle_id,
+            )
+        return None
+
+
+class HVBatteryEnergySensor(HVBatteryEnergySensorBase):
+    """EV high-voltage battery available energy sensor."""
 
     def __init__(
         self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
@@ -1325,18 +1383,103 @@ class HVBatteryEnergySensor(AutoPiDataFieldSensor):
             "obd.oem_hv_battery_measured_energy.value",
             "HV Battery Energy",
             icon="mdi:battery-charging-high",
-            device_class=SensorDeviceClass.ENERGY,
+            device_class=SensorDeviceClass.ENERGY_STORAGE,
             unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             state_class=SensorStateClass.MEASUREMENT,
         )
 
-    @property
-    def native_value(self) -> float | None:
-        """Return the sensor value converted from 0.1 kWh steps to kWh."""
-        value = super().native_value
-        if value is not None:
-            return round(value / 10.0, 1)
-        return None
+
+class HVBatteryMaxEnergySensor(HVBatteryEnergySensorBase):
+    """EV high-voltage battery maximum energy sensor.
+
+    Pack capacity as reported by the OEM PID. Comparing this against the vehicle's
+    nameplate capacity is the cheapest way for a user to check whether the 0.1 kWh
+    scaling assumed by the base class is right for their vehicle.
+    """
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_max_energy.value",
+            "HV Battery Max Energy",
+            icon="mdi:battery-high",
+            device_class=SensorDeviceClass.ENERGY_STORAGE,
+            unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+
+class EVRemainingDistanceSensor(AutoPiDataFieldSensor):
+    """EV remaining driving range sensor.
+
+    ASSUMPTION: reported in whole kilometres, matching the km convention AutoPi
+    documents for the other OEM distance field (OBD OEM Total Mileage).
+    """
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_remaining_distance.value",
+            "Remaining Range",
+            icon="mdi:map-marker-distance",
+            device_class=SensorDeviceClass.DISTANCE,
+            unit_of_measurement=UnitOfLength.KILOMETERS,
+            state_class=SensorStateClass.MEASUREMENT,
+        )
+
+
+class HVBatteryLifetimeEnergyUsedSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery lifetime energy discharged sensor.
+
+    Deliberately carries no unit, device class or state class: the field name says
+    "power" but a lifetime counter is energy, and no sample values are available to
+    establish which - or whether it is kWh, Wh or 0.1 kWh steps. Publishing the raw
+    value lets users report what their vehicle actually sends; guessing would write
+    a wrongly-scaled TOTAL_INCREASING series into long-term statistics, which is
+    painful to unpick afterwards.
+    """
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_lifetime_power_use.value",
+            "HV Battery Lifetime Energy Used (Raw)",
+            icon="mdi:battery-arrow-down",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+
+class HVBatteryLifetimeEnergyChargedSensor(AutoPiDataFieldSensor):
+    """EV high-voltage battery lifetime energy charged sensor.
+
+    Raw passthrough for the same reason as HVBatteryLifetimeEnergyUsedSensor.
+    """
+
+    def __init__(
+        self, coordinator: AutoPiDataUpdateCoordinator, vehicle_id: str
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            vehicle_id,
+            "obd.oem_hv_battery_lifetime_charge_power.value",
+            "HV Battery Lifetime Energy Charged (Raw)",
+            icon="mdi:battery-arrow-up",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
 
 
 class HVBatteryChargingStateSensor(AutoPiDataFieldSensor):
@@ -1397,7 +1540,12 @@ FIELD_ID_TO_SENSOR_CLASS: dict[str, Any] = {
     "obd.oem_hv_battery_max_cell_temperature.value": HVBatteryMaxCellTemperatureSensor,
     "obd.oem_hv_battery_min_cell_temperature.value": HVBatteryMinCellTemperatureSensor,
     "obd.oem_hv_battery_max_cell_voltage.value": HVBatteryMaxCellVoltageSensor,
+    "obd.oem_hv_battery_min_cell_voltage.value": HVBatteryMinCellVoltageSensor,
     "obd.oem_hv_battery_measured_energy.value": HVBatteryEnergySensor,
+    "obd.oem_hv_battery_max_energy.value": HVBatteryMaxEnergySensor,
+    "obd.oem_hv_battery_lifetime_power_use.value": HVBatteryLifetimeEnergyUsedSensor,
+    "obd.oem_hv_battery_lifetime_charge_power.value": HVBatteryLifetimeEnergyChargedSensor,
+    "obd.oem_remaining_distance.value": EVRemainingDistanceSensor,
     "obd.oem_battery_charge_state.value": HVBatteryChargingStateSensor,
 }
 

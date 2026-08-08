@@ -1,11 +1,6 @@
----
-title: Entity Reference
-description: Complete reference of all entities, sensors, device trackers, and attributes provided by the AutoPi Home Assistant integration
----
-
 # Entity Reference
 
-The Entity Reference is a comprehensive listing of all entities provided by the AutoPi integration, including sensors, device trackers, binary sensors, and events.
+This page provides a comprehensive reference of all entities provided by the AutoPi integration.
 
 ## Sensors
 
@@ -68,6 +63,20 @@ These sensors are created when the vehicle reports the corresponding telemetry f
 | Battery Current | Battery current sensor. | Primary | Current | AMPERE | Measurement | mdi:current-dc |
 | Battery Voltage | Battery voltage sensor. | Primary | Voltage | VOLT | Measurement | mdi:lightning-bolt |
 | External Voltage | External/aux voltage sensor. | Diagnostic | Voltage | VOLT | Measurement | mdi:flash |
+| HV Battery Charging State | EV high-voltage battery charging state sensor. | Primary | - | - | - | mdi:battery-charging |
+| HV Battery Current | EV high-voltage battery current sensor. | Primary | Current | AMPERE | Measurement | mdi:current-dc |
+| HV Battery Energy | EV high-voltage battery available energy sensor. | Primary | Energy Storage | KILO_WATT_HOUR | Measurement | mdi:battery-charging-high |
+| HV Battery Lifetime Energy Charged | EV high-voltage battery lifetime energy charged sensor. | Diagnostic | - | - | - | mdi:battery-arrow-up |
+| HV Battery Lifetime Energy Used | EV high-voltage battery lifetime energy discharged sensor. | Diagnostic | - | - | - | mdi:battery-arrow-down |
+| HV Battery Max Cell Temperature | EV high-voltage battery maximum cell temperature sensor. | Diagnostic | Temperature | CELSIUS | Measurement | mdi:thermometer-high |
+| HV Battery Max Cell Voltage | EV high-voltage battery maximum cell voltage sensor. | Diagnostic | Voltage | VOLT | Measurement | mdi:flash-outline |
+| HV Battery Max Energy | EV high-voltage battery maximum energy sensor. | Diagnostic | Energy Storage | KILO_WATT_HOUR | Measurement | mdi:battery-high |
+| HV Battery Min Cell Temperature | EV high-voltage battery minimum cell temperature sensor. | Diagnostic | Temperature | CELSIUS | Measurement | mdi:thermometer-low |
+| HV Battery Min Cell Voltage | EV high-voltage battery minimum cell voltage sensor. | Diagnostic | Voltage | VOLT | Measurement | mdi:flash-outline |
+| HV Battery Soc | EV high-voltage battery state of charge sensor. | Primary | Battery | PERCENTAGE | Measurement | mdi:battery |
+| HV Battery State Of Health | EV high-voltage battery state of health sensor. | Diagnostic | - | PERCENTAGE | Measurement | mdi:battery-heart-variant |
+| HV Battery Temperature | EV high-voltage battery pack temperature sensor. | Primary | Temperature | CELSIUS | Measurement | mdi:thermometer |
+| HV Battery Voltage | EV high-voltage battery pack voltage sensor. | Primary | Voltage | VOLT | Measurement | mdi:flash |
 | Tracker Battery Level | Tracker battery level sensor. | Diagnostic | Battery | PERCENTAGE | Measurement | mdi:battery |
 | Vehicle Battery Voltage | Vehicle system battery voltage sensor. | Primary | Voltage | VOLT | Measurement | mdi:car-battery |
 
@@ -97,6 +106,7 @@ These sensors are created when the vehicle reports the corresponding telemetry f
 | Entity | Description | Category | Device Class | Unit | State Class | Icon |
 |----------|----------|----------|----------|----------|----------|----------|
 | Distance Since Codes Clear | Distance since diagnostic codes cleared sensor. | Diagnostic | Distance | KILOMETERS | Total Increasing | mdi:road-variant |
+| EV Remaining Distance | EV remaining driving range sensor. | Primary | Distance | KILOMETERS | Measurement | mdi:map-marker-distance |
 | OEM Total Mileage | OEM total mileage sensor. | Primary | Distance | KILOMETERS | Total Increasing | mdi:counter |
 | Total Odometer | Total odometer sensor. | Primary | Distance | KILOMETERS | Total Increasing | mdi:counter |
 | Trip Odometer | Trip odometer sensor. | Primary | Distance | KILOMETERS | Total Increasing | mdi:map-marker-distance |
@@ -126,6 +136,13 @@ These sensors are created when the vehicle reports the corresponding telemetry f
 | GSM Signal | GSM signal strength sensor. | Diagnostic | - | PERCENTAGE | Measurement | mdi:signal |
 | Timezone Offset | Timezone offset sensor. | Diagnostic | - | - | - | mdi:map-clock |
 
+#### Other Sensors
+
+| Entity | Description | Category | Device Class | Unit | State Class | Icon |
+|----------|----------|----------|----------|----------|----------|----------|
+| Accelerometer | Base accelerometer sensor with stationary suppression. | Primary | - | g | Measurement | - |
+| HV Battery Energy Sensor Base | Base class for OEM high-voltage battery energy fields. | Primary | - | - | - | - |
+
 
 ## Data Field Sensor Reference
 
@@ -133,6 +150,7 @@ This table shows all data field sensors with their corresponding AutoPi field ID
 
 | Entity | Field ID | Description | Category | Device Class | Unit | State Class | Icon |
 |----------|----------|----------|----------|----------|----------|----------|----------|
+| Accelerometer | - | Base accelerometer sensor with stationary suppression. | Primary | - | g | Measurement | - |
 | Accelerometer X | std.accelerometer_axis_x.value | X-axis accelerometer sensor. | Primary | - | g | Measurement | mdi:axis-x-arrow |
 | Accelerometer Y | std.accelerometer_axis_y.value | Y-axis accelerometer sensor. | Primary | - | g | Measurement | mdi:axis-y-arrow |
 | Accelerometer Z | std.accelerometer_axis_z.value | Z-axis accelerometer sensor. | Primary | - | g | Measurement | mdi:axis-z-arrow |
@@ -144,6 +162,7 @@ This table shows all data field sensors with their corresponding AutoPi field ID
 | Coolant Temperature | obd.coolant_temp.value | Engine coolant temperature sensor. | Primary | Temperature | CELSIUS | Measurement | mdi:thermometer |
 | DTC Count | obd.number_of_dtc.value | Diagnostic trouble code count sensor. | Diagnostic | - | - | Measurement | mdi:alert-circle |
 | Distance Since Codes Clear | obd.distance_since_codes_clear.value | Distance since diagnostic codes cleared sensor. | Diagnostic | Distance | KILOMETERS | Total Increasing | mdi:road-variant |
+| EV Remaining Distance | obd.oem_remaining_distance.value | EV remaining driving range sensor. | Primary | Distance | KILOMETERS | Measurement | mdi:map-marker-distance |
 | Engine | obd.rpm.value | Engine RPM sensor. | Primary | - | rpm | Measurement | mdi:engine |
 | Engine Load | obd.engine_load.value | Engine load sensor. | Primary | - | PERCENTAGE | Measurement | mdi:gauge |
 | Engine Run Time | obd.run_time.value | Engine run time sensor. | Primary | Duration | SECONDS | Measurement | mdi:timer |
@@ -160,6 +179,21 @@ This table shows all data field sensors with their corresponding AutoPi field ID
 | GPS Satellites | track.pos.nsat | GPS satellites sensor. | Primary | - | - | Measurement | mdi:satellite-variant |
 | GPS Speed | track.pos.sog | GPS speed sensor. | Primary | Speed | METERS_PER_SECOND | Measurement | mdi:speedometer |
 | GSM Signal | std.gsm_signal.value | GSM signal strength sensor. | Diagnostic | - | PERCENTAGE | Measurement | mdi:signal |
+| HV Battery Charging State | obd.oem_battery_charge_state.value | EV high-voltage battery charging state sensor. | Primary | - | - | - | mdi:battery-charging |
+| HV Battery Current | obd.oem_hv_battery_current.value | EV high-voltage battery current sensor. | Primary | Current | AMPERE | Measurement | mdi:current-dc |
+| HV Battery Energy | obd.oem_hv_battery_measured_energy.value | EV high-voltage battery available energy sensor. | Primary | Energy Storage | KILO_WATT_HOUR | Measurement | mdi:battery-charging-high |
+| HV Battery Energy Sensor Base | - | Base class for OEM high-voltage battery energy fields. | Primary | - | - | - | - |
+| HV Battery Lifetime Energy Charged | obd.oem_hv_battery_lifetime_charge_power.value | EV high-voltage battery lifetime energy charged sensor. | Diagnostic | - | - | - | mdi:battery-arrow-up |
+| HV Battery Lifetime Energy Used | obd.oem_hv_battery_lifetime_power_use.value | EV high-voltage battery lifetime energy discharged sensor. | Diagnostic | - | - | - | mdi:battery-arrow-down |
+| HV Battery Max Cell Temperature | obd.oem_hv_battery_max_cell_temperature.value | EV high-voltage battery maximum cell temperature sensor. | Diagnostic | Temperature | CELSIUS | Measurement | mdi:thermometer-high |
+| HV Battery Max Cell Voltage | obd.oem_hv_battery_max_cell_voltage.value | EV high-voltage battery maximum cell voltage sensor. | Diagnostic | Voltage | VOLT | Measurement | mdi:flash-outline |
+| HV Battery Max Energy | obd.oem_hv_battery_max_energy.value | EV high-voltage battery maximum energy sensor. | Diagnostic | Energy Storage | KILO_WATT_HOUR | Measurement | mdi:battery-high |
+| HV Battery Min Cell Temperature | obd.oem_hv_battery_min_cell_temperature.value | EV high-voltage battery minimum cell temperature sensor. | Diagnostic | Temperature | CELSIUS | Measurement | mdi:thermometer-low |
+| HV Battery Min Cell Voltage | obd.oem_hv_battery_min_cell_voltage.value | EV high-voltage battery minimum cell voltage sensor. | Diagnostic | Voltage | VOLT | Measurement | mdi:flash-outline |
+| HV Battery Soc | obd.oem_battery_charge_level.value | EV high-voltage battery state of charge sensor. | Primary | Battery | PERCENTAGE | Measurement | mdi:battery |
+| HV Battery State Of Health | obd.oem_battery_state_of_health.value | EV high-voltage battery state of health sensor. | Diagnostic | - | PERCENTAGE | Measurement | mdi:battery-heart-variant |
+| HV Battery Temperature | obd.oem_battery_temperature.value | EV high-voltage battery pack temperature sensor. | Primary | Temperature | CELSIUS | Measurement | mdi:thermometer |
+| HV Battery Voltage | obd.oem_hv_battery_voltage.value | EV high-voltage battery pack voltage sensor. | Primary | Voltage | VOLT | Measurement | mdi:flash |
 | Ignition State | std.ignition.value | Ignition state sensor. | Primary | - | - | - | mdi:key |
 | Intake Temperature | obd.intake_temp.value | Intake air temperature sensor. | Primary | Temperature | CELSIUS | Measurement | mdi:thermometer |
 | OBD Speed | obd.speed.value | OBD speed sensor. | Primary | Speed | KILOMETERS_PER_HOUR | Measurement | mdi:speedometer |

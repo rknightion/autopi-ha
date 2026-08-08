@@ -23,11 +23,16 @@ from custom_components.autopi.data_field_sensors import (
     BatteryChargeLevelSensor,
     BatteryChargingStateSensor,
     BatteryVoltageSensor,
+    EVRemainingDistanceSensor,
     FuelRateECUSensor,
     GSMSignalSensor,
     HVBatteryChargingStateSensor,
     HVBatteryCurrentSensor,
     HVBatteryEnergySensor,
+    HVBatteryLifetimeEnergyChargedSensor,
+    HVBatteryLifetimeEnergyUsedSensor,
+    HVBatteryMaxCellVoltageSensor,
+    HVBatteryMaxEnergySensor,
     HVBatterySocSensor,
     HVBatteryStateOfHealthSensor,
     HVBatteryVoltageSensor,
@@ -306,9 +311,7 @@ class TestEVBatterySensors:
 
     def test_hv_battery_soc_sensor(self, mock_coordinator, mock_vehicle):
         """Test HV battery state of charge sensor."""
-        field = create_data_field(
-            "obd.oem_battery_charge_level", "value", 67, "int"
-        )
+        field = create_data_field("obd.oem_battery_charge_level", "value", 67, "int")
         mock_vehicle.data_fields = {"obd.oem_battery_charge_level.value": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
@@ -334,9 +337,7 @@ class TestEVBatterySensors:
 
     def test_hv_battery_voltage_sensor(self, mock_coordinator, mock_vehicle):
         """Test HV battery pack voltage sensor."""
-        field = create_data_field(
-            "obd.oem_hv_battery_voltage", "value", 416.3, "float"
-        )
+        field = create_data_field("obd.oem_hv_battery_voltage", "value", 416.3, "float")
         mock_vehicle.data_fields = {"obd.oem_hv_battery_voltage.value": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
@@ -357,31 +358,104 @@ class TestEVBatterySensors:
         assert sensor.native_value == 0
         assert sensor._attr_device_class == SensorDeviceClass.CURRENT
 
-    def test_hv_battery_energy_sensor_conversion(
-        self, mock_coordinator, mock_vehicle
-    ):
+    def test_hv_battery_energy_sensor_conversion(self, mock_coordinator, mock_vehicle):
         """Test HV battery energy sensor converts from 0.1 kWh steps to kWh."""
         field = create_data_field(
             "obd.oem_hv_battery_measured_energy", "value", 470.3, "float"
         )
-        mock_vehicle.data_fields = {
-            "obd.oem_hv_battery_measured_energy.value": field
-        }
+        mock_vehicle.data_fields = {"obd.oem_hv_battery_measured_energy.value": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
         sensor = HVBatteryEnergySensor(mock_coordinator, "123")
 
         assert sensor.native_value == 47.0
-        assert sensor._attr_device_class == SensorDeviceClass.ENERGY
-        assert (
-            sensor._attr_native_unit_of_measurement == UnitOfEnergy.KILO_WATT_HOUR
+        assert sensor._attr_device_class == SensorDeviceClass.ENERGY_STORAGE
+        assert sensor._attr_state_class == SensorStateClass.MEASUREMENT
+        assert sensor._attr_native_unit_of_measurement == UnitOfEnergy.KILO_WATT_HOUR
+
+    def test_hv_battery_energy_sensor_ignores_non_numeric(
+        self, mock_coordinator, mock_vehicle
+    ):
+        """Test HV battery energy sensor returns None for a non-numeric value."""
+        field = create_data_field(
+            "obd.oem_hv_battery_measured_energy", "value", "unavailable", "str"
         )
+        mock_vehicle.data_fields = {"obd.oem_hv_battery_measured_energy.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = HVBatteryEnergySensor(mock_coordinator, "123")
+
+        assert sensor.native_value is None
+
+    def test_hv_battery_max_cell_voltage_sensor(self, mock_coordinator, mock_vehicle):
+        """Test HV battery max cell voltage sensor reports volts unscaled."""
+        field = create_data_field(
+            "obd.oem_hv_battery_max_cell_voltage", "value", 4.05, "float"
+        )
+        mock_vehicle.data_fields = {"obd.oem_hv_battery_max_cell_voltage.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = HVBatteryMaxCellVoltageSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 4.05
+        assert sensor._attr_device_class == SensorDeviceClass.VOLTAGE
+        assert sensor._attr_native_unit_of_measurement == UnitOfElectricPotential.VOLT
+        assert sensor._attr_entity_category == EntityCategory.DIAGNOSTIC
+
+    def test_hv_battery_max_energy_sensor(self, mock_coordinator, mock_vehicle):
+        """Test HV battery max energy sensor shares the 0.1 kWh conversion."""
+        field = create_data_field(
+            "obd.oem_hv_battery_max_energy", "value", 700.0, "float"
+        )
+        mock_vehicle.data_fields = {"obd.oem_hv_battery_max_energy.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = HVBatteryMaxEnergySensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 70.0
+        assert sensor._attr_device_class == SensorDeviceClass.ENERGY_STORAGE
+        assert sensor._attr_entity_category == EntityCategory.DIAGNOSTIC
+
+    def test_ev_remaining_distance_sensor(self, mock_coordinator, mock_vehicle):
+        """Test EV remaining range sensor reports kilometres unscaled."""
+        field = create_data_field("obd.oem_remaining_distance", "value", 312, "int")
+        mock_vehicle.data_fields = {"obd.oem_remaining_distance.value": field}
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        sensor = EVRemainingDistanceSensor(mock_coordinator, "123")
+
+        assert sensor.native_value == 312
+        assert sensor._attr_device_class == SensorDeviceClass.DISTANCE
+        assert sensor._attr_native_unit_of_measurement == UnitOfLength.KILOMETERS
+
+    def test_hv_battery_lifetime_counters_are_raw(self, mock_coordinator, mock_vehicle):
+        """Test lifetime energy counters pass values through with no unit."""
+        used = create_data_field(
+            "obd.oem_hv_battery_lifetime_power_use", "value", 12345, "int"
+        )
+        charged = create_data_field(
+            "obd.oem_hv_battery_lifetime_charge_power", "value", 23456, "int"
+        )
+        mock_vehicle.data_fields = {
+            "obd.oem_hv_battery_lifetime_power_use.value": used,
+            "obd.oem_hv_battery_lifetime_charge_power.value": charged,
+        }
+        mock_coordinator.data = {"123": mock_vehicle}
+
+        used_sensor = HVBatteryLifetimeEnergyUsedSensor(mock_coordinator, "123")
+        charged_sensor = HVBatteryLifetimeEnergyChargedSensor(mock_coordinator, "123")
+
+        assert used_sensor.native_value == 12345
+        assert charged_sensor.native_value == 23456
+        for sensor in (used_sensor, charged_sensor):
+            assert sensor._attr_native_unit_of_measurement is None
+            assert sensor._attr_device_class is None
+            assert sensor._attr_state_class is None
+            assert sensor._attr_entity_category == EntityCategory.DIAGNOSTIC
 
     def test_hv_battery_charging_state_sensor(self, mock_coordinator, mock_vehicle):
         """Test HV battery charging state sensor passes through the raw value."""
-        field = create_data_field(
-            "obd.oem_battery_charge_state", "value", 0, "int"
-        )
+        field = create_data_field("obd.oem_battery_charge_state", "value", 0, "int")
         mock_vehicle.data_fields = {"obd.oem_battery_charge_state.value": field}
         mock_coordinator.data = {"123": mock_vehicle}
 
@@ -427,13 +501,18 @@ class TestSensorCreation:
             "obd.oem_hv_battery_max_cell_temperature.value",
             "obd.oem_hv_battery_min_cell_temperature.value",
             "obd.oem_hv_battery_max_cell_voltage.value",
+            "obd.oem_hv_battery_min_cell_voltage.value",
             "obd.oem_hv_battery_measured_energy.value",
+            "obd.oem_hv_battery_max_energy.value",
+            "obd.oem_hv_battery_lifetime_power_use.value",
+            "obd.oem_hv_battery_lifetime_charge_power.value",
+            "obd.oem_remaining_distance.value",
             "obd.oem_battery_charge_state.value",
         }
 
         sensors = create_data_field_sensors(mock_coordinator, "123", available_fields)
 
-        assert len(sensors) == 10
+        assert len(sensors) == 15
         sensor_types = {type(sensor).__name__ for sensor in sensors}
         assert sensor_types == {
             "HVBatterySocSensor",
@@ -444,7 +523,12 @@ class TestSensorCreation:
             "HVBatteryMaxCellTemperatureSensor",
             "HVBatteryMinCellTemperatureSensor",
             "HVBatteryMaxCellVoltageSensor",
+            "HVBatteryMinCellVoltageSensor",
             "HVBatteryEnergySensor",
+            "HVBatteryMaxEnergySensor",
+            "HVBatteryLifetimeEnergyUsedSensor",
+            "HVBatteryLifetimeEnergyChargedSensor",
+            "EVRemainingDistanceSensor",
             "HVBatteryChargingStateSensor",
         }
 
