@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1](https://github.com/rknightion/autopi-ha/compare/v0.9.0...v0.9.1) (2026-08-08)
+
+
+### Documentation
+
+* adopt the m7kni.io inverted docs model ([207994f](https://github.com/rknightion/autopi-ha/commit/207994f1d3c6f86ac970a13c1e8042d712266d0c))
+* fix broken internal links ([71bdc56](https://github.com/rknightion/autopi-ha/commit/71bdc56fa2972777dd9c1780d100d50ba69e99c9))
+
 ## [0.9.0](https://github.com/rknightion/autopi-ha/compare/v0.8.0...v0.9.0) (2026-08-08)
 
 
