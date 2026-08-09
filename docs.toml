@@ -42,6 +42,9 @@ Development = [
 Reference = [
     { "Entity Reference" = "entities.md" },
     { FAQ = "faq.md" },
+    { Troubleshooting = "troubleshooting.md" },
+    { Security = "security.md" },
+    { "When to Use This" = "comparison.md" },
 ]
 
 [[site.nav]]
