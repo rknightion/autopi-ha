@@ -51,8 +51,6 @@ Reference = [
 Changelog = "changelog.md"
 
 [assets]
-favicon = "assets/favicon.png"
-logo_icon = "material/home-assistant"
 social_image = "assets/social-card.png"
 social_image_alt = "AutoPi Home Assistant Integration social preview card"
 extra_css = [
