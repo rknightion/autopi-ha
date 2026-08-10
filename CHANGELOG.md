@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0](https://github.com/rknightion/autopi-ha/compare/v0.9.0...v0.10.0) (2026-08-10)
+
+
+### Features
+
+* **docs:** take the fleet project icon for the site logo and favicon ([1055386](https://github.com/rknightion/autopi-ha/commit/1055386062ada5da19785f81a252a482e0fd13fe))
+* **docs:** take the fleet-generated social card ([3b5c9d9](https://github.com/rknightion/autopi-ha/commit/3b5c9d9e5bf074e3a9fd59da4216a922716609f5))
+
+
+### Documentation
+
+* add troubleshooting, security and comparison pages ([a53f458](https://github.com/rknightion/autopi-ha/commit/a53f458272c2fc067546c5279b4aaf1ced5f2fb5))
+* adopt the m7kni.io inverted docs model ([207994f](https://github.com/rknightion/autopi-ha/commit/207994f1d3c6f86ac970a13c1e8042d712266d0c))
+* drop the unused MathJax and ES6 polyfill CDN scripts ([d0bf600](https://github.com/rknightion/autopi-ha/commit/d0bf6003623efcc979a7069e38d5932f09dd8234))
+* fix broken internal links ([71bdc56](https://github.com/rknightion/autopi-ha/commit/71bdc56fa2972777dd9c1780d100d50ba69e99c9))
+
+
+### Miscellaneous Chores
+
+* **deps:** lock file maintenance ([#382](https://github.com/rknightion/autopi-ha/issues/382)) ([927751d](https://github.com/rknightion/autopi-ha/commit/927751de49ddf1068a4a1c1025b67488d2ee3c9b))
+* gitignore the build artifacts the hub injects ([67bd5bc](https://github.com/rknightion/autopi-ha/commit/67bd5bcc895d3e3d9d106c870893e92f8b80e92d))
+
 ## [0.9.0](https://github.com/rknightion/autopi-ha/compare/v0.8.0...v0.9.0) (2026-08-08)
 
 
