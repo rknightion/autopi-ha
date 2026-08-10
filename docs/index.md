@@ -10,6 +10,20 @@ The AutoPi Home Assistant integration allows you to monitor and track your vehic
 
 <!-- TODO: Add hero image ![AutoPi Integration](images/autopi-hero.png) -->
 
+## Quickstart
+
+Install through HACS, then add the integration:
+
+1. Open **HACS** in Home Assistant, go to **Integrations**, search for **AutoPi**
+   and install it. Restart Home Assistant.
+2. Get an API key from [AutoPi Cloud](https://my.autopi.io) — account settings,
+   then **API Access**.
+3. In Home Assistant go to **Settings → Devices & Services → Add Integration**,
+   search for **AutoPi**, and enter the API key.
+4. Select your vehicles, or leave the selection empty to monitor all of them.
+
+Requires Home Assistant 2025.8.0 or newer, which is what HACS enforces.
+
 ## Features
 
 ### 🚗 Vehicle Monitoring
