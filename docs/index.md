@@ -67,7 +67,7 @@ The integration currently supports:
 
 ## System Requirements
 
-- **Home Assistant**: 2023.1.0 or later
+- **Home Assistant**: 2025.8.0 or later
 - **AutoPi Account**: Active AutoPi cloud account
 - **API Access**: AutoPi API token with vehicle access
 - **Python**: 3.11+ (handled by Home Assistant)

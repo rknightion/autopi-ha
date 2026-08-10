@@ -17,7 +17,7 @@ Before you begin, ensure you have:
 - **API Token**: AutoPi API token with vehicle access permissions
 
 ### Home Assistant Requirements
-- **Home Assistant**: Version 2023.1.0 or later
+- **Home Assistant**: Version 2025.8.0 or later
 - **Administrator Access**: Ability to install custom integrations
 - **Internet Connection**: For communication with AutoPi cloud services
 

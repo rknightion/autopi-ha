@@ -53,7 +53,7 @@ This integration follows Home Assistant best practices:
 
 ## Prerequisites
 
-- Home Assistant 2024.1.0 or newer
+- Home Assistant 2025.8.0 or newer
 - AutoPi account with API access
 - At least one AutoPi device installed in a vehicle
 

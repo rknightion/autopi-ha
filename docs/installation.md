@@ -13,7 +13,7 @@ This page provides detailed installation instructions for the AutoPi Home Assist
 
 | Component | Requirement | Notes |
 |-----------|------------|-------|
-| Home Assistant | 2023.1.0+ | Core or Supervised installation |
+| Home Assistant | 2025.8.0+ | Core or Supervised installation |
 | Python | 3.11+ | Handled automatically by Home Assistant |
 | Network | Internet access | Required for AutoPi API communication |
 | Storage | ~5MB | For integration files and cache |
