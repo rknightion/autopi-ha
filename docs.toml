@@ -5,7 +5,7 @@
 [site]
 name = "AutoPi Home Assistant Integration"
 description = "A comprehensive Home Assistant custom integration for monitoring AutoPi vehicle tracking devices with real-time OBD-II diagnostics and GPS data"
-author = "Rob Knighton"
+author = "Rob Knight"
 keywords = [
     "autopi",
     "home assistant",
