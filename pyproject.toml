@@ -172,6 +172,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "scripts/*" = [
     "ALL",
 ]
+# Agent-harness tooling, not integration code. CI lints `custom_components tests`
+# only, so this exists to keep the `uv run ruff check .` form in AGENTS.md clean.
+".claude/hooks/*" = ["ALL"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
