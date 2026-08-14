@@ -200,7 +200,7 @@ grep -rniE "APIToken +[0-9a-z]{16,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 
 **Never use `--notes` or `--plan` bare.** They *silently replace* the whole section — an open
 upstream bug that destroys another session's writes with no warning. Use `--append-notes` and
-`--append-plan`. `.claude/hooks/backlog-guard.py` denies the bare forms; do not work around it.
+`--append-plan`. A global `PreToolUse` hook in the agent config denies the bare forms; do not work around it.
 
 **Finalize in one call**, so an interrupted agent cannot leave finished work looking unfinished:
 

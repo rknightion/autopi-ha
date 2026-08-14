@@ -203,9 +203,7 @@ codex/
 docs/superpowers/
 
 # Claude Code: track only the tracker guard hook and the settings that wire it.
-.claude/*
-!.claude/settings.json
-!.claude/hooks/
+.claude/
 
 # Integration package
 autopi.zip
