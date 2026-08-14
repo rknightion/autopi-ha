@@ -175,3 +175,68 @@ logger:
 - AutoPi API Documentation: https://api.autopi.io/docs
 - Home Assistant Developer Docs: https://developers.home-assistant.io
 - Integration GitHub: https://github.com/rknightion/autopi-ha
+
+## Tracker rules (non-negotiable)
+
+Work is tracked in `backlog/` via the Backlog.md CLI. The queue is a query, not a file:
+`backlog task list --plain` for open work, `backlog doc list --plain` for the durable docs.
+
+- Read the **Agent fan-out protocol (canonical)** doc before designing a wave, and the **Wave
+  operating model** doc for this project's own rules. `backlog doc list --plain` shows both.
+- Closed GitHub issues predating the tracker are indexed in the **Closed GitHub issues index** doc.
+  The issues themselves are still live on GitHub; that doc is a pointer, not a copy.
+
+**`backlog/` is committed to a PUBLIC repo, so tasks and docs must never contain real account
+identifiers or vehicle data** — no AutoPi API tokens, device UUIDs, vehicle IDs, VINs, registration
+plates, GPS coordinates, email addresses or account IDs. Write the shape, not the instance:
+`<device-uuid>`, `<vehicle-id>`, "the second vehicle on the account". Aggregate counts, field names,
+response *shapes* and structural findings are fine. This repo has already been burned by it: the
+now-deleted `todos.txt` carried a live `APIToken`, a device UUID and home coordinates into public
+git history, where deleting the file does not unpublish them. Sweep before committing:
+
+```bash
+grep -rniE "APIToken +[0-9a-z]{16,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|(vehicle|device)_id=[0-9a-f]|-?[0-9]{1,3}\.[0-9]{5,}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}" backlog/ && echo "PII FOUND"
+```
+
+**Never use `--notes` or `--plan` bare.** They *silently replace* the whole section — an open
+upstream bug that destroys another session's writes with no warning. Use `--append-notes` and
+`--append-plan`. `.claude/hooks/backlog-guard.py` denies the bare forms; do not work around it.
+
+**Finalize in one call**, so an interrupted agent cannot leave finished work looking unfinished:
+
+```bash
+backlog task edit APH-0007 --check-ac 1 --check-ac 2 -s Done
+```
+
+**Never hand-edit task, draft, doc, decision or milestone markdown.** Section boundaries are
+HTML-comment markers; break one and the section is *silently dropped*, exit code 0, with the data
+still in the file but invisible until the next write destroys it for real. There is no repair
+command — `backlog doctor` only fixes duplicate task IDs. `backlog/config.yml` is the one explicit
+exception: list-valued keys cannot be set through `backlog config set` and must be edited by hand.
+
+**Never let two agents edit the same task.** v1.50.x fixed the lost-write race in the edit funnel
+but *not* in reorder, draft saves, the TUI edit path, `doc update` or decision updates.
+
+<!-- BACKLOG.MD GUIDELINES START -->
+<!-- backlog.md-instructions-version: 1.50.1 -->
+<CRITICAL_INSTRUCTION>
+
+## Backlog.md Workflow
+
+This project uses Backlog.md for task and project management.
+
+**For every user request in this project, run `backlog instructions overview` before answering or taking action.**
+
+Use the overview to decide whether to search, read, create, or update Backlog tasks.
+
+Before task lifecycle actions, read the matching detailed guide:
+- `backlog instructions task-creation` before creating or splitting tasks
+- `backlog instructions task-execution` before planning, changing status or assignee, adding a plan or implementation notes, or implementing task work
+- `backlog instructions task-finalization` before checking acceptance criteria, writing final summaries, or moving tasks to terminal statuses
+
+Use `backlog <command> --help` before running unfamiliar commands. Help shows options, fields, and examples.
+
+Do not edit Backlog task, draft, document, decision, or milestone markdown files directly. Use the `backlog` CLI so metadata, relationships, and history stay consistent.
+
+</CRITICAL_INSTRUCTION>
+<!-- BACKLOG.MD GUIDELINES END -->

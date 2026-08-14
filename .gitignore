@@ -196,6 +196,17 @@ stubs/
 local/
 .local/
 
+# Agent scratch. Fan-out run artefacts live in codex/ and plans/specs in
+# docs/superpowers/ — both are working state, never deliverables. The tracker in
+# backlog/ is the durable record and is deliberately NOT ignored.
+codex/
+docs/superpowers/
+
+# Claude Code: track only the tracker guard hook and the settings that wire it.
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+
 # Integration package
 autopi.zip
 
