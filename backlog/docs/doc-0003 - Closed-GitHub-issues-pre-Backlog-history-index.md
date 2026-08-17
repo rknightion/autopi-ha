@@ -1,9 +1,9 @@
 ---
 id: doc-0003
-title: Closed GitHub issues index (pre-tracker)
+title: Closed GitHub issues (pre-Backlog history index)
 type: other
 created_date: '2026-08-14 16:08'
-updated_date: '2026-08-14 16:09'
+updated_date: '2026-08-17 09:02'
 ---
 All work closed on GitHub Issues before this repo moved to Backlog.md on **2026-08-14**. Seven closed
 issues; **`#NNN` remains the only ID space for them** — it is what `CHANGELOG.md`, commit messages and
