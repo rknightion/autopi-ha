@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1](https://github.com/rknightion/autopi-ha/compare/v0.10.0...v0.10.1) (2026-08-21)
+
+
+### Bug Fixes
+
+* author is Rob Knight, not Rob Knighton ([cd4609c](https://github.com/rknightion/autopi-ha/commit/cd4609cc6440ba4e41d728ed1425cb1351af242c))
+
+
+### Documentation
+
+* put a copy-paste quickstart on the landing page ([2271ec0](https://github.com/rknightion/autopi-ha/commit/2271ec0da8ad075a52284abe084a68d7aed46204))
+* re-import fan-out protocol (context-cost rules) ([927c59b](https://github.com/rknightion/autopi-ha/commit/927c59b842a2298f47b714f4e6a13e77eeca0643))
+* re-render the fan-out protocol from agent-docs ([092eadb](https://github.com/rknightion/autopi-ha/commit/092eadbd726de9c31adc35a360820aa31b391a52))
+* re-render the fan-out protocol from agent-docs 711db6c ([f60955a](https://github.com/rknightion/autopi-ha/commit/f60955a143588963df2411eb469bab53b8a9be92))
+* re-render the fan-out protocol from agent-docs b0d76d8 ([7c81afd](https://github.com/rknightion/autopi-ha/commit/7c81afdcc691ec9b6d7db51a724eed68ebfe2f4f))
+* state one minimum Home Assistant version, not three ([25378de](https://github.com/rknightion/autopi-ha/commit/25378de31d44beada96823f69b8b9fb63461a7f2))
+* **tracker:** align canonical fan-out protocol ([dee8e4e](https://github.com/rknightion/autopi-ha/commit/dee8e4e07be479028bdad0e9eebed833c911fbf2))
+* **tracker:** correct the canonical owner in the rendered header ([549c66c](https://github.com/rknightion/autopi-ha/commit/549c66c58fe19a7a904f8beb1aea34b6a310ab9e))
+* **tracker:** normalise the closed-issues doc title ([7584805](https://github.com/rknightion/autopi-ha/commit/758480586242dd6ee964172b0f0692765c3db3b8))
+* **tracker:** re-import the fan-out protocol from canonical ([2842581](https://github.com/rknightion/autopi-ha/commit/2842581086af7874cd0a6dd32d6626967265243d))
+* **tracker:** render agent documents from the canonical source ([36bdfa1](https://github.com/rknightion/autopi-ha/commit/36bdfa1d5d9bffb4fe395dd94db208f3f67b0207))
+
+
+### Miscellaneous Chores
+
+* adopt Backlog.md as the tracker and the agent fan-out operating model ([a188e0b](https://github.com/rknightion/autopi-ha/commit/a188e0bbddf74a658c7d8bb9f97193600d55af8d))
+* **deps:** lock file maintenance ([#388](https://github.com/rknightion/autopi-ha/issues/388)) ([afdb313](https://github.com/rknightion/autopi-ha/commit/afdb313ce5594bdece60e158046abe36ab75cd70))
+* **deps:** update astral-sh/setup-uv action to v10 ([#384](https://github.com/rknightion/autopi-ha/issues/384)) ([3400e36](https://github.com/rknightion/autopi-ha/commit/3400e36cd2bdd6fe8ad15d35c8bbfa7f6ce04801))
+* **deps:** update astral-sh/setup-uv action to v10.0.1 ([#386](https://github.com/rknightion/autopi-ha/issues/386)) ([02d59e3](https://github.com/rknightion/autopi-ha/commit/02d59e35cc7436a6ada1ba0d8ebbab389d12bc71))
+* **deps:** update dependency ruff to v0.16.3 ([#385](https://github.com/rknightion/autopi-ha/issues/385)) ([2fc7a6e](https://github.com/rknightion/autopi-ha/commit/2fc7a6e6d81b2f51858cb3a47c8f09a1052250ec))
+* **deps:** update dependency ruff to v0.16.4 ([#389](https://github.com/rknightion/autopi-ha/issues/389)) ([7a577c9](https://github.com/rknightion/autopi-ha/commit/7a577c9f147384ae1ec6f5927156771d537587cc))
+* **deps:** update step-security/harden-runner action to v2.21.0 ([#387](https://github.com/rknightion/autopi-ha/issues/387)) ([407b9f2](https://github.com/rknightion/autopi-ha/commit/407b9f2201e99beb03324ed36d6d34474b55753a))
+* drop the per-repo Backlog.md guard, now global in the agent config ([29bd5ed](https://github.com/rknightion/autopi-ha/commit/29bd5eda7771b53d36687a63f61c685cba02a122))
+* exempt the agent hook dir from ruff ([eee924f](https://github.com/rknightion/autopi-ha/commit/eee924fdc22de85555833c8652feadd0f4172996))
+
 ## [0.10.0](https://github.com/rknightion/autopi-ha/compare/v0.9.0...v0.10.0) (2026-08-10)
 
 
