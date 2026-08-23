@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Complete guide to setting up the AutoPi Home Assistant integration
+description: Install the AutoPi Home Assistant integration, configure API credentials, add a vehicle, and verify its entities.
 ---
 
 # Getting Started

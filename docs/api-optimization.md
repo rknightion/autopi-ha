@@ -1,6 +1,6 @@
 ---
 title: API Optimization
-description: Optimize AutoPi API usage for efficiency and cost management
+description: Reduce AutoPi API calls and costs by tuning polling, caching, entity selection, and update behavior in Home Assistant.
 ---
 
 # API Optimization

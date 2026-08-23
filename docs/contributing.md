@@ -1,6 +1,6 @@
 ---
 title: Contributing
-description: Guide for contributing to the AutoPi Home Assistant integration
+description: Contribute to the AutoPi Home Assistant integration by reporting issues, developing changes, testing, and updating documentation.
 ---
 
 # Contributing

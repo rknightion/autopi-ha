@@ -1,6 +1,6 @@
 ---
 title: Entity Naming
-description: Understanding and customizing entity names in the AutoPi integration
+description: Understand and customize device and entity names created by the AutoPi integration while preserving Home Assistant conventions.
 ---
 
 # Entity Naming
