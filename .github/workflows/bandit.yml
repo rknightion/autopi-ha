@@ -23,6 +23,11 @@ on:
 permissions:
   contents: read
 
+# Cancel a superseded run on the same ref (rapid pushes / PR updates) to free runners.
+concurrency:
+  group: bandit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   bandit:
     permissions:
