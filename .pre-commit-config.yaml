@@ -14,14 +14,14 @@ repos:
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     # Check for the latest ruff version
-    rev: v0.14.10
+    rev: v0.16.5
     hooks:
     -   id: ruff-check
         args: [--fix]
     -   id: ruff-format
 
 -   repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.19.0
+    rev: v1.29.0
     hooks:
     -   id: zizmor
         args: [--fix=all]
@@ -34,7 +34,7 @@ repos:
         exclude: package.lock.json
 
 -   repo: https://github.com/PyCQA/bandit
-    rev: 1.9.2
+    rev: 1.9.4
     hooks:
     -   id: bandit
         args: ["-c", "pyproject.toml"]
@@ -56,7 +56,7 @@ repos:
 
   # Documentation quality for markdown files
 -   repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.47.0
+    rev: v0.49.1
     hooks:
     -   id: markdownlint
         args: ["--disable", "MD013", "MD033", "MD041"]  # Allow long lines, HTML, and missing h1
@@ -110,19 +110,18 @@ repos:
     hooks:
     -   id: pyupgrade
 
-  # Python static type checking
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1 # Keep updated
+  # Python static type checking via the repository task surface
+-   repo: local
     hooks:
     -   id: mypy
-        language_version: "3.13"
-        additional_dependencies:
-        -   types-requests
-        -   types-PyYAML
-        -   homeassistant-stubs==2025.7.3
+        name: Run mypy type checking
+        entry: just typecheck
+        language: system
+        pass_filenames: false
+        types: [python]
 
 -   repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.37.1
+    rev: v1.38.0
     hooks:
     -   id: yamllint
 
@@ -130,7 +129,7 @@ repos:
 
 
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1 # Keep updated
+    rev: v2.4.3 # Keep updated
     hooks:
     -   id: codespell
         args:
@@ -140,12 +139,12 @@ repos:
 
   # Validate GitHub Actions workflow files
 -   repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.36.0 # Keep updated
+    rev: 0.38.0 # Keep updated
     hooks:
     -   id: check-github-workflows
 
 -   repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.0
+    rev: v8.30.1
     hooks:
     -   id: gitleaks
 

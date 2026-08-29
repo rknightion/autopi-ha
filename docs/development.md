@@ -112,9 +112,11 @@ Secure configuration handling:
 
 ### Prerequisites
 
-- **Python**: 3.11 or later
+- **Python**: 3.14.2 or later
 - **Home Assistant**: Development environment
 - **Git**: Version control
+- **just**: Task runner
+- **uv**: Python package manager
 - **IDE**: VS Code recommended with Python extensions
 
 ### Setup
@@ -125,26 +127,15 @@ Secure configuration handling:
    cd autopi-ha
    ```
 
-2. **Install Dependencies**:
+2. **Install Dependencies and Hooks**:
    ```bash
-   # Using uv (recommended)
-   uv sync --all-extras
-   
-   # Or using pip
-   pip install -r requirements-dev.txt
+   just setup
    ```
 
 3. **Development Tools**:
    ```bash
-   # Install pre-commit hooks
-   uv run pre-commit install
-   
-   # Run tests
-   uv run pytest
-   
-   # Run linting
-   uv run ruff check .
-   uv run mypy .
+   # Run the full local gate
+   just check
    ```
 
 ### Testing
@@ -153,16 +144,16 @@ Secure configuration handling:
 
 ```bash
 # Run all tests
-uv run pytest
+just test
 
 # Run with coverage
-uv run pytest --cov=custom_components.autopi
+just test
 
-# Run specific test file
+# Run one specific test file (an intentional one-off escape hatch)
 uv run pytest tests/test_sensor.py
 
 # Run with debugging
-uv run pytest -vv -s
+just test
 ```
 
 #### Integration Testing
@@ -322,16 +313,17 @@ The client implements comprehensive error handling:
 The project uses several tools for code quality:
 
 ```bash
-# Ruff for linting and formatting
-uv run ruff check .                # Check for issues
-uv run ruff check . --fix         # Auto-fix issues
-uv run ruff format .               # Format code
+# Format code in place (Ruff)
+just fmt
 
-# MyPy for type checking
-uv run mypy custom_components      # Type check
+# Run Ruff and Bandit checks
+just lint
 
-# Bandit for security
-uv run bandit -r custom_components # Security scan
+# Run MyPy type checking
+just typecheck
+
+# Run the complete local gate
+just check
 ```
 
 ### Pre-commit Hooks
@@ -449,7 +441,7 @@ GitHub Actions handle:
 3. **Make Changes** with tests
 4. **Run Quality Checks**:
    ```bash
-   make check-all
+   just check
    ```
 5. **Submit Pull Request**
 
@@ -536,4 +528,4 @@ Useful tools for debugging:
 - **Multi-account Support**: Multiple AutoPi accounts
 - **Fleet Management**: Enterprise features
 - **Data Pipeline**: Streaming data processing
-- **Cloud Integration**: Enhanced cloud services 
+- **Cloud Integration**: Enhanced cloud services

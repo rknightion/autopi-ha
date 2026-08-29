@@ -46,8 +46,10 @@ Contribute code improvements and new features:
 ### Development Environment
 
 1. **Prerequisites**:
-   - Python 3.11 or later
+   - Python 3.14.2 or later
    - Git
+   - `just`
+   - `uv`
    - Home Assistant development environment
    - AutoPi account for testing
 
@@ -57,21 +59,14 @@ Contribute code improvements and new features:
    git clone https://github.com/YOUR_USERNAME/autopi-ha.git
    cd autopi-ha
    
-   # Install dependencies
-   uv sync --all-extras
-   
-   # Install pre-commit hooks
-   uv run pre-commit install
+   # Install dependencies and commit hooks
+   just setup
    ```
 
 3. **Verify Setup**:
    ```bash
-   # Run tests
-   uv run pytest
-   
-   # Run linting
-   uv run ruff check .
-   uv run mypy .
+   # Run the full local gate
+   just check
    ```
 
 ### Project Structure
@@ -84,7 +79,7 @@ autopi-ha/
 ├── scripts/                     # Development scripts
 ├── .github/                     # GitHub workflows
 ├── pyproject.toml              # Project configuration
-└── Makefile                    # Development commands
+└── justfile                    # Development task surface
 ```
 
 ## Development Workflow
@@ -175,20 +170,20 @@ async def test_example_sensor(hass, mock_coordinator):
 - **Update changelog** for notable changes
 - **Run documentation generation**:
   ```bash
-  uv run python scripts/generate_docs.py
+  just docgen
   ```
 
 ### 6. Test Your Changes
 
 ```bash
 # Run all tests
-uv run pytest
+just test
 
-# Run specific tests
+# Run one specific test file (an intentional one-off escape hatch)
 uv run pytest tests/test_sensor.py
 
 # Run with coverage
-uv run pytest --cov=custom_components.autopi
+just test
 
 # Test with real Home Assistant
 cp -r custom_components/autopi /path/to/ha/config/custom_components/
@@ -277,15 +272,17 @@ Brief description of what this PR does.
 The project uses several tools to maintain code quality:
 
 ```bash
-# Linting with Ruff
-uv run ruff check .
-uv run ruff format .
+# Format code in place with Ruff
+just fmt
 
-# Type checking with MyPy
-uv run mypy custom_components
+# Run Ruff and Bandit checks
+just lint
 
-# Security scanning with Bandit
-uv run bandit -r custom_components
+# Type check with MyPy
+just typecheck
+
+# Run the full local gate
+just check
 ```
 
 ### Testing Standards
@@ -372,13 +369,14 @@ Contributors are recognized in:
 ### Development Tools
 
 ```bash
-# Makefile commands
-make help          # Show available commands
-make test          # Run tests
-make lint          # Run linting
-make format        # Format code
-make check-all     # Run all checks
-make docgen        # Generate documentation
+# Task-surface commands
+just --list         # Show available commands
+just test           # Run tests
+just lint           # Run linting
+just typecheck      # Run type checking
+just fmt            # Format code
+just check          # Run the full local gate
+just docgen         # Generate documentation
 ```
 
 ### Debugging Tips

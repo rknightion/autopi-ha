@@ -5,14 +5,23 @@ This is a custom Home Assistant integration for the AutoPi cloud platform. It al
 
 ## Development Environment
 
-This project uses `uv` for Python dependency management. Always use `uv` to run Python commands:
-- `uv run ruff check .` - Run linting
-- `uv run ruff check . --fix` - Run linting with auto-fix
-- `uv run mypy .` - Run type checking
-- `uv run pytest` - Run tests
-- `uv run python <script>` - Run any Python script
-- `uv sync` - Sync dependencies
-- `uv pip list` - List installed packages
+This project uses `uv` for Python dependency management, orchestrated through `just`.
+
+## Task interface
+
+This repo's task surface is a `justfile`. Discover it, don't guess it:
+
+    just --list                        # human-readable
+    just --dump --dump-format json     # machine-readable
+    just --show <recipe>               # what a recipe actually runs
+
+- `just check` is the local gate for formatting, linting, type checking, and tests. CI also runs
+  GitHub-native Hassfest and HACS validation. It must pass before you commit.
+- Prefer `just <recipe>` over the underlying tool. If you are typing `pytest`, you want `just test`.
+- Run `just` with stdin from /dev/null. Recipes marked `[confirm]` are destructive — stop and ask
+  before running one; never pass `--yes` or `JUST_YES=1`.
+- If a task you need does not exist, add a recipe with a `#` doc comment and a `[group(...)]`
+  rather than running a bare command.
 
 ## Architecture
 

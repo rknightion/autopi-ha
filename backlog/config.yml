@@ -1,7 +1,7 @@
 project_name: "AutoPi HA"
 default_status: "To Do"
 statuses: ["To Do", "In Progress", "Parked", "Done"]
-definition_of_done: ["uv run ruff check custom_components tests", "uv run mypy .", "uv run pytest"]
+definition_of_done: ["just check"]
 labels: []
 date_format: yyyy-mm-dd
 max_column_width: 20

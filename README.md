@@ -253,16 +253,15 @@ For development and testing:
    # Install UV if you haven't already
    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-   # Install dependencies
-   uv sync
+   # Install just if you haven't already: https://just.systems/man/en/chapter_4.html
 
-   # Install pre-commit hooks
-   uv run pre-commit install
+   # Install dependencies and commit hooks
+   just setup
    ```
 
 3. **Run tests**
    ```bash
-   uv run pytest
+   just test
    ```
 
 4. **Test in Home Assistant**
@@ -290,16 +289,18 @@ cd autopi-ha
 # Install UV if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Set up development environment
-uv sync
-uv run pre-commit install
+# Install just if you haven't already: https://just.systems/man/en/chapter_4.html
+
+# Set up the development environment
+just setup
 
 # Run tests
-uv run pytest
+just test
 
 # Run linters and formatting
-uv run ruff check custom_components tests
-uv run ruff format custom_components tests
+just lint
+just typecheck
+just fmt
 ```
 
 ## Contributing

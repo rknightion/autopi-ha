@@ -1,7 +1,7 @@
 {
     "name": "AutoPi HA Integration",
     "image": "mcr.microsoft.com/devcontainers/python:3.14",
-    "postCreateCommand": "scripts/setup",
+    "postCreateCommand": "just setup",
     "forwardPorts": [
         8123
     ],
@@ -39,7 +39,7 @@
     "remoteUser": "vscode",
     "features": {
         "ghcr.io/devcontainers-extra/features/apt-packages:1": {
-            "packages": "python3-dev pre-commit"
+            "packages": "python3-dev pre-commit just"
         }
     }
 }

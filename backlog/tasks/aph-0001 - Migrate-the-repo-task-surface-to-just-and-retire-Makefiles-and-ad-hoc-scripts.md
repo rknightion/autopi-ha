@@ -1,10 +1,10 @@
 ---
 id: APH-0001
 title: Migrate the repo task surface to just and retire Makefiles and ad-hoc scripts
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-08-28 19:09'
-updated_date: '2026-08-29 10:42'
+updated_date: '2026-08-29 14:07'
 labels:
   - 'wave:2-fleet'
 dependencies: []
@@ -538,10 +538,25 @@ Do not touch, in any way, as part of this task:
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 uv run ruff check custom_components tests
-- [ ] #2 uv run mypy .
-- [ ] #3 uv run pytest
+- [ ] #1 just check
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Inventory the current task surface, CI, hooks, and repository conventions.
+2. Replace the Makefile task surface with a formatted justfile and update only the mapped workflow, docs, script text, and tracker configuration.
+3. Validate local recipes and hooks; remove obsolete paths and search for surviving references.
+4. Commit named paths, push main, verify the exact-SHA CI run, then finalize the task atomically with evidence.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Implemented the justfile migration and retired the Makefile plus thin setup/lint wrappers. Repointed the devcontainer, docs, labeler, and editor configuration; preserved real scripts through `just run` and `just docgen`. Added the missing pre-commit development dependency and repaired the stale mypy hook to call `just typecheck`. Local evidence: `just setup`, `just --fmt --check`, `just --dump --dump-format json`, and `just check` passed (150 passed, 1 skipped); actionlint and zizmor passed; the installed pre-commit hook, `pre-commit-update`, and the mypy hook pass. The required CodeRabbit review is temporarily rate-limited and must succeed before commit/push.
+
+CodeRabbit reviewed the final staged diff after the fixes and reported 0 findings. The earlier review findings were addressed: the local-versus-CI gate wording was corrected, `just setup` now uses `uv sync --all-extras --locked`, and this task’s Definition of Done now names `just check`.
+<!-- SECTION:NOTES:END -->
 
 ## Comments
 

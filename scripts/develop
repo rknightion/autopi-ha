@@ -40,7 +40,7 @@ if command -v uv &> /dev/null; then
 else
     echo "Error: 'uv' command not found!"
     echo ""
-    echo "Please run 'make install' to set up the development environment"
+    echo "Please run 'just setup' to set up the development environment"
     echo "This will install uv and all required dependencies"
     echo ""
     exit 1

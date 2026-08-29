@@ -22,7 +22,7 @@ env:
   PYTHON_VERSION: "3.14"
 
 jobs:
-  # Run all linting, formatting, and static analysis checks via pre-commit
+  # Run all linting, formatting, and static analysis checks via just
   lint-and-scan:
     permissions:
       contents: read # for actions/checkout to fetch code
@@ -54,14 +54,22 @@ jobs:
           activate-environment: true
           enable-cache: true
 
+      - name: Set up just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
+        with:
+          just-version: '1.58.0'
+
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: just setup
 
-      - name: Run Ruff linting
-        run: uv run ruff check --fix custom_components tests
+      - name: Check formatting
+        run: just fmt-check
 
-      - name: Run Ruff formatting
-        run: uv run ruff format custom_components tests
+      - name: Run linting
+        run: just lint
+
+      - name: Run type checking
+        run: just typecheck
 
   # Check with Home Assistant's hassfest
   hassfest:
@@ -132,18 +140,13 @@ jobs:
           activate-environment: true
           enable-cache: true
 
-      - name: Install dependencies
-        run: |
-          # Install dependencies with all extras
-          uv sync --all-extras
-          # Verify installation
-          uv pip list
+      - name: Set up just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
+        with:
+          just-version: '1.58.0'
 
-      - name: Verify Python environment
-        run: |
-          uv run python --version
-          uv run python -c "import sys; print('Python executable:', sys.executable)"
-          uv run python -c "from homeassistant.const import __version__; print('Home Assistant version:', __version__)"
+      - name: Install dependencies
+        run: just setup
 
       - name: Create Home Assistant config directory
         run: mkdir -p /tmp/homeassistant
@@ -163,16 +166,7 @@ jobs:
           # Ensure proper locale
           LC_ALL: C.UTF-8
           LANG: C.UTF-8
-        run: |
-          # Run tests using uv environment
-          uv run python -m pytest tests/ \
-            --cov=custom_components.autopi \
-            --cov-report=term-missing \
-            --cov-report=xml \
-            --cov-report=html \
-            --cov-fail-under=10 \
-            --tb=short \
-            -v
+        run: just test
 
       # Coverage reports are generated locally (see htmlcov/ directory)
       # Uncomment below to upload to Codecov (requires CODECOV_TOKEN secret)

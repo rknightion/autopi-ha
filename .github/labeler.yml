@@ -71,7 +71,7 @@ ci:
   - changed-files:
     - any-glob-to-any-file:
       - '.github/**'
-      - 'Makefile'
+      - 'justfile'
       - '.pre-commit-config.yaml'
 
 # Dependencies
@@ -100,6 +100,6 @@ config:
 build:
   - changed-files:
     - any-glob-to-any-file:
-      - 'Makefile'
+      - 'justfile'
       - '.pre-commit-config.yaml'
       - 'pyproject.toml'
