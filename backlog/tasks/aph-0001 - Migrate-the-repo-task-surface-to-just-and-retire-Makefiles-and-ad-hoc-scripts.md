@@ -1,10 +1,10 @@
 ---
 id: APH-0001
 title: Migrate the repo task surface to just and retire Makefiles and ad-hoc scripts
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-28 19:09'
-updated_date: '2026-08-29 14:07'
+updated_date: '2026-08-29 14:11'
 labels:
   - 'wave:2-fleet'
 dependencies: []
@@ -524,21 +524,21 @@ Do not touch, in any way, as part of this task:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Top-level justfile exists implementing all seven mandatory recipes (default, setup, fmt, fmt-check, lint, test, check) plus docgen, run, build, typecheck, clean
-- [ ] #2 just check passes locally and is exactly what CI's tests.yml lint-and-scan and pytest jobs enforce (fmt-check, lint, typecheck, test)
-- [ ] #3 just --fmt --check passes
-- [ ] #4 just --list shows a doc comment and correct [group(...)] for every public recipe
-- [ ] #5 Makefile is deleted (git rm)
-- [ ] #6 scripts/setup and scripts/lint are deleted; scripts/develop and scripts/generate_docs.py remain and are reachable via just run and just docgen respectively
-- [ ] #7 scripts/fetch_all_events.py is untouched and not wrapped in any recipe
-- [ ] #8 .github/workflows/tests.yml's lint-and-scan and pytest jobs call just recipes (setup, fmt-check, lint, typecheck, test) with a setup-just step pinned to just-version 1.58.0, and the ci-success job's needs list is unchanged
-- [ ] #9 AGENTS.md's Development Environment section is replaced with the fleet Task interface block; no file in the repo references make or scripts/setup or scripts/lint
-- [ ] #10 backlog/config.yml's definition_of_done is set to ["just check"] via the backlog CLI
+- [x] #1 Top-level justfile exists implementing all seven mandatory recipes (default, setup, fmt, fmt-check, lint, test, check) plus docgen, run, build, typecheck, clean
+- [x] #2 just check passes locally and is exactly what CI's tests.yml lint-and-scan and pytest jobs enforce (fmt-check, lint, typecheck, test)
+- [x] #3 just --fmt --check passes
+- [x] #4 just --list shows a doc comment and correct [group(...)] for every public recipe
+- [x] #5 Makefile is deleted (git rm)
+- [x] #6 scripts/setup and scripts/lint are deleted; scripts/develop and scripts/generate_docs.py remain and are reachable via just run and just docgen respectively
+- [x] #7 scripts/fetch_all_events.py is untouched and not wrapped in any recipe
+- [x] #8 .github/workflows/tests.yml's lint-and-scan and pytest jobs call just recipes (setup, fmt-check, lint, typecheck, test) with a setup-just step pinned to just-version 1.58.0, and the ci-success job's needs list is unchanged
+- [x] #9 AGENTS.md's Development Environment section is replaced with the fleet Task interface block; no file in the repo references make or scripts/setup or scripts/lint
+- [x] #10 backlog/config.yml's definition_of_done is set to ["just check"] via the backlog CLI
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 just check
+- [x] #1 just check
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -556,6 +556,8 @@ Do not touch, in any way, as part of this task:
 Implemented the justfile migration and retired the Makefile plus thin setup/lint wrappers. Repointed the devcontainer, docs, labeler, and editor configuration; preserved real scripts through `just run` and `just docgen`. Added the missing pre-commit development dependency and repaired the stale mypy hook to call `just typecheck`. Local evidence: `just setup`, `just --fmt --check`, `just --dump --dump-format json`, and `just check` passed (150 passed, 1 skipped); actionlint and zizmor passed; the installed pre-commit hook, `pre-commit-update`, and the mypy hook pass. The required CodeRabbit review is temporarily rate-limited and must succeed before commit/push.
 
 CodeRabbit reviewed the final staged diff after the fixes and reported 0 findings. The earlier review findings were addressed: the local-versus-CI gate wording was corrected, `just setup` now uses `uv sync --all-extras --locked`, and this task’s Definition of Done now names `just check`.
+
+Final CI evidence: GitHub Actions Tests run 33256773825 completed successfully at commit 63d2c4f940f3672389a86a70052acc5e98620017; its ci-success job passed. The list-valued Backlog configuration could not be set by the installed CLI, so the repository-approved config-file exception was used after the CLI reported that limitation.
 <!-- SECTION:NOTES:END -->
 
 ## Comments
@@ -601,3 +603,9 @@ Eleven of the 42 lanes arrived at this shape independently before it was ratifie
 **If this repo has no such legs, it has no `ci` recipe at all** and `check` is the whole gate. Do not add an empty one.
 ---
 <!-- COMMENTS:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Replaced the Makefile task surface with a formatted justfile, migrated CI and documented entry points, and removed the obsolete setup/lint wrappers. Verified with just setup, just --fmt --check, just --dump --dump-format json, just check (150 passed, 1 skipped), actionlint, zizmor, installed hooks, and a clean final CodeRabbit review. Tests run 33256773825 is green at commit 63d2c4f940f3672389a86a70052acc5e98620017.
+<!-- SECTION:FINAL_SUMMARY:END -->
