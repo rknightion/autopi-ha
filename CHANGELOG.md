@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1](https://github.com/rknightion/autopi-ha/compare/v0.10.0...v0.10.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* author is Rob Knight, not Rob Knighton ([cd4609c](https://github.com/rknightion/autopi-ha/commit/cd4609cc6440ba4e41d728ed1425cb1351af242c))
+
+
+### Documentation
+
+* **backlog:** sync fan-out protocol — CodeRabbit review gate ([cc52354](https://github.com/rknightion/autopi-ha/commit/cc52354c322cc005b03d541bff4f26043322ec1d))
+* **backlog:** sync fan-out protocol — success criteria vs write authority ([681dc60](https://github.com/rknightion/autopi-ha/commit/681dc603a78431116617e46ea67c07f526d7609a))
+* improve search result descriptions ([8aae791](https://github.com/rknightion/autopi-ha/commit/8aae791184a0d0aa1d10e1e54940875c99587603))
+* put a copy-paste quickstart on the landing page ([2271ec0](https://github.com/rknightion/autopi-ha/commit/2271ec0da8ad075a52284abe084a68d7aed46204))
+* re-import fan-out protocol (context-cost rules) ([927c59b](https://github.com/rknightion/autopi-ha/commit/927c59b842a2298f47b714f4e6a13e77eeca0643))
+* re-import the fan-out protocol at c1e6cb0 ([4859dff](https://github.com/rknightion/autopi-ha/commit/4859dff3a1f13d78e62c26a4025b5c340177a3e8))
+* re-render the fan-out protocol from agent-docs ([092eadb](https://github.com/rknightion/autopi-ha/commit/092eadbd726de9c31adc35a360820aa31b391a52))
+* re-render the fan-out protocol from agent-docs 711db6c ([f60955a](https://github.com/rknightion/autopi-ha/commit/f60955a143588963df2411eb469bab53b8a9be92))
+* re-render the fan-out protocol from agent-docs b0d76d8 ([7c81afd](https://github.com/rknightion/autopi-ha/commit/7c81afdcc691ec9b6d7db51a724eed68ebfe2f4f))
+* state one minimum Home Assistant version, not three ([25378de](https://github.com/rknightion/autopi-ha/commit/25378de31d44beada96823f69b8b9fb63461a7f2))
+* sync agent-docs, a wave's launch message is a file not a chat block ([50418b5](https://github.com/rknightion/autopi-ha/commit/50418b5ad1c3f6f5e99c28e9477cb46c7d3b204c))
+* sync Astra routing and default wave reports to files ([2e783f4](https://github.com/rknightion/autopi-ha/commit/2e783f47f120087669b8a36ef992d286a3bad0df))
+* sync nineteen-worker Codex fan-out guidance ([62c7cb8](https://github.com/rknightion/autopi-ha/commit/62c7cb815b4a6588356818ba4fb1d6f1aab7d8d9))
+* **tracker:** align canonical fan-out protocol ([dee8e4e](https://github.com/rknightion/autopi-ha/commit/dee8e4e07be479028bdad0e9eebed833c911fbf2))
+* **tracker:** correct the canonical owner in the rendered header ([549c66c](https://github.com/rknightion/autopi-ha/commit/549c66c58fe19a7a904f8beb1aea34b6a310ab9e))
+* **tracker:** normalise the closed-issues doc title ([7584805](https://github.com/rknightion/autopi-ha/commit/758480586242dd6ee964172b0f0692765c3db3b8))
+* **tracker:** re-import the fan-out protocol from canonical ([2842581](https://github.com/rknightion/autopi-ha/commit/2842581086af7874cd0a6dd32d6626967265243d))
+* **tracker:** render agent documents from the canonical source ([36bdfa1](https://github.com/rknightion/autopi-ha/commit/36bdfa1d5d9bffb4fe395dd94db208f3f67b0207))
+
+
+### Miscellaneous Chores
+
+* adopt Backlog.md as the tracker and the agent fan-out operating model ([a188e0b](https://github.com/rknightion/autopi-ha/commit/a188e0bbddf74a658c7d8bb9f97193600d55af8d))
+* align CodeRabbit review configuration ([1066d94](https://github.com/rknightion/autopi-ha/commit/1066d942ec6f933774b3ae7ef10d8bf40c0eef16))
+* **backlog:** add APH-0001 — migrate the repo task surface to just ([0f381d1](https://github.com/rknightion/autopi-ha/commit/0f381d17ce07b108d5085ffdf9c35625d9c6a50f))
+* **backlog:** ratify ci as the sanctioned superset of check ([a347900](https://github.com/rknightion/autopi-ha/commit/a3479002fbe2f1d5f210e0bddf89ae4ef0eb1e53))
+* **backlog:** wire the fleet migration ordering into this task ([02b59f4](https://github.com/rknightion/autopi-ha/commit/02b59f47999ddc8b27731b6f64190029ca86fc3b))
+* **deps:** lock file maintenance ([#388](https://github.com/rknightion/autopi-ha/issues/388)) ([afdb313](https://github.com/rknightion/autopi-ha/commit/afdb313ce5594bdece60e158046abe36ab75cd70))
+* **deps:** lock file maintenance ([#390](https://github.com/rknightion/autopi-ha/issues/390)) ([e2ad6c1](https://github.com/rknightion/autopi-ha/commit/e2ad6c11eb49596e5dc3f69d85b85a7ce645c264))
+* **deps:** lock file maintenance ([#402](https://github.com/rknightion/autopi-ha/issues/402)) ([6c9d35f](https://github.com/rknightion/autopi-ha/commit/6c9d35fdb5f4b32e723e1b8ec8f491954a7e1acb))
+* **deps:** update astral-sh/setup-uv action to v10 ([#384](https://github.com/rknightion/autopi-ha/issues/384)) ([3400e36](https://github.com/rknightion/autopi-ha/commit/3400e36cd2bdd6fe8ad15d35c8bbfa7f6ce04801))
+* **deps:** update astral-sh/setup-uv action to v10.0.1 ([#386](https://github.com/rknightion/autopi-ha/issues/386)) ([02d59e3](https://github.com/rknightion/autopi-ha/commit/02d59e35cc7436a6ada1ba0d8ebbab389d12bc71))
+* **deps:** update dependency ruff to v0.16.3 ([#385](https://github.com/rknightion/autopi-ha/issues/385)) ([2fc7a6e](https://github.com/rknightion/autopi-ha/commit/2fc7a6e6d81b2f51858cb3a47c8f09a1052250ec))
+* **deps:** update dependency ruff to v0.16.4 ([#389](https://github.com/rknightion/autopi-ha/issues/389)) ([7a577c9](https://github.com/rknightion/autopi-ha/commit/7a577c9f147384ae1ec6f5927156771d537587cc))
+* **deps:** update dependency ruff to v0.16.5 ([#391](https://github.com/rknightion/autopi-ha/issues/391)) ([ea288c5](https://github.com/rknightion/autopi-ha/commit/ea288c54646708c1f72ac81bdb19d2d78ee4910d))
+* **deps:** update dependency ruff to v0.16.6 ([#405](https://github.com/rknightion/autopi-ha/issues/405)) ([cf34a5b](https://github.com/rknightion/autopi-ha/commit/cf34a5bc42ba36e904b2996dd9ab1afe8c15b05b))
+* **deps:** update rknightion/.github action to v1.10.0 ([#395](https://github.com/rknightion/autopi-ha/issues/395)) ([ea77b28](https://github.com/rknightion/autopi-ha/commit/ea77b2835f179259f763cd49a30055f24ffd4490))
+* **deps:** update rknightion/.github action to v1.10.1 ([#396](https://github.com/rknightion/autopi-ha/issues/396)) ([58432c3](https://github.com/rknightion/autopi-ha/commit/58432c32f4f91d2b363373cc68971adc9d58d62d))
+* **deps:** update rknightion/.github action to v1.13.0 ([#397](https://github.com/rknightion/autopi-ha/issues/397)) ([ea121b0](https://github.com/rknightion/autopi-ha/commit/ea121b026d0660a0a5a75c8b4a7bd1fd49e681c7))
+* **deps:** update rknightion/.github action to v1.15.0 ([#398](https://github.com/rknightion/autopi-ha/issues/398)) ([67ab263](https://github.com/rknightion/autopi-ha/commit/67ab26304c1276633148bcec85f1c00df89bd415))
+* **deps:** update rknightion/.github action to v1.15.1 ([#399](https://github.com/rknightion/autopi-ha/issues/399)) ([9cef4e3](https://github.com/rknightion/autopi-ha/commit/9cef4e373f876bc1f5fc32e34e73d9b159a73a12))
+* **deps:** update rknightion/.github action to v1.17.0 ([#400](https://github.com/rknightion/autopi-ha/issues/400)) ([fc33899](https://github.com/rknightion/autopi-ha/commit/fc3389953974cccdb6a63d1280ece86651d5cee3))
+* **deps:** update rknightion/.github action to v1.17.1 ([#401](https://github.com/rknightion/autopi-ha/issues/401)) ([8793814](https://github.com/rknightion/autopi-ha/commit/8793814d826c91ab77a6eb66f76666255d552095))
+* **deps:** update rknightion/.github action to v1.18.0 ([#404](https://github.com/rknightion/autopi-ha/issues/404)) ([97758d9](https://github.com/rknightion/autopi-ha/commit/97758d9a4d6a0fbb61747157939c768384f2c149))
+* **deps:** update rknightion/.github action to v1.20.0 ([#406](https://github.com/rknightion/autopi-ha/issues/406)) ([fa21470](https://github.com/rknightion/autopi-ha/commit/fa21470093eed9456d2b802d7c52eb3bdbe6752d))
+* **deps:** update rknightion/.github action to v1.9.10 ([#394](https://github.com/rknightion/autopi-ha/issues/394)) ([21e6f62](https://github.com/rknightion/autopi-ha/commit/21e6f62df1a59e6ddade44c8d390ba062fb06f82))
+* **deps:** update rknightion/.github action to v1.9.8 ([#392](https://github.com/rknightion/autopi-ha/issues/392)) ([6d9771b](https://github.com/rknightion/autopi-ha/commit/6d9771b6f2347c118f71561d4760127a5183901b))
+* **deps:** update rknightion/.github action to v1.9.9 ([#393](https://github.com/rknightion/autopi-ha/issues/393)) ([53e5360](https://github.com/rknightion/autopi-ha/commit/53e53603c0e8e0431ba244f3d4212a68cdcfe74b))
+* **deps:** update step-security/harden-runner action to v2.21.0 ([#387](https://github.com/rknightion/autopi-ha/issues/387)) ([407b9f2](https://github.com/rknightion/autopi-ha/commit/407b9f2201e99beb03324ed36d6d34474b55753a))
+* **deps:** update step-security/harden-runner action to v2.21.1 ([#403](https://github.com/rknightion/autopi-ha/issues/403)) ([dfada50](https://github.com/rknightion/autopi-ha/commit/dfada50aa9249ff26a5b288e3c009d6f23e571e5))
+* drop the per-repo Backlog.md guard, now global in the agent config ([29bd5ed](https://github.com/rknightion/autopi-ha/commit/29bd5eda7771b53d36687a63f61c685cba02a122))
+* exempt the agent hook dir from ruff ([eee924f](https://github.com/rknightion/autopi-ha/commit/eee924fdc22de85555833c8652feadd0f4172996))
+* finalize just task migration ([8a060ed](https://github.com/rknightion/autopi-ha/commit/8a060ed08b729a40bf55d31d5c983e1c0614b45c))
+* migrate task surface to just ([63d2c4f](https://github.com/rknightion/autopi-ha/commit/63d2c4f940f3672389a86a70052acc5e98620017))
+
 ## [0.10.0](https://github.com/rknightion/autopi-ha/compare/v0.9.0...v0.10.0) (2026-08-10)
 
 
