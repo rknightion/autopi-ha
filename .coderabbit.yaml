@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Product-specific additions to the central CodeRabbit defaults.
+# Keep inheritance enabled; shared review policy lives in the owner/coderabbit repository.
+inheritance: true
+reviews:
+  path_instructions:
+  - path: custom_components/autopi/**
+    instructions: >-
+      Review this as a Home Assistant config-entry integration. Keep API-key validation and reauthentication
+      in config flow, all network access in the API client, and refresh scheduling/failure propagation
+      in DataUpdateCoordinator. Use the bulk most-recent-positions endpoint without turning a partial
+      API failure into empty vehicle state. Preserve entity unique IDs, registry continuity, units and
+      user unit conversion, options defaults and config-entry migration compatibility. Never log API keys,
+      bearer headers, VINs, licence plates, precise locations or raw vehicle payloads. Endpoints listed
+      as future enhancements are not implemented contracts.
