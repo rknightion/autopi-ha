@@ -11,8 +11,8 @@ change that passed `just check`.
 
 `just clean` is `[confirm]`. Never pass `--yes` or `JUST_YES=1` to work around a confirm prompt.
 
-A `pre-commit` hook runs the whole pytest suite on every commit, so a failing test blocks a
-markdown-only commit too.
+A `pre-commit` hook runs the whole pytest suite whenever a Python file is staged, so a one-line
+code change pays for the full run.
 
 ## This is a public repo carrying real vehicle data
 
@@ -53,13 +53,16 @@ overwritten. Nothing in CI or pre-commit regenerates it, so a change to entity d
 
 ## Tracker
 
-Work is tracked in `backlog/`. This repo's own conventions live in the **Wave operating model**
-doc; closed pre-tracker GitHub issues are indexed in the **Closed GitHub issues** doc, which is a
-pointer - the issues themselves are still live on GitHub.
+Work is tracked in `backlog/`. Run `backlog instructions overview` before acting on tracker work;
+`backlog instructions task-creation|task-execution|task-finalization` carry the lifecycle detail.
+Read the **Agent fan-out protocol (canonical)** doc before designing a wave, and the **Wave
+operating model** doc for this repo's own conventions. Closed pre-tracker GitHub issues are indexed
+in the **Closed GitHub issues** doc, which is a pointer - the issues themselves are still live on
+GitHub.
 
 - **Never use `--notes` or `--plan` bare.** They *silently replace* the whole section, an open
   upstream bug that destroys another session's writes with no warning. Use `--append-notes` and
-  `--append-plan`.
+  `--append-plan`. A hook in the agent config denies the bare forms; do not work around it.
 - Finalize in one call so an interrupted session cannot leave finished work looking unfinished:
   `backlog task edit APH-0007 --check-ac 1 --check-ac 2 -s Done`.
 - Section boundaries in tracker markdown are HTML-comment markers. Break one and the section is
