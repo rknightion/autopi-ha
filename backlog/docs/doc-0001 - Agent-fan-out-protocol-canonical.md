@@ -3,7 +3,7 @@ id: doc-0001
 title: Agent fan-out protocol (canonical)
 type: specification
 created_date: '2026-08-14 16:05'
-updated_date: '2026-09-07 22:08'
+updated_date: '2026-09-07 22:17'
 ---
 > **Generated file — do not edit this copy.** Rendered from `sources/fan-out-protocol.md` in
 > `m7kni/agent-docs` at commit `efd1e7a`. This copy is authoritative for `autopi-ha`, so an agent
