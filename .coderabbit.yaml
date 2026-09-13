@@ -13,3 +13,10 @@ reviews:
       user unit conversion, options defaults and config-entry migration compatibility. Never log API keys,
       bearer headers, VINs, licence plates, precise locations or raw vehicle payloads. Endpoints listed
       as future enhancements are not implemented contracts.
+knowledge_base:
+  linked_repositories:
+  - repository: m7kni/m7kni-net-site
+    instructions: >-
+      Documentation hub. This repository dispatches documentation changes to the hub, which clones the
+      docs source and builds it. Check docs_path, config_file and the dispatch payload against this
+      repository's entry in the hub's docs-repos.json manifest.
