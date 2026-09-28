@@ -222,3 +222,6 @@ docs/assets/project-icon-solid.svg
 docs/assets/social-card.png
 docs/assets/social-card.svg
 docs/fonts/
+
+# loop-pi (pi-subagents writes .pi/subagents/)
+.pi/
