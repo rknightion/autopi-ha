@@ -3,7 +3,7 @@ id: doc-0003
 title: Closed GitHub issues (pre-Backlog history index)
 type: other
 created_date: '2026-08-14 16:08'
-updated_date: '2026-08-17 09:02'
+updated_date: '2026-10-15 17:47'
 ---
 All work closed on GitHub Issues before this repo moved to Backlog.md on **2026-08-14**. Seven closed
 issues; **`#NNN` remains the only ID space for them** — it is what `CHANGELOG.md`, commit messages and
@@ -28,7 +28,7 @@ Bot-authored dependency-dashboard issues are listed for completeness but are not
 ## What this set is worth re-reading for
 
 Not much of it is stale, because five of the seven closed in the last six weeks. Two things in it are
-load-bearing beyond their own change and have been lifted into the **Wave operating model** doc, so
+load-bearing beyond their own change and have been lifted into `LOOP.md`, so
 read them there first and come back here only for the full argument:
 
 - **#378** is the reference case for *every unit in this integration being an inference* — it carries

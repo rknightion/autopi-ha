@@ -52,9 +52,10 @@ overwritten. Nothing in CI or pre-commit regenerates it, so a change to entity d
 
 Work is tracked in `backlog/`. Run `backlog instructions overview` before acting on tracker work;
 `backlog instructions task-creation|task-execution|task-finalization` carry the lifecycle detail.
-Read the **Agent fan-out protocol (canonical)** doc before designing a wave, and the **Wave
-operating model** doc for this repo's own conventions. Closed pre-tracker GitHub issues are indexed
-in the **Closed GitHub issues** doc, which is a pointer - the issues themselves are still live on
+
+Loops: the protocol lives in `~/repos/agent-docs/sources/loop/` (this board's "Loop protocol pointer" doc points there); this repository's loop facts are in `LOOP.md`.
+
+Closed pre-tracker GitHub issues are indexed in the **Closed GitHub issues** doc, which is a pointer - the issues themselves are still live on
 GitHub.
 
 ## Deeper references
