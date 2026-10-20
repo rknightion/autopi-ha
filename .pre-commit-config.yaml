@@ -45,7 +45,7 @@ repos:
     hooks:
     -   id: validate-manifest
         name: Validate Home Assistant manifest
-        entry: uv run python3
+        entry: python3
         language: system
         files: ^custom_components/.*/manifest\.json$
         args: ["-c", "import json; import sys; data = json.load(open(sys.argv[1]));
