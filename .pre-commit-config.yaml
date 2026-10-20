@@ -3,7 +3,7 @@
 
 repos:
 -   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
-    rev: v0.9.0
+    rev: v0.10.0
     hooks:
     -   id: pre-commit-update
 
@@ -14,14 +14,14 @@ repos:
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     # Check for the latest ruff version
-    rev: v0.16.5
+    rev: v0.17.1
     hooks:
     -   id: ruff-check
         args: [--fix]
     -   id: ruff-format
 
 -   repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.29.0
+    rev: v1.31.1
     hooks:
     -   id: zizmor
         args: [--fix=all]
@@ -106,7 +106,7 @@ repos:
     -   id: trailing-whitespace
 
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
+    rev: v3.22.0
     hooks:
     -   id: pyupgrade
 
@@ -139,7 +139,7 @@ repos:
 
   # Validate GitHub Actions workflow files
 -   repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.38.0 # Keep updated
+    rev: 0.38.2 # Keep updated
     hooks:
     -   id: check-github-workflows
 
