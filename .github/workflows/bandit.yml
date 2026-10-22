@@ -37,7 +37,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up uv
-        uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
 
       # Plain bandit, not shundor/python-bandit-scan: that action calls tag-pinned actions
       # internally, which the fleet SHA-pinning policy rejects at "Set up job". Same version
