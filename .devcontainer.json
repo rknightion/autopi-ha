@@ -1,6 +1,6 @@
 {
     "name": "AutoPi HA Integration",
-    "image": "mcr.microsoft.com/devcontainers/python:3.14",
+    "image": "mcr.microsoft.com/devcontainers/python:3.15",
     "postCreateCommand": "just setup",
     "forwardPorts": [
         8123
