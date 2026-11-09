@@ -234,6 +234,16 @@ git push origin feature/your-feature-name
 - **All checks passing** (tests, linting, etc.)
 - **No breaking changes** without discussion
 
+### Relating a PR to an issue
+
+Say how your pull request relates to an issue, on a line of its own in the description:
+
+- `Refs #N` when it works on issue N.
+- `Task: none, <reason>` when there is no issue.
+
+Do not write a closing keyword such as `Closes #N` in the description. Closing an issue is a
+maintainer's step, and it needs acceptance evidence that the repository's checks read.
+
 ### PR Template
 
 ```markdown
