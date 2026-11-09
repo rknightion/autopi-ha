@@ -3,12 +3,27 @@ tier: routine
 gate: just check
 ci-required: ci-success
 grafana-stack: none
+tracker: github
+landing: pr
 
 Public repository carrying real vehicle data: no token, device UUID, vehicle id, VIN, plate, GPS
 coordinate or email in any tracked file or loop artifact (`AGENTS.md` has the sweep). `just check`
 is `fmt-check lint typecheck test`; CI also runs hassfest and HACS validation, which have no local
 recipe. A lane touching `manifest.json`, `hacs.json` or the integration layout says its proof is
 partial instead of claiming a full gate. Always `uv run`, never a bare `python` or `pytest`.
+
+The tracker working model is `~/repos/agent-docs/docs/github-tracker.md` (maintainers only).
+
+## Queue
+
+- The queue is `just tracker queue`: open issues at Project Status Ready on the rknightion Project.
+- A charter selects work by labels (`type:task`, `type:bug`, `type:feature`, `needs-owner`,
+  `needs-triage`) and Project fields (Status, Priority, Effort, Lane). Never queue a `needs-owner` or
+  `needs-triage` issue.
+- Only the root writes issues and the Project, through `just tracker`. A lane returns the status and
+  the AC ticks it wants.
+- A queue row names the issue as `#N`. A legacy board id (`APH-0001`) resolves with `just issue <ID>`;
+  `.github/tracker/id-map.json` is the map; a row naming only a legacy id fails `loop-lint queue`.
 
 ## Credentials
 

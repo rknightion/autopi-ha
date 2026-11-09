@@ -16,7 +16,7 @@ code change pays for the full run.
 
 ## This is a public repo carrying real vehicle data
 
-`backlog/`, `docs/` and every instruction file here are published. Never write a real AutoPi API
+Issues, pull request bodies, `docs/`, `.github/tracker/` and every instruction file here are public. Never write a real AutoPi API
 token, device UUID, vehicle id, VIN, registration plate, GPS coordinate, email address or account
 id into any of them - including as an illustrative example. Write the shape instead:
 `<device-uuid>`, `<vehicle-id>`, "the second vehicle on the account". Aggregate counts, field
@@ -25,7 +25,7 @@ names, response *shapes* and structural findings are fine.
 Sweep before committing:
 
 ```bash
-grep -rniE "APIToken +[0-9a-z]{16,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|(vehicle|device)_id=[0-9a-f]|-?[0-9]{1,3}\.[0-9]{5,}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}" backlog/ docs/ && echo "PII FOUND"
+grep -rniE "APIToken +[0-9a-z]{16,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|(vehicle|device)_id=[0-9a-f]|-?[0-9]{1,3}\.[0-9]{5,}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}" docs/ .github/tracker/ && echo "PII FOUND"
 ```
 
 ## AutoPi API
@@ -48,15 +48,22 @@ grep -rniE "APIToken +[0-9a-z]{16,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 overwritten. Nothing in CI or pre-commit regenerates it, so a change to entity definitions needs
 `just docgen` run and committed by hand.
 
-## Tracker
+## Tracking work
 
-Work is tracked in `backlog/`. Run `backlog instructions overview` before acting on tracker work;
-`backlog instructions task-creation|task-execution|task-finalization` carry the lifecycle detail.
+Work is tracked in this repository's GitHub issues; they are the only queue. Do not add a checklist
+file such as `ROADMAP.md` beside them.
 
-Loops: the protocol lives in `~/repos/agent-docs/sources/loop/` (this board's "Loop protocol pointer" doc points there); this repository's loop facts are in `LOOP.md`.
-
-Closed pre-tracker GitHub issues are indexed in the **Closed GitHub issues** doc, which is a pointer - the issues themselves are still live on
-GitHub.
+- A pull request body says how it relates to an issue, on a line of its own: `Closes #N` with the
+  `Acceptance evidence` table from `.github/pull_request_template.md` (one row for each acceptance
+  criterion of that issue), `Refs #N` when it only relates to one, or `Task: none, <reason>`.
+- A pull request that changes `.github/workflows/` or `.github/actions/` carries no closing keyword:
+  write `Task: none, <reason>`, with `Refs #N` beside it if you like.
+- Contributors never need the project board or the tracker tooling; a maintainer handles both.
+- Issues and pull requests are public, so they carry no real identifiers: no AutoPi token, device
+  UUID, vehicle id, VIN, plate, coordinate or email address. Write the shape, not the instance.
+- Older commits, docs and tests cite legacy board ids such as `APH-0001`. `just issue <ID>` prints
+  the issue each one became; `.github/tracker/id-map.json` is the map, and the retired board's
+  documents are kept under `.github/tracker/history/`. Pre-tracker GitHub issues stay where they were.
 
 ## Deeper references
 
