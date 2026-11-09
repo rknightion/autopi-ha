@@ -33,3 +33,6 @@ jobs:
         stale-pr-message: 'Stale pull request message'
         stale-issue-label: 'no-issue-activity'
         stale-pr-label: 'no-pr-activity'
+        # Issues are the work queue: automation never labels or closes one. Pull requests still go stale.
+        days-before-issue-stale: -1
+        days-before-issue-close: -1

@@ -81,3 +81,18 @@ build:
 clean:
     rm -rf build/ dist/ *.egg-info .coverage htmlcov/ .pytest_cache/ .mypy_cache/ .ruff_cache/ coverage.xml bandit-report.json
     find . -type d -name "__pycache__" -exec rm -rf {} +
+
+# GitHub issues and the rknightion Project; maintainers only (needs the tracker tools and credentials)
+[group('tracker')]
+[positional-arguments]
+tracker *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export TRACKER_REPO=rknightion/autopi-ha TRACKER_PROJECT_OWNER=rknightion TRACKER_PROJECT=7
+    export TRACKER_ISSUE_IDENTITY=app TRACKER_PROJECT_IDENTITY=user
+    exec tracker-with-token "$@"
+
+# print the issue a legacy board id (APH-0001) became
+[group('tracker')]
+issue id:
+    TRACKER_REPO=rknightion/autopi-ha tracker legacy {{ quote(id) }}
