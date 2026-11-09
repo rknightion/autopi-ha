@@ -7,7 +7,7 @@ repos:
     hooks:
     -   id: pre-commit-update
 
--   repo: https://github.com/pre-commit/mirrors-prettier
+-   repo: https://github.com/pre-commit/mirrors-prettier # zizmor: ignore[archived-uses] the upstream mirror is archived but its hook still runs; replace it when a successor is chosen
     rev: v3.1.0
     hooks:
     -   id: prettier
