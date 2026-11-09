@@ -1,0 +1,18 @@
+{
+ "held": {},
+ "issues": {
+  "APH-0001": {
+   "number": 466,
+   "url": "https://github.com/rknightion/autopi-ha/issues/466"
+  },
+  "APH-0002": {
+   "number": 465,
+   "url": "https://github.com/rknightion/autopi-ha/issues/465"
+  }
+ },
+ "prefix": "APH",
+ "repo": "rknightion/autopi-ha",
+ "schema": 1,
+ "source_sha": "4acfeadaad329d6f5c11c84bd870ea2c32a002c9",
+ "synthetic": []
+}
