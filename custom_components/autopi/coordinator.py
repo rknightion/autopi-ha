@@ -80,6 +80,9 @@ ENDPOINT_KEY_VEHICLE_ALERTS = "vehicle_alerts"
 class AutoPiDataUpdateCoordinator(DataUpdateCoordinator[CoordinatorData]):
     """Class to manage fetching AutoPi data from the API."""
 
+    # Always provided by this integration; narrows the base class's Optional type.
+    config_entry: ConfigEntry
+
     def __init__(
         self,
         hass: HomeAssistant,
