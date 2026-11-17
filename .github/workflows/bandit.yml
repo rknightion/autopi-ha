@@ -1,12 +1,10 @@
 # Bandit is a security linter designed to find common security issues in Python code.
 # Results go to the Security tab of the repository.
+# The Tests workflow also runs Bandit on every main push.
 
 name: Bandit
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    # The branches below must be a subset of the branches above
     branches: [ "main" ]
   schedule:
     - cron: '30 1 * * 4'
