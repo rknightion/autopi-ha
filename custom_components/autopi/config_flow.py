@@ -6,7 +6,11 @@ import logging
 from typing import Any
 
 import aiohttp
-import voluptuous as vol
+
+try:  # Home Assistant 2026.10+ validates with probatio, a voluptuous drop-in
+    import probatio as vol
+except ImportError:  # pragma: no cover - older Home Assistant
+    import voluptuous as vol  # type: ignore[no-redef]
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult, OptionsFlow
 from homeassistant.core import callback
