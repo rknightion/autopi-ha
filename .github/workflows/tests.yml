@@ -31,6 +31,7 @@ jobs:
 
     runs-on: ubuntu-latest
     name: Linting and Formatting
+    timeout-minutes: 5
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
@@ -77,6 +78,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     name: Hassfest
+    timeout-minutes: 5
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
@@ -95,6 +97,7 @@ jobs:
   hacs:
     runs-on: ubuntu-latest
     name: HACS
+    timeout-minutes: 5
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
@@ -117,6 +120,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     name: Run Tests
+    timeout-minutes: 5
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
@@ -262,6 +266,7 @@ jobs:
   ci-success:
     runs-on: ubuntu-latest
     name: ci-success
+    timeout-minutes: 5
     # All four jobs are gated: hassfest + hacs were added once the strings.json URL violation was fixed.
     if: always()
     needs:
