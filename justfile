@@ -10,6 +10,11 @@ setup:
     uv run pre-commit install
     uv run pre-commit install --hook-type commit-msg
 
+# Prepare locked development dependencies for Cursor Cloud.
+[group('dev')]
+cloud-bootstrap:
+    uv sync --all-extras --locked --python 3.14 --managed-python --compile-bytecode
+
 # format code in place
 [group('check')]
 fmt:
