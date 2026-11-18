@@ -1,1 +1,5 @@
 * text=auto eol=lf
+
+/.release-please-manifest.json linguist-generated=true
+/docs/entities.md linguist-generated=true
+/uv.lock linguist-generated=true
