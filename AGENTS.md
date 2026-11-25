@@ -146,17 +146,6 @@ file such as `ROADMAP.md` beside them.
   the issue each one became; `.github/tracker/id-map.json` is the map, and the retired board's
   documents are kept under `.github/tracker/history/`. Pre-tracker GitHub issues stay where they were.
 
-## Cursor Cloud specific instructions
-
-Build runs `just cloud-bootstrap </dev/null` to prepare the locked Home Assistant development
-environment with Python 3.14. Run `just fmt-check lint typecheck </dev/null` for fast feedback
-and `just check </dev/null` for the full local gate.
-The full gate also runs the mocked integration test suite with its existing coverage threshold.
-
-GitHub Actions runs Hassfest and HACS validation as part of `ci-success`.
-Manual testing requires a separate Home Assistant instance, an AutoPi account with an API token,
-and a reporting device and vehicle. Use synthetic fixtures for Cursor Cloud work.
-
 ## Deeper references
 
 - `autopi-api-combined.md` - read before adding an endpoint or a new metric source; it is the
